@@ -3,6 +3,7 @@ local LrTasks = import 'LrTasks'
 
 local LABELS = { red = true, yellow = true, green = true, blue = true, purple = true }
 local PREVIEW_SIZES = { [400] = true, [1280] = true, [2560] = true }
+local PREVIEW_TIMEOUT_SECONDS = 20
 
 local Commands = {}
 
@@ -53,7 +54,9 @@ local function photosOf(catalog, sourceId)
     local folder = catalog:getFolderByPath(rest)
     return folder and folder:getPhotos(false)
   elseif kind == 'c' then
-    local collection = catalog:getCollectionByLocalIdentifier(tonumber(rest))
+    local id = tonumber(rest)
+    if not id then return nil end
+    local collection = catalog:getCollectionByLocalIdentifier(id)
     return collection and collection:getPhotos()
   end
 end
@@ -81,7 +84,8 @@ function Commands.listPhotos(params)
   end
   table.sort(out, function(a, b)
     if a.time ~= b.time then return a.time < b.time end
-    return a.name < b.name
+    if a.name ~= b.name then return a.name < b.name end
+    return a.id < b.id
   end)
   return out
 end
@@ -98,7 +102,7 @@ function Commands.getPreview(params)
     done = true
   end)
   local waited = 0
-  while not done and waited < 20 do
+  while not done and waited < PREVIEW_TIMEOUT_SECONDS do
     LrTasks.sleep(0.05)
     waited = waited + 0.05
   end
