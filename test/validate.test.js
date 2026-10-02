@@ -24,6 +24,7 @@ test('rejects unknown fields, out-of-range values and malformed ids', () => {
     { ...base, field: 'pickStatus', value: 2 },
     { ...base, photoId: '../x', field: 'rating', value: 1 },
     { ...base, opId: '', field: 'rating', value: 1 },
+    { ...base, field: ['rating'], value: 3 },
     null,
   ];
   for (const op of bad) assert.equal(validateOp(op), 'invalid_op', JSON.stringify(op));

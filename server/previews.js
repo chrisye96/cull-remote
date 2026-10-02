@@ -1,5 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import { BridgeError } from './bridge.js';
 
 export const SIZES = { thumb: 400, std: 1280, hd: 2560 };
 
@@ -11,8 +13,14 @@ export function createPreviewStore(dir, bridge) {
 
   async function fetchAndStore(photoId, size) {
     const jpeg = await bridge.send('getPreview', { photoId, size: SIZES[size] });
+    // Never cache anything that is not a JPEG (SOI marker FF D8).
+    if (!Buffer.isBuffer(jpeg) || jpeg.length < 2 || jpeg[0] !== 0xff || jpeg[1] !== 0xd8) throw new BridgeError('bad_preview');
     await mkdir(dir, { recursive: true });
-    await writeFile(fileFor(photoId, size), jpeg);
+    // Write beside the final file, then rename, so a reader never sees a partial image.
+    const final = fileFor(photoId, size);
+    const tmp = `${final}.${randomUUID()}.tmp`;
+    await writeFile(tmp, jpeg);
+    await rename(tmp, final);
     return jpeg;
   }
 
