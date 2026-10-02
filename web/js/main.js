@@ -21,11 +21,7 @@ async function home() {
   try {
     await showSources(async (source) => {
       show('viewer');
-      try {
-        await openViewer(source);
-      } catch (e) {
-        setStatus(messageFor(e.message));
-      }
+      await openViewer(source);
     });
     sourcesLoaded = true;
   } catch (e) {
