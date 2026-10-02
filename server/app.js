@@ -124,20 +124,30 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
   }
 
   async function publicHandler(req, res) {
-    const url = new URL(req.url, 'http://localhost');
     try {
+      let url;
+      try {
+        url = new URL(req.url, 'http://localhost');
+      } catch {
+        return sendJson(res, 400, { error: 'bad_request' });
+      }
       if (url.pathname.startsWith('/api/')) return await api(req, res, url);
       return await serveStatic(res, url.pathname);
     } catch (e) {
-      if (e instanceof BridgeError) return sendJson(res, STATUS[e.code] ?? 502, { error: e.code });
+      if (e instanceof BridgeError) return sendJson(res, Object.hasOwn(STATUS, e.code) ? STATUS[e.code] : 502, { error: e.code });
       console.error(e);
       return sendJson(res, 500, { error: 'internal' });
     }
   }
 
   async function pluginHandler(req, res) {
-    const url = new URL(req.url, 'http://localhost');
     try {
+      let url;
+      try {
+        url = new URL(req.url, 'http://localhost');
+      } catch {
+        return sendJson(res, 400, { error: 'bad_request' });
+      }
       if (req.method === 'GET' && url.pathname === '/next') {
         // ponytail: if the plugin drops this connection mid-poll, one command can be
         // handed to a dead socket and will fail with lr_timeout. Track res 'close' if it bites.

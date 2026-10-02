@@ -16,6 +16,7 @@ export function validateOp(op) {
     op.opId.length <= 64 &&
     typeof op.photoId === 'string' &&
     PHOTO_ID.test(op.photoId) &&
+    typeof op.field === 'string' &&
     Object.hasOwn(ALLOWED, op.field) &&
     ALLOWED[op.field](op.value);
   return ok ? null : 'invalid_op';

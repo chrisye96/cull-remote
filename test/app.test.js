@@ -156,3 +156,65 @@ test('static files cannot escape the web directory', async () => {
     s.close();
   }
 });
+
+// Node's fetch normalises URLs, so send the request target as-is over node:http.
+function rawGet(base, rawPath) {
+  const { hostname, port } = new URL(base);
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: hostname, port, path: rawPath, method: 'GET' }, (res) => {
+      res.resume();
+      res.on('end', () => resolve(res.statusCode));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+test('a request target that is not a valid URL gets 400 and does not kill the server', async () => {
+  const s = await start();
+  try {
+    for (const base of [s.pub, s.plug]) {
+      assert.equal(await rawGet(base, '//'), 400, base);
+    }
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
+    assert.equal((await fetch(`${s.plug}/nope`)).status, 404);
+  } finally {
+    s.close();
+  }
+});
+
+test('a plugin error named after an Object.prototype member still maps to 502', async () => {
+  const s = await start();
+  try {
+    const plugin = answerOne(s.plug, () => ({ body: JSON.stringify({ ok: false, error: 'constructor' }) }));
+    await sleep(30);
+    const res = await fetch(`${s.pub}/api/sources`);
+    assert.equal(res.status, 502);
+    assert.deepEqual(await res.json(), { error: 'constructor' });
+    await plugin;
+  } finally {
+    s.close();
+  }
+});
+
+test('a non-JPEG preview reply is refused with 502 and never cached', async () => {
+  const s = await start();
+  try {
+    const bad = answerOne(s.plug, () => ({ type: 'image/jpeg', body: Buffer.from('nope') }));
+    await sleep(30);
+    const first = await fetch(`${s.pub}/api/preview/${PHOTO}?size=std`);
+    assert.equal(first.status, 502);
+    assert.deepEqual(await first.json(), { error: 'bad_preview' });
+    await bad;
+    // The bad reply was not cached, so a second request must reach the plugin again.
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+    const good = answerOne(s.plug, () => ({ type: 'image/jpeg', body: jpeg }));
+    await sleep(30);
+    const second = await fetch(`${s.pub}/api/preview/${PHOTO}?size=std`);
+    assert.equal(second.status, 200);
+    assert.deepEqual(Buffer.from(await second.arrayBuffer()), jpeg);
+    await good;
+  } finally {
+    s.close();
+  }
+});
