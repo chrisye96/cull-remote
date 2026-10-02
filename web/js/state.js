@@ -20,3 +20,9 @@ export function setField(photo, field, value) {
 export function shouldAdvance(field, value) {
   return field === 'pickStatus' && value !== 0;
 }
+
+// A failed op may undo its optimistic change only if nothing newer has touched the field.
+// Otherwise the rollback would clobber a later value the user set.
+export function shouldRollback(photo, field, appliedValue) {
+  return photo[KEY[field]] === appliedValue;
+}
