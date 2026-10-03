@@ -81,14 +81,14 @@ function applyFilter(keepPhotoId = null) {
 }
 
 // Both options stay visible with live counts; the active one is highlighted.
+// The buttons are static markup: only the count text and aria-pressed change.
 function renderFilter() {
   const unmarked = all.filter(isUnmarked).length;
   for (const button of $('filter').querySelectorAll('button')) {
     const isAll = button.dataset.filter === 'all';
-    const count = document.createElement('span');
-    count.className = 'count';
-    count.textContent = String(isAll ? all.length : unmarked);
-    button.replaceChildren(isAll ? '全部' : '未标记', count);
+    const countEl = button.querySelector('.count');
+    const count = String(isAll ? all.length : unmarked);
+    if (countEl.textContent !== count) countEl.textContent = count;
     button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
   }
 }
@@ -104,30 +104,29 @@ function syncImage(url) {
   img.src = url;
 }
 
-function badgePart(part) {
-  const el = document.createElement('span');
-  el.className = `part ${part.kind}`;
-  if (part.kind === 'pick') el.append(icon('flag'));
-  if (part.kind === 'reject') el.append(icon('ban'));
-  if (part.kind === 'rating') el.append(icon('star'), String(part.value));
-  if (part.kind === 'label') el.classList.add('dot', part.value);
-  return el;
-}
-
-// All of the photo's marks in one pill in the corner; hidden when it has none.
+// All of the photo's marks in one pill. The parts are static; only classes and text
+// change, so a mark that is already showing never redraws when another one is added.
 function renderBadges(photo) {
   const box = $('badges');
   const parts = photo ? badgeParts(photo) : [];
-  box.replaceChildren();
-  parts.forEach((part, i) => {
-    if (i > 0) {
-      const sep = document.createElement('span');
-      sep.className = 'sep';
-      box.append(sep);
-    }
-    box.append(badgePart(part));
-  });
-  box.hidden = parts.length === 0;
+  const find = (kind) => parts.find((part) => part.kind === kind);
+  const flag = find('pick') ?? find('reject');
+  const rating = find('rating');
+  const label = find('label');
+  let shownBefore = false;
+  for (const [name, part] of [['mark-flag', flag], ['mark-rating', rating], ['mark-label', label]]) {
+    const el = box.querySelector(`.${name}`);
+    el.classList.toggle('on', Boolean(part));
+    el.classList.toggle('sep', Boolean(part) && shownBefore);
+    if (part) shownBefore = true;
+  }
+  const flagEl = box.querySelector('.mark-flag');
+  flagEl.classList.toggle('pick', flag?.kind === 'pick');
+  flagEl.classList.toggle('reject', flag?.kind === 'reject');
+  const valueEl = box.querySelector('.mark-rating .value');
+  if (rating && valueEl.textContent !== String(rating.value)) valueEl.textContent = String(rating.value);
+  if (label) box.querySelector('.mark-label .dot').className = `dot ${label.value}`;
+  box.hidden = !shownBefore;
 }
 
 // Short message in the middle of the photo: an icon or a colour dot, then text.
@@ -226,13 +225,13 @@ function enqueue(task) {
   return run;
 }
 
-function mark(field, rawValue) {
+function mark(field, rawValue, { quiet = false } = {}) {
   const photo = list[index];
   if (!photo) return;
   const value = toggledValue(photo, field, parseValue(field, rawValue));
   const previous = setField(photo, field, value);
   showError('');
-  flash(field, value);
+  if (!quiet) flash(field, value);
   trackPending(photo.id, field, 1);
   // Pick and reject advance right away; the request happens in the background.
   if (!(shouldAdvance(field, value) && go(1))) render();
@@ -251,11 +250,11 @@ function mark(field, rawValue) {
 
 // Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
 // repeating it on a photo that already has that flag just moves on.
-function flagByGesture(value) {
+function flagByGesture(value, quiet = false) {
   const photo = list[index];
   if (!photo) return;
   if (gestureMark(photo, value) === 'advance') go(1);
-  else mark('pickStatus', String(value));
+  else mark('pickStatus', String(value), { quiet });
 }
 
 export function initViewer(onBack) {
@@ -405,13 +404,15 @@ export function initViewer(onBack) {
     const dy = touch.clientY - start.y;
     const flag = swipeFlag({ dx, dy, startY: start.y, viewportHeight: window.innerHeight, durationMs: Date.now() - start.at });
     start = null;
+    // The pull hint already showed this flag, so the central flash would only repeat it.
+    const hinted = $('pull').classList.contains('armed') && $('pull').style.opacity !== '0';
     hidePull();
     if (!dragging) {
       // A clearly vertical swipe sets a flag; anything else is left to the click handler.
       if (flag !== 0) {
         lastSwipeAt = Date.now();
         setOffset(0);
-        flagByGesture(flag);
+        flagByGesture(flag, hinted);
       } else {
         setOffset(0, true); // let the photo settle back after a pull that was not far enough
       }
