@@ -55,3 +55,18 @@ export function indexAfterFilter(list, photoId) {
   const at = photoId === null ? -1 : list.findIndex((photo) => photo.id === photoId);
   return at === -1 ? 0 : at;
 }
+
+const LABEL_NAMES = { red: '红色', yellow: '黄色', green: '绿色', blue: '蓝色', purple: '紫色' };
+
+// What the confirmation flash shows right after a mark is applied.
+export function markSummary(field, value) {
+  if (field === 'pickStatus') {
+    if (value === 1) return { icon: 'flag', text: '留用' };
+    if (value === -1) return { icon: 'ban', text: '弃用' };
+    return { icon: 'flag-off', text: '取消旗标' };
+  }
+  if (field === 'rating') {
+    return value > 0 ? { icon: 'star', text: `${value} 星` } : { icon: 'star-off', text: '清除星级' };
+  }
+  return value === 'none' ? { icon: 'circle-off', text: '清除色标' } : { swatch: value, text: LABEL_NAMES[value] };
+}
