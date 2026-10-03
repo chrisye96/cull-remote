@@ -23,11 +23,11 @@ async function home({ force = false, restoreScroll = false } = {}) {
   show('sources');
   try {
     await showSources(async (source) => {
-      homeScroll = $('sources').scrollTop;
+      homeScroll = $('home-list').scrollTop;
       show('viewer');
       await openViewer(source);
     }, { force });
-    if (restoreScroll) $('sources').scrollTop = homeScroll;
+    if (restoreScroll) $('home-list').scrollTop = homeScroll;
     sourcesLoaded = true;
   } catch (e) {
     sourcesLoaded = false;
