@@ -14,6 +14,8 @@ const flat = () => [
   { id: 'c:99', kind: 'collection', name: 'best', depth: 0, count: 6 },
 ];
 const names = (nodes) => nodes.map((node) => node.source.name);
+// Sorting moves collection sets ahead of everything else, so look the folder up by key.
+const photosOnF = (nodes) => nodes.find((node) => node.key === 'f:F:\\Photos');
 
 test('buildTree nests by depth and keys every node', () => {
   const roots = buildTree(flat());
@@ -29,11 +31,11 @@ test('buildTree nests by depth and keys every node', () => {
 test('sortTree orders siblings per level and leaves the input alone', () => {
   const roots = buildTree(flat());
   const desc = sortTree(roots, 'name-desc');
-  assert.deepEqual(names(desc[0].children), ['250704_Stampede', '25.01.17_Canyon', '24.09.15_zoo']);
+  assert.deepEqual(names(photosOnF(desc).children), ['250704_Stampede', '25.01.17_Canyon', '24.09.15_zoo']);
   const asc = sortTree(roots, 'name-asc');
-  assert.deepEqual(names(asc[0].children), ['24.09.15_zoo', '25.01.17_Canyon', '250704_Stampede']);
+  assert.deepEqual(names(photosOnF(asc).children), ['24.09.15_zoo', '25.01.17_Canyon', '250704_Stampede']);
   const imported = sortTree(roots, 'import');
-  assert.deepEqual(names(imported[0].children), ['25.01.17_Canyon', '250704_Stampede', '24.09.15_zoo']);
+  assert.deepEqual(names(photosOnF(imported).children), ['25.01.17_Canyon', '250704_Stampede', '24.09.15_zoo']);
   assert.deepEqual(names(roots[0].children), ['25.01.17_Canyon', '250704_Stampede', '24.09.15_zoo']);
 });
 
