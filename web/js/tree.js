@@ -82,8 +82,8 @@ export function recentSources(sources, lastPhoto, limit) {
   const byId = new Map(sources.filter((source) => source.id).map((source) => [source.id, source]));
   const recent = [];
   for (const id of Object.keys(lastPhoto ?? {}).reverse()) {
+    if (recent.length >= limit) break;
     if (byId.has(id)) recent.push(byId.get(id));
-    if (recent.length === limit) break;
   }
   return recent;
 }

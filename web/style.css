@@ -18,6 +18,7 @@ body { display: flex; flex-direction: column; overscroll-behavior: none; -webkit
 [hidden] { display: none !important; }
 button { font: inherit; color: inherit; background: var(--panel); border: 1px solid #333; border-radius: 10px; min-height: 44px; padding: 0 14px; touch-action: manipulation; transition: transform .12s ease, filter .12s ease, opacity .2s ease; }
 button:active { transform: scale(.94); filter: brightness(1.3); }
+.row button:active { transform: none; }
 button:disabled { opacity: .5; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -49,13 +50,15 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #source-list li:first-child.source-group { margin-top: 2px; }
 .source-empty { padding: 24px 0; text-align: center; color: var(--muted); }
 .source-row { display: flex; align-items: center; min-height: 46px; background: var(--panel); }
+.source-row:active { background: #26262a; }
 li.source-item + li.source-item .source-row { border-top: 1px solid var(--line); }
 li.group-start .source-row { border-top-left-radius: 12px; border-top-right-radius: 12px; }
 li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
 .twisty, .twisty-spacer { flex: none; width: 36px; }
-.twisty { min-height: 46px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
+.twisty { min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
 .twisty .icon { width: 20px; height: 20px; }
-.source-main { flex: 1; min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; text-align: left; }
+.source-main:active, .twisty:active { transform: none; }
+.source-main { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; text-align: left; }
 .source-kind { flex: none; width: 20px; height: 20px; color: var(--accent); }
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
@@ -155,9 +158,9 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #side { flex: none; }
 
 /* One translucent pill for all marks, and a matching filename tag. */
-#badges { position: absolute; top: calc(var(--img-top, 0px) + 10px); left: calc(var(--img-left, 0px) + 10px); display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 14px; pointer-events: none; }
+#badges { line-height: 1; position: absolute; top: calc(var(--img-top, 0px) + 10px); left: calc(var(--img-left, 0px) + 10px); display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 14px; pointer-events: none; }
 /* Parts stay in the DOM and open or close smoothly, so marks that are already shown never redraw. */
-#badges .part { display: inline-flex; align-items: center; gap: 4px; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; transition: max-width .2s ease, opacity .2s ease, margin .2s ease, padding .2s ease; }
+#badges .part { height: 18px; display: inline-flex; align-items: center; gap: 4px; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; transition: max-width .2s ease, opacity .2s ease, margin .2s ease, padding .2s ease; }
 #badges .part.on { max-width: 56px; opacity: 1; }
 #badges .part.sep { margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(255, 255, 255, .3); }
 #badges .mark-flag.pick { color: var(--accent); }
@@ -172,7 +175,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
-  #viewer::before { content: ''; grid-area: 1 / 2 / 4 / 3; background: var(--panel); }
+  #viewer::before { content: ''; grid-area: 1 / 2 / 4 / 3; background: var(--bg); border-left: 1px solid var(--line); }
 
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
@@ -208,6 +211,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   .home-side { width: clamp(220px, 28vw, 320px); align-content: start; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px); border-right: 1px solid var(--line); overflow-y: auto; }
   .home-sorts { flex-direction: column; }
   .home-list { padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 16px) 16px; }
+  #status:not([hidden]) ~ #sources .home-side { padding-top: 12px; }
   #status:not([hidden]) ~ #sources .home-list { padding-top: 12px; }
 }
 
