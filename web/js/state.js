@@ -95,3 +95,22 @@ export function sortPhotos(photos, mode) {
   const direction = mode === 'time-desc' ? -1 : 1;
   return photos.slice().sort((a, b) => direction * byTime(a, b) || byName(a, b));
 }
+
+export const FLAG_SWIPE_MIN_DY = 80;
+export const FLAG_SWIPE_RATIO = 1.5;
+export const FLAG_SWIPE_EDGE_PX = 24;
+export const FLAG_SWIPE_MAX_MS = 800;
+
+// Decide whether a finished single-finger gesture is a flag swipe.
+// Returns 1 (pick, swipe up), -1 (reject, swipe down) or 0 (not a flag gesture).
+// Gestures that start near the top or bottom screen edge are ignored, because iOS
+// uses those edges for Notification Center and Home; slow drags are ignored too.
+export function swipeFlag({ dx, dy, startY, viewportHeight, durationMs }) {
+  if (Math.abs(dy) <= FLAG_SWIPE_MIN_DY || Math.abs(dy) <= Math.abs(dx) * FLAG_SWIPE_RATIO) return 0;
+  if (startY < FLAG_SWIPE_EDGE_PX || startY > viewportHeight - FLAG_SWIPE_EDGE_PX) return 0;
+  if (durationMs > FLAG_SWIPE_MAX_MS) return 0;
+  return dy < 0 ? 1 : -1;
+}
+
+// A flag gesture never clears a flag: repeating it on a photo that already has that flag moves on.
+export const gestureMark = (photo, value) => (photo.pick === value ? 'advance' : 'mark');

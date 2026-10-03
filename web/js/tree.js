@@ -48,7 +48,8 @@ export function filterTree(nodes, query) {
 
 // Same-named folders on one level (two drives both holding "Photos") get their parent
 // path as a hint. Folder ids are 'f:' + full path, so the hint is the path minus the name.
-// The set of duplicated names is computed once per siblings array.
+// The set of duplicated names is computed once per siblings array, so a siblings array
+// must not be mutated after its first folderHint call.
 const duplicatesCache = new WeakMap();
 
 function duplicatedNames(siblings) {

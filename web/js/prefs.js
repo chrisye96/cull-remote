@@ -24,3 +24,13 @@ export function writePref(name, value) {
     // Storage unavailable: the in-memory copy still applies for this page load.
   }
 }
+
+// Allowed values of the select-backed preferences, defined once for readers and the UI.
+export const FOLDER_SORTS = ['name-desc', 'name-asc', 'import'];
+export const PHOTO_SORTS = ['time-asc', 'time-desc', 'name'];
+
+// The stored value only if it is one of `allowed`; anything else (missing, stale, tampered) gives `fallback`.
+export function readChoice(name, allowed, fallback) {
+  const value = readPref(name, fallback);
+  return allowed.includes(value) ? value : fallback;
+}

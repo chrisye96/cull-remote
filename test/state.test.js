@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -137,4 +137,37 @@ test('sortPhotos orders by capture time or file name without touching the input'
   assert.deepEqual(ids(sortPhotos(photos, 'name')), ['c', 'a', 'b']);
   assert.deepEqual(ids(sortPhotos(photos, 'bogus')), ['a', 'c', 'b']);
   assert.deepEqual(ids(photos), ['b', 'a', 'c']);
+});
+
+const gesture = (over = {}) => ({ dx: 0, dy: -120, startY: 400, viewportHeight: 800, durationMs: 200, ...over });
+
+test('swipeFlag: swipe up picks and swipe down rejects', () => {
+  assert.equal(swipeFlag(gesture({ dy: -120 })), 1);
+  assert.equal(swipeFlag(gesture({ dy: 120 })), -1);
+});
+
+test('swipeFlag ignores diagonal, short and exactly-at-threshold gestures', () => {
+  assert.equal(swipeFlag(gesture({ dx: 60, dy: -90 })), 0);
+  assert.equal(swipeFlag(gesture({ dy: -50 })), 0);
+  assert.equal(swipeFlag(gesture({ dy: -80 })), 0);
+  assert.equal(swipeFlag(gesture({ dx: 80, dy: -120 })), 0); // ratio exactly 1.5
+});
+
+test('swipeFlag ignores gestures that start at the top or bottom screen edge', () => {
+  assert.equal(swipeFlag(gesture({ startY: 10 })), 0);
+  assert.equal(swipeFlag(gesture({ dy: 120, startY: 790 })), 0);
+  assert.equal(swipeFlag(gesture({ startY: 24 })), 1);
+  assert.equal(swipeFlag(gesture({ startY: 776 })), 1);
+});
+
+test('swipeFlag ignores slow drags', () => {
+  assert.equal(swipeFlag(gesture({ durationMs: 900 })), 0);
+  assert.equal(swipeFlag(gesture({ durationMs: 800 })), 1);
+});
+
+test('gestureMark advances when the photo already has the flag and marks otherwise', () => {
+  assert.equal(gestureMark({ pick: 1 }, 1), 'advance');
+  assert.equal(gestureMark({ pick: -1 }, -1), 'advance');
+  assert.equal(gestureMark({ pick: -1 }, 1), 'mark');
+  assert.equal(gestureMark({ pick: 0 }, 1), 'mark');
 });
