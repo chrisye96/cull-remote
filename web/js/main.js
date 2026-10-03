@@ -4,6 +4,8 @@ import { messageFor } from './messages.js';
 import { showSources } from './sources.js';
 import { initViewer, openViewer } from './viewer.js';
 
+document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
+
 let sourcesLoaded = false;
 
 function show(view) {

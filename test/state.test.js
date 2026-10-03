@@ -99,6 +99,10 @@ test('markSummary describes every kind of mark for the confirmation flash', () =
   assert.deepEqual(markSummary('pickStatus', 0), { icon: 'flag-off', text: '取消旗标' });
   assert.deepEqual(markSummary('rating', 3), { icon: 'star', text: '3 星' });
   assert.deepEqual(markSummary('rating', 0), { icon: 'star-off', text: '清除星级' });
+  assert.deepEqual(markSummary('label', 'red'), { swatch: 'red', text: '红色' });
+  assert.deepEqual(markSummary('label', 'yellow'), { swatch: 'yellow', text: '黄色' });
   assert.deepEqual(markSummary('label', 'green'), { swatch: 'green', text: '绿色' });
+  assert.deepEqual(markSummary('label', 'blue'), { swatch: 'blue', text: '蓝色' });
+  assert.deepEqual(markSummary('label', 'purple'), { swatch: 'purple', text: '紫色' });
   assert.deepEqual(markSummary('label', 'none'), { icon: 'circle-off', text: '清除色标' });
 });
