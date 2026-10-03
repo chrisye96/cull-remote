@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -116,4 +116,11 @@ test('badgeParts lists the marks in display order and skips empty ones', () => {
   ]);
   assert.deepEqual(badgeParts({ ...blank(), pick: -1 }), [{ kind: 'reject' }]);
   assert.deepEqual(badgeParts({ ...blank(), label: 'blue' }), [{ kind: 'label', value: 'blue' }]);
+});
+
+test('nextRefreshDelay waits five times the last refresh, never less than the base', () => {
+  assert.equal(nextRefreshDelay(0), 5000);
+  assert.equal(nextRefreshDelay(400), 5000);
+  assert.equal(nextRefreshDelay(1740), 8700);
+  assert.equal(nextRefreshDelay(1000, 3000), 5000);
 });

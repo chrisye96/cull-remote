@@ -80,3 +80,6 @@ export function badgeParts(photo) {
   if (photo.label !== 'none') parts.push({ kind: 'label', value: photo.label });
   return parts;
 }
+
+// Wait at least five times as long as the last refresh took, and never less than the base interval.
+export const nextRefreshDelay = (lastDurationMs, baseMs = 5000) => Math.max(baseMs, Math.round(lastDurationMs * 5));
