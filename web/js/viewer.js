@@ -19,6 +19,7 @@ let failedUrl = null; // URL of the preview that failed to load, if it is still 
 let opQueue = Promise.resolve(); // Ops go to the server strictly one after another.
 let source = null; // The open folder or collection; null on the home page.
 let refreshing = false;
+let settledOps = 0; // Ops that finished; a fetch that overlapped one may carry pre-op data.
 const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
 
 const pendingKey = (photoId, field) => `${photoId}:${field}`;
@@ -36,11 +37,17 @@ async function refresh() {
   if (!source || refreshing || document.hidden || $('viewer').hidden) return;
   refreshing = true;
   const token = openSeq;
+  const settledBefore = settledOps;
   try {
-    const fresh = await getPhotos(source.id);
-    if (token === openSeq && mergeFresh(all, fresh, isPending) > 0) render();
-  } catch {
-    // Connectivity problems are reported by the status bar; the next tick retries.
+    let fresh;
+    try {
+      fresh = await getPhotos(source.id);
+    } catch {
+      return; // Connectivity problems are reported by the status bar; the next tick retries.
+    }
+    // Skip when an op finished meanwhile: the response may predate it. The next tick refetches.
+    if (token !== openSeq || settledOps !== settledBefore) return;
+    if (mergeFresh(all, fresh, isPending) > 0) render();
   } finally {
     refreshing = false;
   }
@@ -187,7 +194,8 @@ function mark(field, rawValue) {
     })
     .finally(() => {
       trackPending(photo.id, field, -1);
-      render();
+      settledOps += 1;
+      if (!$('viewer').hidden) render();
     });
 }
 

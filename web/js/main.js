@@ -50,9 +50,12 @@ $('refresh-sources').addEventListener('click', async () => {
   const button = $('refresh-sources');
   button.disabled = true;
   button.textContent = '刷新中';
-  await home({ force: true });
-  button.disabled = false;
-  button.textContent = '刷新';
+  try {
+    await home({ force: true });
+  } finally {
+    button.disabled = false;
+    button.textContent = '刷新';
+  }
 });
 
 initViewer(home);
