@@ -1,7 +1,7 @@
 import { $ } from './dom.js';
 import { getStatus } from './api.js';
 import { messageFor } from './messages.js';
-import { showSources } from './sources.js';
+import { initSources, showSources } from './sources.js';
 import { initViewer, openViewer } from './viewer.js';
 
 document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
@@ -60,6 +60,7 @@ $('refresh-sources').addEventListener('click', async () => {
   }
 });
 
+initSources();
 initViewer(home);
 await home();
 setInterval(pollStatus, 5000);
