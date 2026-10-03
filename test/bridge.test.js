@@ -65,3 +65,50 @@ test('isOnline turns false once the online window has passed', async () => {
   await new Promise((r) => setTimeout(r, 40));
   assert.equal(bridge.isOnline(), false);
 });
+
+test('aborting a parked poll resolves it with null and takes the bridge offline at once', async () => {
+  const bridge = createBridge();
+  const ac = new AbortController();
+  const poll = bridge.next(1000, ac.signal);
+  assert.equal(bridge.isOnline(), true);
+  ac.abort();
+  assert.equal(await poll, null);
+  assert.equal(bridge.isOnline(), false);
+});
+
+test('after an abort send rejects lr_offline and no command reaches the aborted waiter', async () => {
+  const bridge = createBridge();
+  const ac = new AbortController();
+  const poll = bridge.next(1000, ac.signal);
+  ac.abort();
+  assert.equal(await poll, null);
+  await assert.rejects(bridge.send('listSources'), hasCode('lr_offline'));
+});
+
+test('aborting the signal of a finished poll does not disturb a newer parked poll', async () => {
+  const bridge = createBridge();
+  const old = new AbortController();
+  assert.equal(await bridge.next(5, old.signal), null);
+  const newer = bridge.next(1000);
+  old.abort();
+  assert.equal(bridge.isOnline(), true);
+  const sent = bridge.send('listSources');
+  const cmd = await newer;
+  assert.equal(cmd.type, 'listSources');
+  bridge.complete(cmd.id, null, 'ok');
+  assert.equal(await sent, 'ok');
+});
+
+test('aborting the signal of a replaced poll does not disturb the newer parked poll', async () => {
+  const bridge = createBridge();
+  const old = new AbortController();
+  const first = bridge.next(1000, old.signal);
+  const newer = bridge.next(1000);
+  assert.equal(await first, null);
+  old.abort();
+  assert.equal(bridge.isOnline(), true);
+  const sent = bridge.send('listSources');
+  const cmd = await newer;
+  bridge.complete(cmd.id, null, 'ok');
+  assert.equal(await sent, 'ok');
+});
