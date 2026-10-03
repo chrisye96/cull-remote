@@ -1,7 +1,7 @@
 import { $, icon, playAnimation } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readPref, writePref, PHOTO_SORTS } from './prefs.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
@@ -106,8 +106,17 @@ function syncImage(url) {
 
 // All of the photo's marks in one pill. The parts are static; only classes and text
 // change, so a mark that is already showing never redraws when another one is added.
+let badgesPhotoId = null;
+
 function renderBadges(photo) {
   const box = $('badges');
+  // A different photo shows its marks at once; only marks changed on the same photo animate.
+  const photoId = photo ? photo.id : null;
+  if (photoId !== badgesPhotoId) {
+    badgesPhotoId = photoId;
+    box.classList.add('instant');
+    requestAnimationFrame(() => box.classList.remove('instant'));
+  }
   const parts = photo ? badgeParts(photo) : [];
   const find = (kind) => parts.find((part) => part.kind === kind);
   const flag = find('pick') ?? find('reject');
@@ -325,7 +334,7 @@ export function initViewer(onBack) {
       box.replaceChildren(icon(summary.icon), summary.text);
     }
     box.className = `${value === 1 ? 'pick' : 'reject'}${armed ? ' armed' : ''}`;
-    box.style.opacity = String(0.35 + 0.65 * progress);
+    box.style.opacity = String(pullOpacity(progress, armed));
   }
 
   function hidePull() {
@@ -477,11 +486,13 @@ export async function openViewer(nextSource) {
   showError('');
   render();
   const startedAt = Date.now();
+  let loaded = false;
   try {
     const photos = await getPhotos(source.id);
     if (token !== openSeq) return;
     all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     notice = '';
+    loaded = true;
   } catch (e) {
     if (token !== openSeq) return;
     notice = messageFor(e.message);
@@ -493,6 +504,10 @@ export async function openViewer(nextSource) {
   // Opening a folder counts as using it, even when the remembered photo is unchanged.
   if (list[index]) {
     rememberCapped(lastPhoto, nextSource.id, list[index].id, LAST_PHOTO_CAP);
+    writePref('lastPhoto', lastPhoto);
+  } else if (loaded && all.length) {
+    // The filter hides every photo here, but the folder was still opened.
+    rememberCapped(lastPhoto, nextSource.id, lastPhoto[nextSource.id] ?? all[0].id, LAST_PHOTO_CAP);
     writePref('lastPhoto', lastPhoto);
   }
   render();

@@ -161,6 +161,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #badges { line-height: 1; position: absolute; top: calc(var(--img-top, 0px) + 10px); left: calc(var(--img-left, 0px) + 10px); display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 14px; pointer-events: none; }
 /* Parts stay in the DOM and open or close smoothly, so marks that are already shown never redraw. */
 #badges .part { height: 18px; display: inline-flex; align-items: center; gap: 4px; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; transition: max-width .2s ease, opacity .2s ease, margin .2s ease, padding .2s ease; }
+#badges.instant .part { transition: none; }
 #badges .part.on { max-width: 56px; opacity: 1; }
 #badges .part.sep { margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(255, 255, 255, .3); }
 #badges .mark-flag.pick { color: var(--accent); }
@@ -196,7 +197,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #error { padding: 6px calc(env(safe-area-inset-right) + 8px) 6px 8px; font-size: 12px; }
 
   /* Rail: the flags panel on top, then the stars panel (5 on top) beside the colour strip. */
-  #actions { flex: 1; min-height: 0; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(48px, 1.4fr) minmax(0, 5fr); gap: 6px; padding: 8px calc(env(safe-area-inset-right) + 8px) calc(env(safe-area-inset-bottom) + 8px) 8px; background: transparent; }
+  #actions { flex: 1; min-height: min-content; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(48px, 1.4fr) minmax(160px, 5fr); gap: 6px; padding: 8px calc(env(safe-area-inset-right) + 8px) calc(env(safe-area-inset-bottom) + 8px) 8px; background: transparent; }
   #actions .row { min-height: 0; border-radius: 10px; }
   #actions .row.flags { grid-column: 1 / -1; }
   #actions .row.stars { grid-area: 2 / 1; flex-direction: column-reverse; }

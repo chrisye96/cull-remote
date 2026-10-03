@@ -118,6 +118,10 @@ export const gestureMark = (photo, value) => (photo.pick === value ? 'advance' :
 // How far a vertical pull has come toward the flag threshold, from 0 to 1.
 export const pullProgress = (dy) => Math.min(1, Math.abs(dy) / FLAG_SWIPE_MIN_DY);
 
+// Opacity of the pull hint: full only once the flag is armed, so a bright hint always
+// means that releasing will set the flag.
+export const pullOpacity = (progress, armed) => (armed ? 1 : Math.min(0.6, 0.35 + 0.65 * progress));
+
 // Which part of the photo a tap landed in. The middle is wide on purpose, so a tap that
 // is slightly off-centre does not change photo.
 export const EDGE_TAP_RATIO = 0.22;
