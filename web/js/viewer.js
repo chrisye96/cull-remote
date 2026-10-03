@@ -1,7 +1,7 @@
 import { $, icon } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts } from './state.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
 const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
@@ -70,7 +70,10 @@ function renderFilter() {
   const unmarked = all.filter(isUnmarked).length;
   for (const button of $('filter').querySelectorAll('button')) {
     const isAll = button.dataset.filter === 'all';
-    button.textContent = isAll ? `全部 ${all.length}` : `未标记 ${unmarked}`;
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = String(isAll ? all.length : unmarked);
+    button.replaceChildren(isAll ? '全部' : '未标记', count);
     button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
   }
 }
@@ -86,22 +89,30 @@ function syncImage(url) {
   img.src = url;
 }
 
-function badge(className, children) {
+function badgePart(part) {
   const el = document.createElement('span');
-  el.className = `badge ${className}`;
-  el.append(...children);
+  el.className = `part ${part.kind}`;
+  if (part.kind === 'pick') el.append(icon('flag'));
+  if (part.kind === 'reject') el.append(icon('ban'));
+  if (part.kind === 'rating') el.append(icon('star'), String(part.value));
+  if (part.kind === 'label') el.classList.add('dot', part.value);
   return el;
 }
 
-// The photo's current marks, always visible in the corner.
+// All of the photo's marks in one pill in the corner; hidden when it has none.
 function renderBadges(photo) {
   const box = $('badges');
-  box.textContent = '';
-  if (!photo) return;
-  if (photo.pick === 1) box.append(badge('pick', [icon('flag')]));
-  if (photo.pick === -1) box.append(badge('reject', [icon('ban')]));
-  if (photo.rating > 0) box.append(badge('rating', [icon('star'), String(photo.rating)]));
-  if (photo.label !== 'none') box.append(badge(`swatch ${photo.label}`, []));
+  const parts = photo ? badgeParts(photo) : [];
+  box.replaceChildren();
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'sep';
+      box.append(sep);
+    }
+    box.append(badgePart(part));
+  });
+  box.hidden = parts.length === 0;
 }
 
 // Short confirmation in the middle of the photo right after a mark.
@@ -132,7 +143,10 @@ function render() {
   $('photo').hidden = !photo || previewFailed;
   $('actions').hidden = !photo;
   $('empty').hidden = Boolean(photo) && !previewFailed;
-  $('title').textContent = photo ? `${photo.name}  ${index + 1}/${list.length}` : sourceName;
+  $('photo-name').textContent = photo ? photo.name : sourceName;
+  $('photo-pos').textContent = photo ? `${index + 1}/${list.length}` : '';
+  $('caption').textContent = photo ? photo.name : '';
+  $('caption').hidden = !photo;
   renderBadges(photo);
   if (!photo) {
     $('empty').textContent = notice || (onlyUnmarked ? '这里没有未标记的照片' : '这里没有照片');

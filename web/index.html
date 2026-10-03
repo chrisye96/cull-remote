@@ -25,7 +25,7 @@
   <main id="viewer" hidden>
     <header>
       <button id="back" type="button">返回</button>
-      <span id="title"></span>
+      <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" aria-label="筛选">
         <button type="button" data-filter="unmarked"></button>
         <button type="button" data-filter="all"></button>
@@ -35,14 +35,15 @@
       <img id="photo" alt="">
       <div id="badges" aria-hidden="true"></div>
       <div id="flash" aria-hidden="true"></div>
+      <span id="caption" hidden></span>
       <p id="empty" hidden></p>
     </div>
     <aside id="side">
       <p id="error" role="alert" hidden></p>
       <footer id="actions">
         <div class="row">
-          <button type="button" data-field="pickStatus" data-value="1">留用</button>
-          <button type="button" data-field="pickStatus" data-value="-1">弃用</button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon"><use href="/vendor/lucide.svg#flag"></use></svg><span>留用</span></button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon"><use href="/vendor/lucide.svg#ban"></use></svg><span>弃用</span></button>
         </div>
         <div class="row stars">
           <button type="button" data-field="rating" data-value="1" aria-label="1 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>

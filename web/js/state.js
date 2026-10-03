@@ -70,3 +70,13 @@ export function markSummary(field, value) {
   }
   return value === 'none' ? { icon: 'circle-off', text: '清除色标' } : { swatch: value, text: LABEL_NAMES[value] };
 }
+
+// The parts of the mark pill shown on the photo, in display order.
+export function badgeParts(photo) {
+  const parts = [];
+  if (photo.pick === 1) parts.push({ kind: 'pick' });
+  if (photo.pick === -1) parts.push({ kind: 'reject' });
+  if (photo.rating > 0) parts.push({ kind: 'rating', value: photo.rating });
+  if (photo.label !== 'none') parts.push({ kind: 'label', value: photo.label });
+  return parts;
+}
