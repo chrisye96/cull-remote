@@ -16,13 +16,13 @@ function setStatus(text) {
   $('status').hidden = !text;
 }
 
-async function home() {
+async function home({ force = false } = {}) {
   show('sources');
   try {
     await showSources(async (source) => {
       show('viewer');
       await openViewer(source);
-    });
+    }, { force });
     sourcesLoaded = true;
   } catch (e) {
     sourcesLoaded = false;
@@ -38,13 +38,22 @@ async function pollStatus() {
   try {
     const { lrOnline } = await getStatus();
     setStatus(lrOnline ? '' : messageFor('lr_offline'));
-    if (lrOnline && !sourcesLoaded && !$('sources').hidden) await home();
+    if (lrOnline && !sourcesLoaded && !$('sources').hidden) await home({ force: true });
   } catch (e) {
     setStatus(messageFor(e.message));
   } finally {
     polling = false;
   }
 }
+
+$('refresh-sources').addEventListener('click', async () => {
+  const button = $('refresh-sources');
+  button.disabled = true;
+  button.textContent = '刷新中';
+  await home({ force: true });
+  button.disabled = false;
+  button.textContent = '刷新';
+});
 
 initViewer(home);
 await home();

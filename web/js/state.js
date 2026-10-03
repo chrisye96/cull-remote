@@ -49,3 +49,9 @@ export function mergeFresh(photos, fresh, isPending) {
   }
   return changed;
 }
+
+// After switching the filter, stay on the same photo when it is still in the list.
+export function indexAfterFilter(list, photoId) {
+  const at = photoId === null ? -1 : list.findIndex((photo) => photo.id === photoId);
+  return at === -1 ? 0 : at;
+}

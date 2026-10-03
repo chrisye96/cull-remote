@@ -1,7 +1,7 @@
 import { $ } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter } from './state.js';
 
 const size = matchMedia('(min-width: 768px)').matches ? 'hd' : 'std';
 const SWIPE_MIN_DX = 50;
@@ -52,10 +52,19 @@ function showError(text) {
   $('error').hidden = !text;
 }
 
-function applyFilter() {
+function applyFilter(keepPhotoId = null) {
   list = onlyUnmarked ? all.filter(isUnmarked) : all.slice();
-  index = 0;
-  $('filter').textContent = onlyUnmarked ? '仅未标记' : '全部照片';
+  index = indexAfterFilter(list, keepPhotoId);
+}
+
+// Both options stay visible with live counts; the active one is highlighted.
+function renderFilter() {
+  const unmarked = all.filter(isUnmarked).length;
+  for (const button of $('filter').querySelectorAll('button')) {
+    const isAll = button.dataset.filter === 'all';
+    button.textContent = isAll ? `全部 ${all.length}` : `未标记 ${unmarked}`;
+    button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
+  }
 }
 
 // Point the image at the current photo only when the URL changed, and keep the old
@@ -70,6 +79,7 @@ function syncImage(url) {
 }
 
 function render() {
+  renderFilter();
   const photo = list[index];
   const url = photo ? previewUrl(photo.id, size) : null;
   if (photo) syncImage(url);
@@ -148,9 +158,14 @@ export function initViewer(onBack) {
     showError('');
     onBack();
   });
-  $('filter').addEventListener('click', () => {
-    onlyUnmarked = !onlyUnmarked;
-    applyFilter();
+  $('filter').addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    const wantUnmarked = button.dataset.filter === 'unmarked';
+    if (wantUnmarked === onlyUnmarked) return;
+    const currentId = list[index]?.id ?? null;
+    onlyUnmarked = wantUnmarked;
+    applyFilter(currentId);
     showError('');
     render();
   });

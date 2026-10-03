@@ -14,7 +14,10 @@
   <div id="status" role="status" hidden></div>
 
   <main id="sources" hidden>
-    <h1>图库</h1>
+    <header class="home-header">
+      <h1>图库</h1>
+      <button id="refresh-sources" type="button">刷新</button>
+    </header>
     <ul id="source-list"></ul>
   </main>
 
@@ -22,7 +25,10 @@
     <header>
       <button id="back" type="button">返回</button>
       <span id="title"></span>
-      <button id="filter" type="button"></button>
+      <div id="filter" class="segmented" role="group" aria-label="筛选">
+        <button type="button" data-filter="unmarked"></button>
+        <button type="button" data-filter="all"></button>
+      </div>
     </header>
     <div id="stage">
       <img id="photo" alt="">
