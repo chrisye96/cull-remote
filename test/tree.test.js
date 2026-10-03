@@ -75,3 +75,20 @@ test('folderHint shows the parent path only for same-named siblings', () => {
   assert.equal(folderHint(cased[0], cased), 'C:\\A\\');
   assert.equal(folderHint(cased[1], cased), 'D:\\B\\');
 });
+
+test('folderHint ignores collections that share a folder name', () => {
+  const mixed = buildTree([
+    { id: 'f:F:\\Photos', kind: 'folder', name: 'Photos', depth: 0, count: 1 },
+    { id: 'c:7', kind: 'collection', name: 'Photos', depth: 0, count: 1 },
+  ]);
+  assert.equal(folderHint(mixed[0], mixed), '');
+});
+
+test('folderHint returns nothing when the path does not end with the name', () => {
+  const odd = buildTree([
+    { id: 'f:F:\\Photos', kind: 'folder', name: 'Photos', depth: 0, count: 1 },
+    { id: 'f:D:\\Elsewhere', kind: 'folder', name: 'Photos', depth: 0, count: 1 },
+  ]);
+  assert.equal(folderHint(odd[0], odd), 'F:\\');
+  assert.equal(folderHint(odd[1], odd), '');
+});

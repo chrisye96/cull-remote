@@ -48,11 +48,29 @@ export function filterTree(nodes, query) {
 
 // Same-named folders on one level (two drives both holding "Photos") get their parent
 // path as a hint. Folder ids are 'f:' + full path, so the hint is the path minus the name.
+// The set of duplicated names is computed once per siblings array.
+const duplicatesCache = new WeakMap();
+
+function duplicatedNames(siblings) {
+  let cached = duplicatesCache.get(siblings);
+  if (!cached) {
+    const seen = new Set();
+    cached = new Set();
+    for (const { source } of siblings) {
+      if (!source.id?.startsWith('f:')) continue;
+      const lower = source.name.toLowerCase();
+      if (seen.has(lower)) cached.add(lower);
+      seen.add(lower);
+    }
+    duplicatesCache.set(siblings, cached);
+  }
+  return cached;
+}
+
 export function folderHint(node, siblings) {
   const { id, name } = node.source;
   if (!id?.startsWith('f:')) return '';
-  const twins = siblings.filter((other) => collator.compare(other.source.name, name) === 0);
-  if (twins.length < 2) return '';
+  if (!duplicatedNames(siblings).has(name.toLowerCase())) return '';
   const path = id.slice(2);
-  return path.slice(0, path.length - name.length);
+  return path.endsWith(name) ? path.slice(0, path.length - name.length) : '';
 }

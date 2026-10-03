@@ -1,18 +1,26 @@
 // Per-device preferences. localStorage can be unavailable (private browsing, blocked
-// site data), so every access is guarded and falls back to the default.
+// site data), so every access is guarded. An in-memory copy keeps the choice working
+// for this page load even when nothing can be persisted.
+const memory = new Map();
+
 export function readPref(name, fallback) {
+  if (memory.has(name)) return memory.get(name);
   try {
     const raw = localStorage.getItem(`lrc.${name}`);
-    return raw === null ? fallback : JSON.parse(raw);
+    if (raw === null) return fallback;
+    const value = JSON.parse(raw);
+    memory.set(name, value);
+    return value;
   } catch {
     return fallback;
   }
 }
 
 export function writePref(name, value) {
+  memory.set(name, value);
   try {
     localStorage.setItem(`lrc.${name}`, JSON.stringify(value));
   } catch {
-    // Storage unavailable: the choice still applies for this page load.
+    // Storage unavailable: the in-memory copy still applies for this page load.
   }
 }

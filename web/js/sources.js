@@ -6,13 +6,22 @@ import { buildTree, sortTree, filterTree, folderHint } from './tree.js';
 let cached = null;
 let onPickSource = () => {};
 let query = '';
-const expanded = readPref('expanded', {}); // node key -> true/false, only for nodes the user toggled
+const FOLDER_SORTS = ['name-desc', 'name-asc', 'import'];
+const PHOTO_SORTS = ['time-asc', 'time-desc', 'name'];
+const storedExpanded = readPref('expanded', {});
+// node key -> true/false, only for nodes the user toggled
+const expanded = storedExpanded && typeof storedExpanded === 'object' && !Array.isArray(storedExpanded) ? storedExpanded : {};
+const choice = (name, allowed, fallback) => {
+  const value = readPref(name, fallback);
+  return allowed.includes(value) ? value : fallback;
+};
 
 // While searching every match is shown; otherwise the user's choice wins and the
 // first level is open by default.
 const isOpen = (node) => (query.trim() ? true : expanded[node.key] ?? node.source.depth === 0);
 
 function toggle(node) {
+  if (query.trim()) return; // Searching shows every match; the saved expand state stays untouched.
   expanded[node.key] = !isOpen(node);
   writePref('expanded', expanded);
   renderList();
@@ -37,6 +46,7 @@ function row(node, siblings) {
     const twisty = document.createElement('button');
     twisty.type = 'button';
     twisty.className = 'twisty';
+    twisty.disabled = Boolean(query.trim());
     twisty.setAttribute('aria-expanded', String(open));
     twisty.setAttribute('aria-label', open ? `折叠 ${source.name}` : `展开 ${source.name}`);
     twisty.append(icon(open ? 'chevron-down' : 'chevron-right'));
@@ -79,7 +89,7 @@ function renderList() {
   const list = $('source-list');
   list.textContent = '';
   if (!cached) return;
-  const tree = filterTree(sortTree(buildTree(cached), readPref('folderSort', 'name-desc')), query);
+  const tree = filterTree(sortTree(buildTree(cached), choice('folderSort', FOLDER_SORTS, 'name-desc')), query);
   const groups = [
     ['文件夹', tree.filter((node) => node.source.kind === 'folder')],
     ['收藏夹', tree.filter((node) => node.source.kind !== 'folder')],
@@ -104,13 +114,13 @@ export function initSources() {
     renderList();
   });
   const folderSort = $('folder-sort');
-  folderSort.value = readPref('folderSort', 'name-desc');
+  folderSort.value = choice('folderSort', FOLDER_SORTS, 'name-desc');
   folderSort.addEventListener('change', () => {
     writePref('folderSort', folderSort.value);
     renderList();
   });
   const photoSort = $('photo-sort');
-  photoSort.value = readPref('photoSort', 'time-asc');
+  photoSort.value = choice('photoSort', PHOTO_SORTS, 'time-asc');
   photoSort.addEventListener('change', () => writePref('photoSort', photoSort.value));
 }
 
