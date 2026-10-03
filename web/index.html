@@ -19,6 +19,25 @@
       <h1>图库</h1>
       <button id="refresh-sources" type="button">刷新</button>
     </header>
+    <div class="home-controls">
+      <input id="source-search" type="search" placeholder="搜索文件夹或收藏夹" aria-label="搜索文件夹或收藏夹" autocomplete="off" enterkeyhint="search">
+      <div class="home-sorts">
+        <label>文件夹
+          <select id="folder-sort">
+            <option value="name-desc">名称 ↓</option>
+            <option value="name-asc">名称 ↑</option>
+            <option value="import">导入顺序</option>
+          </select>
+        </label>
+        <label>照片
+          <select id="photo-sort">
+            <option value="time-asc">拍摄时间 ↑</option>
+            <option value="time-desc">拍摄时间 ↓</option>
+            <option value="name">文件名</option>
+          </select>
+        </label>
+      </div>
+    </div>
     <ul id="source-list"></ul>
   </main>
 
