@@ -83,3 +83,15 @@ export function badgeParts(photo) {
 
 // Wait at least five times as long as the last refresh took, and never less than the base interval.
 export const nextRefreshDelay = (lastDurationMs, baseMs = 5000) => Math.max(baseMs, Math.round(lastDurationMs * 5));
+
+// Natural, case-insensitive name order: "a2" before "a10", "raw" equal to "RAW".
+export const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+// Photo order chosen on the home page. Ties fall back to the other key so the order is stable.
+export function sortPhotos(photos, mode) {
+  const byName = (a, b) => collator.compare(a.name, b.name);
+  const byTime = (a, b) => a.time - b.time;
+  if (mode === 'name') return photos.slice().sort((a, b) => byName(a, b) || byTime(a, b));
+  const direction = mode === 'time-desc' ? -1 : 1;
+  return photos.slice().sort((a, b) => direction * byTime(a, b) || byName(a, b));
+}
