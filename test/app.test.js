@@ -12,13 +12,18 @@ import { createApp } from '../server/app.js';
 
 const PHOTO = 'A1B2C3D4-0000-4000-8000-000000000000';
 
-async function start() {
+// Tests listen on a random port, so the host allowlist must also accept it. Pass
+// { defaultHost: true } to exercise the production allowlist instead.
+async function start({ defaultHost = false } = {}) {
   const bridge = createBridge({ commandTimeoutMs: 2000 });
   const dir = await mkdtemp(path.join(tmpdir(), 'lrc-'));
-  const app = createApp({ bridge, previews: createPreviewStore(dir, bridge), webDir: path.resolve('web'), pollMs: 200 });
+  let pubPort = 0;
+  const extra = defaultHost ? {} : { allowedHost: (host) => host === `127.0.0.1:${pubPort}` };
+  const app = createApp({ bridge, previews: createPreviewStore(dir, bridge), webDir: path.resolve('web'), pollMs: 200, ...extra });
   const pub = http.createServer(app.publicHandler).listen(0, '127.0.0.1');
   const plug = http.createServer(app.pluginHandler).listen(0, '127.0.0.1');
   await Promise.all([once(pub, 'listening'), once(plug, 'listening')]);
+  pubPort = pub.address().port;
   const url = (s) => `http://127.0.0.1:${s.address().port}`;
   return {
     pub: url(pub),
@@ -32,13 +37,15 @@ async function start() {
   };
 }
 
+const PLUGIN_HEADER = { 'x-lrc-plugin': '1' };
+
 // Fake plugin: polls until one command arrives, answers it, returns the command.
 async function answerOne(plug, reply) {
   for (;;) {
-    const cmd = await (await fetch(`${plug}/next`)).json();
+    const cmd = await (await fetch(`${plug}/next`, { headers: PLUGIN_HEADER })).json();
     if (!cmd.id) continue;
     const { type = 'application/json', body } = reply(cmd);
-    await fetch(`${plug}/result/${cmd.id}`, { method: 'POST', headers: { 'content-type': type }, body });
+    await fetch(`${plug}/result/${cmd.id}`, { method: 'POST', headers: { ...PLUGIN_HEADER, 'content-type': type }, body });
     return cmd;
   }
 }
@@ -222,12 +229,82 @@ test('a non-JPEG preview reply is refused with 502 and never cached', async () =
 test('status turns offline as soon as the plugin drops its parked poll connection', async () => {
   const s = await start();
   try {
-    const req = http.get(`${s.plug}/next`);
+    const req = http.get(`${s.plug}/next`, { headers: PLUGIN_HEADER });
     req.on('error', () => {});
     await sleep(30);
     assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: true });
     req.destroy();
     await sleep(50);
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
+  } finally {
+    s.close();
+  }
+});
+
+// Raw request with a chosen Host header; resolves { status, body }.
+function rawRequest(base, { path: reqPath, method = 'GET', headers = {}, body }) {
+  const { hostname, port } = new URL(base);
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: hostname, port, path: reqPath, method, headers }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+test('a foreign Host header is refused with 421 before routing (DNS rebinding defence)', async () => {
+  const s = await start();
+  try {
+    for (const reqPath of ['/api/status', '/']) {
+      const res = await rawRequest(s.pub, { path: reqPath, headers: { host: 'evil.example' } });
+      assert.equal(res.status, 421, reqPath);
+      assert.deepEqual(JSON.parse(res.body), { error: 'bad_host' });
+    }
+  } finally {
+    s.close();
+  }
+});
+
+test('default allowlist accepts loopback and tailnet hosts and nothing else', async () => {
+  const s = await start({ defaultHost: true });
+  try {
+    const status = (host) => rawRequest(s.pub, { path: '/api/status', headers: { host } }).then((r) => r.status);
+    for (const host of ['127.0.0.1:47800', 'localhost:47800', 'dianna.example.ts.net', 'dianna.example.ts.net:443']) {
+      assert.equal(await status(host), 200, host);
+    }
+    for (const host of ['evil.example', 'evil.ts.net.evil.example', 'ts.net.evil.example', '127.0.0.1:1234', 'xts.net', 'dianna.ts.net:8443', '']) {
+      assert.equal(await status(host), 421, host);
+    }
+  } finally {
+    s.close();
+  }
+});
+
+test('ops: a non-JSON content type is refused with 415 and never reaches the plugin', async () => {
+  const s = await start();
+  try {
+    const op = { opId: 'op-9', photoId: PHOTO, field: 'rating', value: 3, ts: 1 };
+    const res = await fetch(`${s.pub}/api/ops`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ ops: [op] }) });
+    assert.equal(res.status, 415);
+    assert.deepEqual(await res.json(), { error: 'unsupported_media_type' });
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
+  } finally {
+    s.close();
+  }
+});
+
+test('plugin port refuses /next and /result without the plugin header and never touches the bridge', async () => {
+  const s = await start();
+  try {
+    const next = await rawRequest(s.plug, { path: '/next' });
+    assert.equal(next.status, 403);
+    assert.deepEqual(JSON.parse(next.body), { error: 'forbidden' });
+    const result = await rawRequest(s.plug, { path: '/result/abc', method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"ok":true}' });
+    assert.equal(result.status, 403);
+    // A parked poll would have made Lightroom look online.
     assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
   } finally {
     s.close();
