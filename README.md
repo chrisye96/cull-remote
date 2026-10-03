@@ -1,54 +1,60 @@
 # lr-remote-cull
 
-在 iPhone 或 iPad 上给电脑里 Lightroom Classic 的照片打旗标、星级和色标。所有写入都由 Lightroom 通过官方 SDK 完成，本工具从不直接打开 catalog 文件；手机上的每次标记在 Lightroom 里都是一条可以 `编辑 > 还原` 的记录。
+English | [简体中文](README.zh-CN.md)
 
-## 组成
+Cull Lightroom Classic photos from an iPhone or iPad: set pick/reject flags, star ratings and colour labels on the catalog that lives on your computer. Every write goes through Lightroom's official SDK; this tool never opens the catalog file directly, and each mark made on the phone shows up in Lightroom as a normal step you can undo with `Edit > Undo`.
 
-- `plugin/lr-remote-cull.lrplugin`：Lightroom 插件，长轮询本机伴随服务并执行指令
-- `server/`：电脑上运行的伴随服务（Node.js 24），只监听 `127.0.0.1`
-- `web/`：手机和平板上打开的网页
-- `spike/`：开发期的预览性能实验，结论见 `docs/spike-results.md`
+## How it fits together
 
-## 一次性安装
+- `plugin/lr-remote-cull.lrplugin`: Lightroom plugin that long-polls the local companion server and runs its commands
+- `server/`: companion server (Node.js 24) on your computer, listening on `127.0.0.1` only
+- `web/`: the page you open on the phone or tablet
+- `spike/`: the preview performance experiment from development; results in `docs/spike-results.md`
+
+The page is published to your own devices with `tailscale serve` over HTTPS. It is reachable only inside your tailnet, never on the public internet. The same address works at home (Tailscale connects directly over your LAN) and away.
+
+## One-time setup
 
 1. `npm install`
-2. Lightroom Classic：`文件 > 增效工具管理器 > 添加`，选择 `plugin/lr-remote-cull.lrplugin`
-3. Tailscale：电脑、iPhone、iPad 登录同一账号；在管理后台 `https://login.tailscale.com/admin/dns` 启用 MagicDNS 和 HTTPS Certificates
-4. `tailscale serve --bg 47800`（只把网页端口暴露给自己的 tailnet，重启后保留）
+2. Lightroom Classic: `File > Plug-in Manager > Add`, choose `plugin/lr-remote-cull.lrplugin`
+3. Tailscale: sign the computer, iPhone and iPad in to the same account; in `https://login.tailscale.com/admin/dns` enable MagicDNS and HTTPS Certificates
+4. `tailscale serve --bg 47800` (exposes only the web port to your tailnet; persists across reboots)
 
-## 日常使用
+## Daily use
 
-1. 打开 Lightroom Classic
-2. `npm start`，终端会打印 tailnet 地址和二维码
-3. 用 iPhone 或 iPad 扫码（设备上 Tailscale 需开启）。建议在 Safari 里"添加到主屏幕"，这样可以全屏使用
+1. Open Lightroom Classic
+2. `npm start`; the terminal prints your tailnet address and a QR code
+3. Scan it with the iPhone or iPad (Tailscale must be on). In Safari, use "Add to Home Screen" for a full-screen app
 
-在家和外出用的是同一个地址；在家时 Tailscale 会自动走局域网直连。
+## Controls
 
-## 操作
+- Swipe left or right, or tap the left or right side of the photo, to move between photos
+- Pick and reject jump to the next photo; stars and labels stay on the current one
+- Tap an active flag, star or label again to clear it
+- The top-right switch toggles between unmarked photos only and all photos
 
-- 左右滑动，或点照片左右两侧切换
-- 留用、弃用会自动跳到下一张；星级和色标不跳
-- 再点一次已激活的旗标、星级、色标即取消
-- 顶部开关在"仅未标记"和"全部照片"之间切换
+Deleting photos is out of scope on purpose: mark them as rejected on the phone, then use Lightroom's `Photo > Delete Rejected Photos` on the computer.
 
-删除照片不在本工具范围内：在手机上打"弃用"，回到电脑后用 Lightroom 的 `照片 > 删除排除的照片`。
+## Troubleshooting
 
-## 排查
+- The page says Lightroom is not running: check that Lightroom is open and the plugin shows "Installed and running". If it still fails, use `Library > Plug-in Extras > Remote Cull: start bridge` to restart the plugin's connection
+- Plugin log: `%TEMP%\lr-remote-cull-plugin.log` records start, exit and failed commands
+- Opening `https://<machine>.ts.net` on the computer itself may time out when Windows does not resolve MagicDNS names; phones and tablets are not affected
 
-- 网页顶部提示"Lightroom 未运行"：确认 Lightroom 已打开且插件状态为"已安装并正在运行"。仍不行时，点 `图库 > 增效工具额外信息 > Remote Cull: start bridge` 手动重启插件的连接
-- 插件日志：`%TEMP%\lr-remote-cull-plugin.log`，记录启动、退出和出错的命令
-- 电脑本机访问 `https://<机器名>.ts.net` 可能超时，这是 Windows 没有使用 MagicDNS 解析，不影响手机和平板
-
-## 开发
+## Development
 
 - `npm test`
-- 设计文档：`docs/superpowers/specs/`
-- 实施计划：`docs/superpowers/plans/`
-- 分支：`main` 稳定，`dev` 集成，功能在 `feat/*`，修复在 `fix/*`
+- Design: `docs/superpowers/specs/`
+- Implementation plans: `docs/superpowers/plans/`
+- Branches: `main` is stable, `dev` integrates, features on `feat/*`, fixes on `fix/*`
 
-## 已知限制
+## Known limitations
 
-- 照片列表是进入目录时的快照：在 Lightroom 或另一台设备上的改动，需要返回再进入才会显示（下个版本加入自动刷新）
-- 预览图缓存在 `.cache/previews/`，照片在 Lightroom 里重新调色后不会自动刷新，删除该目录即可
-- "Lightroom 正忙"的回滚提示只有自动化测试覆盖：实测中首选项、导出等对话框都不会阻止写入，无法人工复现
-- 需要在线使用；离线缓存在后续版本中加入
+- The photo list is a snapshot taken when you open a folder or collection. Changes made in Lightroom or on another device appear after going back and opening it again (automatic refresh is planned for the next version)
+- Previews are cached in `.cache/previews/` and do not refresh after you re-edit a photo in Lightroom; delete that folder to refresh
+- The "Lightroom is busy" rollback is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
+- Online only for now; offline caching is planned
+
+## License
+
+MIT
