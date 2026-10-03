@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -105,4 +105,15 @@ test('markSummary describes every kind of mark for the confirmation flash', () =
   assert.deepEqual(markSummary('label', 'blue'), { swatch: 'blue', text: '蓝色' });
   assert.deepEqual(markSummary('label', 'purple'), { swatch: 'purple', text: '紫色' });
   assert.deepEqual(markSummary('label', 'none'), { icon: 'circle-off', text: '清除色标' });
+});
+
+test('badgeParts lists the marks in display order and skips empty ones', () => {
+  assert.deepEqual(badgeParts(blank()), []);
+  assert.deepEqual(badgeParts({ ...blank(), pick: 1, rating: 3, label: 'yellow' }), [
+    { kind: 'pick' },
+    { kind: 'rating', value: 3 },
+    { kind: 'label', value: 'yellow' },
+  ]);
+  assert.deepEqual(badgeParts({ ...blank(), pick: -1 }), [{ kind: 'reject' }]);
+  assert.deepEqual(badgeParts({ ...blank(), label: 'blue' }), [{ kind: 'label', value: 'blue' }]);
 });
