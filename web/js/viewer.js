@@ -3,7 +3,8 @@ import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary } from './state.js';
 
-const size = matchMedia('(min-width: 768px)').matches ? 'hd' : 'std';
+const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
+const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
@@ -125,7 +126,7 @@ function flash(field, value) {
 function render() {
   renderFilter();
   const photo = list[index];
-  const url = photo ? previewUrl(photo.id, size) : null;
+  const url = photo ? previewUrl(photo.id, previewSize()) : null;
   if (photo) syncImage(url);
   const previewFailed = Boolean(photo) && failedUrl === url;
   $('photo').hidden = !photo || previewFailed;
@@ -147,7 +148,7 @@ function render() {
     button.classList.toggle('pending', isPending(photo.id, field));
   }
   // Warm the next two previews so swiping feels instant.
-  for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, size);
+  for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
 }
 
 // Returns true when it moved (and rendered).
@@ -162,11 +163,11 @@ function go(delta) {
 
 function retryPreview() {
   const photo = list[index];
-  if (!photo || failedUrl !== previewUrl(photo.id, size)) return;
+  if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return;
   failedUrl = null;
   $('photo').classList.add('loading');
   // Cache-busting param so the browser refetches instead of replaying the failure.
-  $('photo').src = `${previewUrl(photo.id, size)}&retry=${Date.now()}`;
+  $('photo').src = `${previewUrl(photo.id, previewSize())}&retry=${Date.now()}`;
   render();
 }
 
@@ -300,6 +301,8 @@ export function initViewer(onBack) {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) refresh();
   });
+  // Rotation or Split View can cross the tier boundary; show the matching preview.
+  HD_QUERY.addEventListener('change', render);
 }
 
 // Never throws: failures are shown inside the viewer so Back always works and the
