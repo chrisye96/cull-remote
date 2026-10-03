@@ -1,11 +1,12 @@
 import { $ } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh } from './state.js';
 
 const size = matchMedia('(min-width: 768px)').matches ? 'hd' : 'std';
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
+const REFRESH_MS = 5000;
 
 let all = [];
 let list = [];
@@ -16,6 +17,34 @@ let notice = ''; // Shown in #empty when there is no photo (loading, open failur
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
 let failedUrl = null; // URL of the preview that failed to load, if it is still the shown one.
 let opQueue = Promise.resolve(); // Ops go to the server strictly one after another.
+let source = null; // The open folder or collection; null on the home page.
+let refreshing = false;
+const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
+
+const pendingKey = (photoId, field) => `${photoId}:${field}`;
+const isPending = (photoId, field) => pending.has(pendingKey(photoId, field));
+
+function trackPending(photoId, field, delta) {
+  const key = pendingKey(photoId, field);
+  const count = (pending.get(key) ?? 0) + delta;
+  if (count > 0) pending.set(key, count);
+  else pending.delete(key);
+}
+
+// Pull Lightroom's current marks for the open source and merge them into the snapshot.
+async function refresh() {
+  if (!source || refreshing || document.hidden || $('viewer').hidden) return;
+  refreshing = true;
+  const token = openSeq;
+  try {
+    const fresh = await getPhotos(source.id);
+    if (token === openSeq && mergeFresh(all, fresh, isPending) > 0) render();
+  } catch {
+    // Connectivity problems are reported by the status bar; the next tick retries.
+  } finally {
+    refreshing = false;
+  }
+}
 
 // Operation errors only. Preview failures live in #empty, open failures in #empty.
 function showError(text) {
@@ -56,7 +85,7 @@ function render() {
   $('empty').textContent = previewFailed ? '预览加载失败，点照片中间重试' : '';
   for (const button of $('actions').querySelectorAll('button')) {
     const { field } = button.dataset;
-    const value = field === 'label' ? button.dataset.value : Number(button.dataset.value);
+    const value = parseValue(field, button.dataset.value);
     const current = photo[KEY[field]];
     button.classList.toggle('on', field === 'rating' ? current >= value : current === value);
     button.setAttribute('aria-pressed', String(current === value));
@@ -94,22 +123,28 @@ function enqueue(task) {
 function mark(field, rawValue) {
   const photo = list[index];
   if (!photo) return;
-  const value = toggledValue(photo, field, field === 'label' ? rawValue : Number(rawValue));
+  const value = toggledValue(photo, field, parseValue(field, rawValue));
   const previous = setField(photo, field, value);
   showError('');
+  trackPending(photo.id, field, 1);
   // Pick and reject advance right away; the request happens in the background.
   if (!(shouldAdvance(field, value) && go(1))) render();
-  enqueue(() => sendOp(photo.id, field, value)).catch((e) => {
-    // Roll back only if nothing newer has changed this field since.
-    if (shouldRollback(photo, field, value)) setField(photo, field, previous);
-    render();
-    showError(`${photo.name}：${messageFor(e.message)}`);
-  });
+  enqueue(() => sendOp(photo.id, field, value))
+    .catch((e) => {
+      // Roll back only if nothing newer has changed this field since.
+      if (shouldRollback(photo, field, value)) setField(photo, field, previous);
+      showError(`${photo.name}：${messageFor(e.message)}`);
+    })
+    .finally(() => {
+      trackPending(photo.id, field, -1);
+      render();
+    });
 }
 
 export function initViewer(onBack) {
   $('back').addEventListener('click', () => {
     openSeq += 1;
+    source = null;
     showError('');
     onBack();
   });
@@ -160,14 +195,20 @@ export function initViewer(onBack) {
     else if (event.clientX > third * 2) go(1);
     else retryPreview();
   });
+
+  setInterval(refresh, REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh();
+  });
 }
 
 // Never throws: failures are shown inside the viewer so Back always works and the
 // status bar stays owned by connectivity polling.
-export async function openViewer(source) {
+export async function openViewer(nextSource) {
   openSeq += 1;
   const token = openSeq;
-  sourceName = source.name;
+  source = nextSource;
+  sourceName = nextSource.name;
   notice = '加载中';
   all = [];
   applyFilter();

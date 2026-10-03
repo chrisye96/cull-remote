@@ -26,3 +26,26 @@ export function shouldAdvance(field, value) {
 export function shouldRollback(photo, field, appliedValue) {
   return photo[KEY[field]] === appliedValue;
 }
+
+// Button dataset values are strings; labels stay strings, the other fields are numbers.
+export const parseValue = (field, raw) => (field === 'label' ? raw : Number(raw));
+
+// Copy Lightroom's current marks onto the snapshot without changing which photos it
+// holds or their order. Fields with an op still in flight keep the local value, so a
+// refresh never flashes back a mark the user just made. Returns how many photos changed.
+export function mergeFresh(photos, fresh, isPending) {
+  const latestById = new Map(fresh.map((photo) => [photo.id, photo]));
+  let changed = 0;
+  for (const photo of photos) {
+    const latest = latestById.get(photo.id);
+    if (!latest) continue;
+    let touched = false;
+    for (const [field, key] of Object.entries(KEY)) {
+      if (isPending(photo.id, field) || photo[key] === latest[key]) continue;
+      photo[key] = latest[key];
+      touched = true;
+    }
+    if (touched) changed += 1;
+  }
+  return changed;
+}

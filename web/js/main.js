@@ -30,16 +30,25 @@ async function home() {
   }
 }
 
+let polling = false;
+
 async function pollStatus() {
+  if (polling || document.hidden) return;
+  polling = true;
   try {
     const { lrOnline } = await getStatus();
     setStatus(lrOnline ? '' : messageFor('lr_offline'));
     if (lrOnline && !sourcesLoaded && !$('sources').hidden) await home();
   } catch (e) {
     setStatus(messageFor(e.message));
+  } finally {
+    polling = false;
   }
 }
 
 initViewer(home);
 await home();
 setInterval(pollStatus, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) pollStatus();
+});
