@@ -182,9 +182,11 @@ test('pullProgress grows with the pull and stops at 1', () => {
 test('tapZone keeps a wide middle so a slightly off-centre tap does not change photo', () => {
   assert.equal(tapZone(10, 400), 'prev');
   assert.equal(tapZone(87, 400), 'prev');
+  assert.equal(tapZone(88, 400), 'middle');
   assert.equal(tapZone(89, 400), 'middle');
   assert.equal(tapZone(200, 400), 'middle');
   assert.equal(tapZone(311, 400), 'middle');
+  assert.equal(tapZone(312, 400), 'middle');
   assert.equal(tapZone(313, 400), 'next');
   assert.equal(tapZone(399, 400), 'next');
 });

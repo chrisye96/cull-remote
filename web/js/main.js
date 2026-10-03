@@ -19,7 +19,7 @@ function setStatus(text) {
   $('status').hidden = !text;
 }
 
-async function home({ force = false } = {}) {
+async function home({ force = false, restoreScroll = false } = {}) {
   show('sources');
   try {
     await showSources(async (source) => {
@@ -27,7 +27,7 @@ async function home({ force = false } = {}) {
       show('viewer');
       await openViewer(source);
     }, { force });
-    $('sources').scrollTop = homeScroll;
+    if (restoreScroll) $('sources').scrollTop = homeScroll;
     sourcesLoaded = true;
   } catch (e) {
     sourcesLoaded = false;
@@ -64,7 +64,7 @@ $('refresh-sources').addEventListener('click', async () => {
 });
 
 initSources();
-initViewer(home);
+initViewer(() => home({ restoreScroll: true }));
 await home();
 setInterval(pollStatus, 5000);
 document.addEventListener('visibilitychange', () => {
