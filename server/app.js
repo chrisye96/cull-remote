@@ -15,6 +15,13 @@ const MIME = {
 const STATUS = { lr_offline: 503, lr_busy: 503, lr_timeout: 504, photo_not_found: 404, source_not_found: 404 };
 const RETRYABLE = new Set(['lr_offline', 'lr_busy', 'lr_timeout']);
 
+// DNS-rebinding defence: a page on another origin can resolve its own hostname to
+// 127.0.0.1, but the browser still sends that hostname in Host. Only accept the
+// local address and Tailscale names (tailscale serve proxies HTTPS on :443).
+const LOCAL_HOSTS = new Set(['127.0.0.1:47800', 'localhost:47800']);
+const TAILNET_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net(:443)?$/;
+const defaultAllowedHost = (host) => LOCAL_HOSTS.has(host) || TAILNET_HOST.test(host);
+
 function sendJson(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(body));
@@ -31,7 +38,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000 }) {
+export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, allowedHost = defaultAllowedHost }) {
   // ponytail: in-memory, forgotten on restart. Ops are "set field to value", so a
   // replay after a restart is harmless; persist only if that ever stops being true.
   const doneOps = new Set();
@@ -88,6 +95,8 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
       return res.end(jpeg);
     }
     if (req.method === 'POST' && pathname === '/api/ops') {
+      // Refuses cross-site "simple" form posts (text/plain), which skip CORS preflight.
+      if (!(req.headers['content-type'] ?? '').startsWith('application/json')) return sendJson(res, 415, { error: 'unsupported_media_type' });
       let ops;
       try {
         ops = JSON.parse((await readBody(req, 1024 * 1024)).toString('utf8')).ops;
@@ -125,6 +134,7 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
 
   async function publicHandler(req, res) {
     try {
+      if (!allowedHost(String(req.headers.host ?? '').toLowerCase())) return sendJson(res, 421, { error: 'bad_host' });
       let url;
       try {
         url = new URL(req.url, 'http://localhost');
