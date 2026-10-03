@@ -145,7 +145,7 @@ function render() {
   $('empty').hidden = Boolean(photo) && !previewFailed;
   $('photo-name').textContent = photo ? photo.name : sourceName;
   $('photo-pos').textContent = photo ? `${index + 1}/${list.length}` : '';
-  $('caption').textContent = photo ? photo.name : '';
+  $('caption').textContent = photo ? `${photo.name} · ${index + 1}/${list.length}` : '';
   $('caption').hidden = !photo;
   renderBadges(photo);
   if (!photo) {
