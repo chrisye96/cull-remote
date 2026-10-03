@@ -1,7 +1,10 @@
-async function request(path, options) {
+// Longer than the server's 30 s command timeout, so server error codes arrive first.
+const REQUEST_TIMEOUT_MS = 35000;
+
+async function request(path, options = {}) {
   let res;
   try {
-    res = await fetch(path, options);
+    res = await fetch(path, { ...options, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   } catch {
     throw new Error('network');
   }

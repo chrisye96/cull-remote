@@ -1,3 +1,3 @@
 -- Manual restart from the Library menu, in case the poll loop is not running.
-_G.lrRemoteCullRunning = true
+require('Trace')('menu restart')
 require('Bridge').start()

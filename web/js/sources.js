@@ -1,8 +1,12 @@
 import { $ } from './dom.js';
 import { getSources } from './api.js';
 
-export async function showSources(onPick) {
-  const sources = await getSources();
+let cached = null;
+
+// The source tree is fetched once per page load; Back reuses it, the refresh button forces it.
+export async function showSources(onPick, { force = false } = {}) {
+  if (force || !cached) cached = await getSources();
+  const sources = cached;
   const list = $('source-list');
   list.textContent = '';
   for (const source of sources) {
