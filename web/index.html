@@ -46,13 +46,17 @@
       <button id="back" type="button"><svg class="icon"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span>返回</span></button>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" aria-label="筛选">
-        <button type="button" data-filter="unmarked"></button>
-        <button type="button" data-filter="all"></button>
+        <button type="button" data-filter="unmarked">未标记<span class="count"></span></button>
+        <button type="button" data-filter="all">全部<span class="count"></span></button>
       </div>
     </header>
     <div id="stage">
       <img id="photo" alt="">
-      <div id="badges" aria-hidden="true"></div>
+      <div id="badges" aria-hidden="true" hidden>
+        <span class="part mark-flag"><svg class="icon pick-icon"><use href="/vendor/lucide.svg#flag"></use></svg><svg class="icon reject-icon"><use href="/vendor/lucide.svg#ban"></use></svg></span>
+        <span class="part mark-rating"><svg class="icon"><use href="/vendor/lucide.svg#star"></use></svg><span class="value"></span></span>
+        <span class="part mark-label"><span class="dot"></span></span>
+      </div>
       <div id="flash" aria-hidden="true"></div>
       <div id="pull" aria-hidden="true"></div>
       <span id="tap-prev" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="/vendor/lucide.svg#chevron-left"></use></svg></span>
@@ -63,7 +67,7 @@
     <aside id="side">
       <p id="error" role="alert" hidden></p>
       <footer id="actions">
-        <div class="row">
+        <div class="row flags">
           <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon"><use href="/vendor/lucide.svg#flag"></use></svg><span>留用</span></button>
           <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon"><use href="/vendor/lucide.svg#ban"></use></svg><span>弃用</span></button>
         </div>
@@ -75,11 +79,11 @@
           <button type="button" data-field="rating" data-value="5" aria-label="5 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
         </div>
         <div class="row swatches">
-          <button type="button" class="red" data-field="label" data-value="red" aria-label="红色"></button>
-          <button type="button" class="yellow" data-field="label" data-value="yellow" aria-label="黄色"></button>
-          <button type="button" class="green" data-field="label" data-value="green" aria-label="绿色"></button>
-          <button type="button" class="blue" data-field="label" data-value="blue" aria-label="蓝色"></button>
-          <button type="button" class="purple" data-field="label" data-value="purple" aria-label="紫色"></button>
+          <button type="button" class="red" data-field="label" data-value="red" aria-label="红色"><svg class="icon check"><use href="/vendor/lucide.svg#check"></use></svg></button>
+          <button type="button" class="yellow" data-field="label" data-value="yellow" aria-label="黄色"><svg class="icon check"><use href="/vendor/lucide.svg#check"></use></svg></button>
+          <button type="button" class="green" data-field="label" data-value="green" aria-label="绿色"><svg class="icon check"><use href="/vendor/lucide.svg#check"></use></svg></button>
+          <button type="button" class="blue" data-field="label" data-value="blue" aria-label="蓝色"><svg class="icon check"><use href="/vendor/lucide.svg#check"></use></svg></button>
+          <button type="button" class="purple" data-field="label" data-value="purple" aria-label="紫色"><svg class="icon check"><use href="/vendor/lucide.svg#check"></use></svg></button>
         </div>
       </footer>
     </aside>
