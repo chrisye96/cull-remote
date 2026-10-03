@@ -1,7 +1,7 @@
 import { $, icon } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay } from './state.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
 const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
@@ -20,6 +20,7 @@ let failedUrl = null; // URL of the preview that failed to load, if it is still 
 let opQueue = Promise.resolve(); // Ops go to the server strictly one after another.
 let source = null; // The open folder or collection; null on the home page.
 let refreshing = false;
+let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
 let settledOps = 0; // Ops that finished; a fetch that overlapped one may carry pre-op data.
 const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
 
@@ -34,15 +35,20 @@ function trackPending(photoId, field, delta) {
 }
 
 // Pull Lightroom's current marks for the open source and merge them into the snapshot.
-async function refresh() {
+// The timer is throttled by nextRefreshAt so a slow Lightroom is not kept busy; force skips that.
+async function refresh({ force = false } = {}) {
   if (!source || refreshing || document.hidden || $('viewer').hidden) return;
+  if (!force && Date.now() < nextRefreshAt) return;
   refreshing = true;
   const token = openSeq;
   const settledBefore = settledOps;
+  let duration = 0; // Stays 0 when the fetch fails.
   try {
     let fresh;
     try {
+      const startedAt = Date.now();
       fresh = await getPhotos(source.id);
+      duration = Date.now() - startedAt;
     } catch {
       return; // Connectivity problems are reported by the status bar; the next tick retries.
     }
@@ -51,6 +57,7 @@ async function refresh() {
     if (mergeFresh(all, fresh, isPending) > 0) render();
   } finally {
     refreshing = false;
+    nextRefreshAt = Date.now() + nextRefreshDelay(duration, REFRESH_MS);
   }
 }
 
@@ -134,6 +141,17 @@ function flash(field, value) {
   box.classList.add('show');
 }
 
+// Pin the corner overlays to the photo's displayed box. offset* ignores the swipe transform.
+function placeOverlays() {
+  const img = $('photo');
+  const stage = $('stage');
+  const visible = !img.hidden && img.offsetWidth > 0;
+  stage.style.setProperty('--img-left', `${visible ? img.offsetLeft : 0}px`);
+  stage.style.setProperty('--img-top', `${visible ? img.offsetTop : 0}px`);
+  stage.style.setProperty('--img-width', `${visible ? img.offsetWidth : stage.clientWidth}px`);
+  stage.style.setProperty('--img-bottom', `${visible ? stage.clientHeight - img.offsetTop - img.offsetHeight : 0}px`);
+}
+
 function render() {
   renderFilter();
   const photo = list[index];
@@ -150,6 +168,7 @@ function render() {
   renderBadges(photo);
   if (!photo) {
     $('empty').textContent = notice || (onlyUnmarked ? '这里没有未标记的照片' : '这里没有照片');
+    placeOverlays();
     return;
   }
   $('empty').textContent = previewFailed ? '预览加载失败，点照片中间重试' : '';
@@ -164,6 +183,7 @@ function render() {
   }
   // Warm the next two previews so swiping feels instant.
   for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
+  placeOverlays();
 }
 
 // Returns true when it moved (and rendered).
@@ -241,7 +261,9 @@ export function initViewer(onBack) {
     $('photo').classList.remove('loading');
     failedUrl = null;
     render();
+    placeOverlays();
   });
+  new ResizeObserver(placeOverlays).observe($('stage'));
   $('photo').addEventListener('error', () => {
     failedUrl = $('photo').dataset.url;
     render();
@@ -319,9 +341,9 @@ export function initViewer(onBack) {
     else retryPreview();
   });
 
-  setInterval(refresh, REFRESH_MS);
+  setInterval(refresh, 1000); // Cheap tick; nextRefreshAt decides whether a fetch actually happens.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) refresh();
+    if (!document.hidden) refresh({ force: true });
   });
   // Rotation or Split View can cross the tier boundary; show the matching preview.
   HD_QUERY.addEventListener('change', () => { if (!$('viewer').hidden) render(); });
@@ -333,6 +355,7 @@ export async function openViewer(nextSource) {
   openSeq += 1;
   const token = openSeq;
   source = nextSource;
+  nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
   delete $('photo').dataset.url;
   sourceName = nextSource.name;

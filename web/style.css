@@ -87,15 +87,17 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
 
 .segmented .count { margin-left: .3em; }
 
+#back { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+
 /* One translucent pill for all marks, and a matching filename tag. */
-#badges { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 14px; pointer-events: none; }
+#badges { position: absolute; top: calc(var(--img-top, 0px) + 10px); left: calc(var(--img-left, 0px) + 10px); display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 14px; pointer-events: none; }
 #badges .part { display: inline-flex; align-items: center; gap: 4px; }
 #badges .sep { width: 1px; height: 12px; background: rgba(255, 255, 255, .3); }
 #badges .reject { color: rgba(255, 107, 107, .9); }
 #badges .rating { color: rgba(245, 197, 24, .9); }
 #badges .rating .icon { fill: currentColor; }
 #badges .dot { width: 12px; height: 12px; border-radius: 50%; opacity: .85; }
-#caption { display: none; position: absolute; left: 10px; bottom: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; max-width: calc(100% - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+#caption { display: none; position: absolute; left: calc(var(--img-left, 0px) + 10px); bottom: calc(var(--img-bottom, 0px) + 10px); padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; max-width: calc(var(--img-width, 100%) - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
@@ -103,7 +105,7 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
 
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
-  #back { grid-area: 1 / 2; justify-self: start; align-self: center; min-height: 34px; padding: 0 10px; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 8px; }
+  #back { grid-area: 1 / 2; justify-self: stretch; align-self: center; min-height: 34px; padding: 0 10px; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 8px; }
   #title { display: none; }
   #status:not([hidden]) ~ #viewer #back { margin-top: 8px; }
   #filter { grid-area: 2 / 2; margin: 6px calc(env(safe-area-inset-right) + 8px) 0 8px; }
@@ -111,8 +113,9 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
   #filter .count { display: block; margin: 0; }
 
   #stage { grid-area: 1 / 1 / 4 / 2; padding-left: env(safe-area-inset-left); }
-  #caption { display: block; left: calc(env(safe-area-inset-left) + 10px); bottom: calc(env(safe-area-inset-bottom) + 10px); }
-  #badges { top: calc(env(safe-area-inset-top) + 10px); left: calc(env(safe-area-inset-left) + 10px); }
+  #caption { display: block; }
+  /* The photo can touch the top of a landscape screen; keep the pill below the safe area. */
+  #badges { top: calc(max(var(--img-top, 0px), env(safe-area-inset-top)) + 10px); }
   #flash { left: calc(50% + env(safe-area-inset-left) / 2); }
 
   #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
@@ -140,7 +143,7 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
 @media (orientation: landscape) and (min-height: 600px) {
   #viewer { --rail: clamp(150px, 15vw, 200px); }
-  #back { min-height: 44px; padding: 0 14px; font-size: 16px; margin-left: 10px; }
+  #back { min-height: 44px; padding: 0 14px; font-size: 16px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
   #filter { margin-top: 8px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
   #filter button { padding: 8px 0; font-size: 15px; }
   #actions { grid-template-rows: none; grid-auto-rows: auto; align-content: center; gap: 8px; padding-left: 10px; padding-right: calc(env(safe-area-inset-right) + 10px); }
