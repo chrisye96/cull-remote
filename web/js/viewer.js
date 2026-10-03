@@ -20,6 +20,7 @@ let failedUrl = null; // URL of the preview that failed to load, if it is still 
 let opQueue = Promise.resolve(); // Ops go to the server strictly one after another.
 let source = null; // The open folder or collection; null on the home page.
 let refreshing = false;
+let loading = false; // True while the initial getPhotos of an open is in flight.
 let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
 let settledOps = 0; // Ops that finished; a fetch that overlapped one may carry pre-op data.
 const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
@@ -37,7 +38,7 @@ function trackPending(photoId, field, delta) {
 // Pull Lightroom's current marks for the open source and merge them into the snapshot.
 // The timer is throttled by nextRefreshAt so a slow Lightroom is not kept busy; force skips that.
 async function refresh({ force = false } = {}) {
-  if (!source || refreshing || document.hidden || $('viewer').hidden) return;
+  if (!source || loading || refreshing || document.hidden || $('viewer').hidden) return;
   if (!force && Date.now() < nextRefreshAt) return;
   refreshing = true;
   const token = openSeq;
@@ -146,9 +147,10 @@ function placeOverlays() {
   const img = $('photo');
   const stage = $('stage');
   const visible = !img.hidden && img.offsetWidth > 0;
-  stage.style.setProperty('--img-left', `${visible ? img.offsetLeft : 0}px`);
+  const padLeft = parseFloat(getComputedStyle(stage).paddingLeft) || 0; // Landscape safe-area inset.
+  stage.style.setProperty('--img-left', `${visible ? img.offsetLeft : padLeft}px`);
   stage.style.setProperty('--img-top', `${visible ? img.offsetTop : 0}px`);
-  stage.style.setProperty('--img-width', `${visible ? img.offsetWidth : stage.clientWidth}px`);
+  stage.style.setProperty('--img-width', `${visible ? img.offsetWidth : stage.clientWidth - padLeft}px`);
   stage.style.setProperty('--img-bottom', `${visible ? stage.clientHeight - img.offsetTop - img.offsetHeight : 0}px`);
 }
 
@@ -162,8 +164,9 @@ function render() {
   $('actions').hidden = !photo;
   $('empty').hidden = Boolean(photo) && !previewFailed;
   $('photo-name').textContent = photo ? photo.name : sourceName;
-  $('photo-pos').textContent = photo ? `${index + 1}/${list.length}` : '';
-  $('caption').textContent = photo ? `${photo.name} · ${index + 1}/${list.length}` : '';
+  const position = photo ? `${index + 1}/${list.length}` : '';
+  $('photo-pos').textContent = position;
+  $('caption').textContent = photo ? `${photo.name} · ${position}` : '';
   $('caption').hidden = !photo;
   renderBadges(photo);
   if (!photo) {
@@ -261,7 +264,6 @@ export function initViewer(onBack) {
     $('photo').classList.remove('loading');
     failedUrl = null;
     render();
-    placeOverlays();
   });
   new ResizeObserver(placeOverlays).observe($('stage'));
   $('photo').addEventListener('error', () => {
@@ -274,6 +276,7 @@ export function initViewer(onBack) {
   let dragging = false;
   let lastSwipeAt = 0;
   let slideTimer = null;
+  let pendingSlide = null; // { delta, seq, from } of the slide-out that has not completed yet.
 
   function setOffset(px, animate = false) {
     const img = $('photo');
@@ -281,10 +284,18 @@ export function initViewer(onBack) {
     img.style.transform = px ? `translateX(${px}px)` : '';
   }
 
-  stage.addEventListener('touchstart', (event) => {
+  // Finish a step that is still sliding out so a quick second flick does not lose it.
+  function completeSlide() {
     clearTimeout(slideTimer);
     slideTimer = null;
     setOffset(0);
+    const slide = pendingSlide;
+    pendingSlide = null;
+    if (slide && slide.seq === openSeq && slide.from === index) go(slide.delta);
+  }
+
+  stage.addEventListener('touchstart', (event) => {
+    completeSlide();
     const touch = event.touches[0];
     start = { x: touch.clientX, y: touch.clientY };
     dragging = false;
@@ -318,13 +329,8 @@ export function initViewer(onBack) {
       return;
     }
     setOffset(-delta * stage.clientWidth, true);
-    const seq = openSeq;
-    const from = index;
-    slideTimer = setTimeout(() => {
-      slideTimer = null;
-      setOffset(0);
-      if (seq === openSeq && from === index) go(delta);
-    }, 180);
+    pendingSlide = { delta, seq: openSeq, from: index };
+    slideTimer = setTimeout(completeSlide, 180);
   });
 
   stage.addEventListener('touchcancel', () => {
@@ -360,10 +366,12 @@ export async function openViewer(nextSource) {
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
   notice = '加载中';
+  loading = true;
   all = [];
   applyFilter();
   showError('');
   render();
+  const startedAt = Date.now();
   try {
     const photos = await getPhotos(source.id);
     if (token !== openSeq) return;
@@ -373,6 +381,8 @@ export async function openViewer(nextSource) {
     if (token !== openSeq) return;
     notice = messageFor(e.message);
   }
+  loading = false;
+  nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);
   applyFilter();
   render();
 }
