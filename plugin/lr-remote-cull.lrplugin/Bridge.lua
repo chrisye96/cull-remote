@@ -1,16 +1,15 @@
 local LrTasks = import 'LrTasks'
 local LrHttp = import 'LrHttp'
 local LrDate = import 'LrDate'
-local logger = import 'LrLogger'('LrRemoteCull')
-logger:enable('logfile')
 local json = require 'json'
+local trace = require 'Trace'
 local Commands = require 'Commands'
 
 local BASE = 'http://127.0.0.1:47801'
 
 local function post(id, body, contentType)
   local reply = LrHttp.post(BASE .. '/result/' .. id, body, { { field = 'Content-Type', value = contentType } }, 'POST', 10)
-  if reply == nil then logger:warn('result post failed for command ' .. tostring(id)) end
+  if reply == nil then trace('result post failed for command ' .. tostring(id)) end
 end
 
 local function handle(cmd)
@@ -31,9 +30,15 @@ end
 
 local Bridge = {}
 
+-- Lightroom runs the init script several times at launch and again on reload. Each
+-- start bumps a generation number shared through _G; a loop keeps polling only while
+-- it is the newest, so exactly one loop survives and a reload picks up new code.
 function Bridge.start()
+  _G.lrRemoteCullGeneration = (_G.lrRemoteCullGeneration or 0) + 1
+  local generation = _G.lrRemoteCullGeneration
+  trace('bridge start, generation ' .. generation)
   LrTasks.startAsyncTask(function()
-    while _G.lrRemoteCullRunning do
+    while _G.lrRemoteCullRunning and _G.lrRemoteCullGeneration == generation do
       local started = LrDate.currentTime()
       local body = LrHttp.get(BASE .. '/next', nil, 35)
       if not body or body == '' then
@@ -45,17 +50,18 @@ function Bridge.start()
           -- LrTasks.pcall, not pcall: handle yields. A failure here must never end the loop.
           local handled, err = LrTasks.pcall(handle, cmd)
           if not handled then
-            logger:error('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
+            trace('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
             -- Best effort so the server is not left waiting for a result.
             LrTasks.pcall(post, cmd.id, '{"ok":false,"error":"internal"}', 'application/json')
           end
         elseif LrDate.currentTime() - started < 1 then
-          -- Idle, error or non-JSON reply that came back fast (error loop, or another
+          -- Idle, error or non-JSON reply that came back fast (error loop, or a newer
           -- poller released this one): back off instead of spinning.
           LrTasks.sleep(1)
         end
       end
     end
+    trace('poll loop ' .. generation .. ' exited')
   end)
 end
 

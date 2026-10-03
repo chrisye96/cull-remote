@@ -6,5 +6,8 @@ return {
   LrInitPlugin = 'Init.lua',
   LrForceInitPlugin = true,
   LrShutdownPlugin = 'Shutdown.lua',
+  LrLibraryMenuItems = {
+    { title = 'Remote Cull: start bridge', file = 'StartBridge.lua' },
+  },
   VERSION = { major = 0, minor = 1, revision = 0 },
 }
