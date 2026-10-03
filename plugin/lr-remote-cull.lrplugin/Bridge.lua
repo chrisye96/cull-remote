@@ -50,6 +50,7 @@ local Bridge = {}
 -- start bumps a generation number shared through _G; a loop keeps polling only while
 -- it is the newest, so exactly one loop survives and a reload picks up new code.
 function Bridge.start()
+  _G.lrRemoteCullRunning = true
   _G.lrRemoteCullGeneration = (_G.lrRemoteCullGeneration or 0) + 1
   local generation = _G.lrRemoteCullGeneration
   trace('bridge start, generation ' .. generation)

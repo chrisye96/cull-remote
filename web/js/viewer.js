@@ -143,8 +143,9 @@ function render() {
     const { field } = button.dataset;
     const value = parseValue(field, button.dataset.value);
     const current = photo[KEY[field]];
-    button.classList.toggle('on', field === 'rating' ? current >= value : current === value);
-    button.setAttribute('aria-pressed', String(current === value));
+    const on = field === 'rating' ? current >= value : current === value;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-pressed', String(on));
     button.classList.toggle('pending', isPending(photo.id, field));
   }
   // Warm the next two previews so swiping feels instant.
