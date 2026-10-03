@@ -6,9 +6,22 @@ local trace = require 'Trace'
 local Commands = require 'Commands'
 
 local BASE = 'http://127.0.0.1:47801'
+-- The server refuses plugin port calls without this header, so web pages cannot use it.
+local PLUGIN_HEADER = { field = 'X-LRC-Plugin', value = '1' }
+
+-- Error codes the web UI understands. Anything else (raw Lua errors carry file paths
+-- and line numbers) is traced locally and reported to the phone as plugin_error.
+local KNOWN_ERRORS = {
+  invalid_op = true,
+  photo_not_found = true,
+  source_not_found = true,
+  lr_busy = true,
+  invalid_size = true,
+  preview_timeout = true,
+}
 
 local function post(id, body, contentType)
-  local reply = LrHttp.post(BASE .. '/result/' .. id, body, { { field = 'Content-Type', value = contentType } }, 'POST', 10)
+  local reply = LrHttp.post(BASE .. '/result/' .. id, body, { PLUGIN_HEADER, { field = 'Content-Type', value = contentType } }, 'POST', 10)
   if reply == nil then trace('result post failed for command ' .. tostring(id)) end
 end
 
@@ -20,7 +33,10 @@ local function handle(cmd)
   -- LrTasks.pcall, not pcall: handlers yield (sleep, write access).
   local ok, result, contentType = LrTasks.pcall(handler, cmd.params or {})
   if not ok then
-    post(cmd.id, json.encode({ ok = false, error = tostring(result) }), 'application/json')
+    local message = tostring(result)
+    trace('command ' .. tostring(cmd.id) .. ' (' .. tostring(cmd.type) .. ') failed: ' .. message)
+    local code = KNOWN_ERRORS[message] and message or 'plugin_error'
+    post(cmd.id, json.encode({ ok = false, error = code }), 'application/json')
   elseif contentType then
     post(cmd.id, result, contentType)
   else
@@ -40,7 +56,7 @@ function Bridge.start()
   LrTasks.startAsyncTask(function()
     while _G.lrRemoteCullRunning and _G.lrRemoteCullGeneration == generation do
       local started = LrDate.currentTime()
-      local body = LrHttp.get(BASE .. '/next', nil, 35)
+      local body = LrHttp.get(BASE .. '/next', { PLUGIN_HEADER }, 35)
       if not body or body == '' then
         -- Companion server is not running; retry quietly.
         LrTasks.sleep(2)

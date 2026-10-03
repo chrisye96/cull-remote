@@ -157,7 +157,7 @@ LrTasks.startAsyncTask(function()
     LrDialogs.message('Select some photos first', nil, 'info')
     return
   end
-  if LrDialogs.confirm('Run benchmark on this catalog?', catalog:getPath(), 'Run', 'Cancel') ~= 'ok' then
+  if LrDialogs.confirm('Run benchmark on this catalog? It writes and then tries to restore rating, label and flag on the first selected photo.', catalog:getPath(), 'Run', 'Cancel') ~= 'ok' then
     return
   end
 
