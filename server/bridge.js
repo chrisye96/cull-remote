@@ -38,21 +38,36 @@ export function createBridge({ onlineWindowMs = 30000, commandTimeoutMs = 30000 
     });
   }
 
-  function next(waitMs) {
+  // `signal` aborts when the plugin's poll connection drops. A parked poll that is
+  // aborted is forgotten at once and the bridge goes offline, so no command is ever
+  // handed to a dead connection.
+  function next(waitMs, signal) {
     lastPollAt = Date.now();
     if (pending.length) return Promise.resolve(pending.shift());
+    if (signal?.aborted) {
+      lastPollAt = -Infinity;
+      return Promise.resolve(null);
+    }
     // A newer poll replaces an older parked one (plugin reload).
     if (waiter) waiter(null);
     return new Promise((resolve) => {
       const deliver = (cmd) => {
         clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
         lastPollAt = Date.now();
         resolve(cmd);
+      };
+      const onAbort = () => {
+        if (waiter !== deliver) return;
+        waiter = null;
+        deliver(null);
+        lastPollAt = -Infinity;
       };
       const timer = setTimeout(() => {
         if (waiter === deliver) waiter = null;
         deliver(null);
       }, waitMs);
+      signal?.addEventListener('abort', onAbort, { once: true });
       waiter = deliver;
     });
   }
