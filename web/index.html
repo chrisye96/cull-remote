@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#111111">
   <title>LR Remote Cull</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/js/main.js"></script>
 </head>
@@ -36,27 +37,29 @@
       <div id="flash" aria-hidden="true"></div>
       <p id="empty" hidden></p>
     </div>
-    <p id="error" role="alert" hidden></p>
-    <footer id="actions">
-      <div class="row">
-        <button type="button" data-field="pickStatus" data-value="1">留用</button>
-        <button type="button" data-field="pickStatus" data-value="-1">弃用</button>
-      </div>
-      <div class="row stars">
-        <button type="button" data-field="rating" data-value="1" aria-label="1 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-        <button type="button" data-field="rating" data-value="2" aria-label="2 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-        <button type="button" data-field="rating" data-value="3" aria-label="3 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-        <button type="button" data-field="rating" data-value="4" aria-label="4 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-        <button type="button" data-field="rating" data-value="5" aria-label="5 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-      </div>
-      <div class="row swatches">
-        <button type="button" class="red" data-field="label" data-value="red" aria-label="红色"></button>
-        <button type="button" class="yellow" data-field="label" data-value="yellow" aria-label="黄色"></button>
-        <button type="button" class="green" data-field="label" data-value="green" aria-label="绿色"></button>
-        <button type="button" class="blue" data-field="label" data-value="blue" aria-label="蓝色"></button>
-        <button type="button" class="purple" data-field="label" data-value="purple" aria-label="紫色"></button>
-      </div>
-    </footer>
+    <aside id="side">
+      <p id="error" role="alert" hidden></p>
+      <footer id="actions">
+        <div class="row">
+          <button type="button" data-field="pickStatus" data-value="1">留用</button>
+          <button type="button" data-field="pickStatus" data-value="-1">弃用</button>
+        </div>
+        <div class="row stars">
+          <button type="button" data-field="rating" data-value="1" aria-label="1 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="2" aria-label="2 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="3" aria-label="3 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="4" aria-label="4 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="5" aria-label="5 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+        </div>
+        <div class="row swatches">
+          <button type="button" class="red" data-field="label" data-value="red" aria-label="红色"></button>
+          <button type="button" class="yellow" data-field="label" data-value="yellow" aria-label="黄色"></button>
+          <button type="button" class="green" data-field="label" data-value="green" aria-label="绿色"></button>
+          <button type="button" class="blue" data-field="label" data-value="blue" aria-label="蓝色"></button>
+          <button type="button" class="purple" data-field="label" data-value="purple" aria-label="紫色"></button>
+        </div>
+      </footer>
+    </aside>
   </main>
 </body>
 </html>
