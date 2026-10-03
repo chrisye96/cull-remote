@@ -75,3 +75,15 @@ export function folderHint(node, siblings) {
   const path = id.slice(2);
   return path.endsWith(name) ? path.slice(0, path.length - name.length) : '';
 }
+
+// The sources opened most recently on this device, newest first. `lastPhoto` maps a
+// source id to the photo last shown there, in least-recent-first insertion order.
+export function recentSources(sources, lastPhoto, limit) {
+  const byId = new Map(sources.filter((source) => source.id).map((source) => [source.id, source]));
+  const recent = [];
+  for (const id of Object.keys(lastPhoto ?? {}).reverse()) {
+    if (byId.has(id)) recent.push(byId.get(id));
+    if (recent.length === limit) break;
+  }
+  return recent;
+}

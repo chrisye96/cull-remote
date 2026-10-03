@@ -23,22 +23,40 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #status { padding: calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + 12px) 6px calc(env(safe-area-inset-left) + 12px); background: #5a1d1d; text-align: center; font-size: 14px; }
 
-#sources { flex: 1; overflow-y: auto; padding: env(safe-area-inset-top) calc(env(safe-area-inset-right) + 16px) env(safe-area-inset-bottom) calc(env(safe-area-inset-left) + 16px); }
-#sources h1 { font-size: 22px; }
-#source-list { list-style: none; margin: 0; padding: 0; }
-#source-list li { margin: 6px 0; color: var(--muted); }
-.home-controls { display: grid; gap: 8px; margin-bottom: 8px; }
-#source-search { -webkit-user-select: text; user-select: text; font: inherit; font-size: 16px; color: var(--text); background: var(--panel); border: 1px solid #333; border-radius: 10px; min-height: 44px; padding: 0 12px; width: 100%; }
+#sources { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.home-side { flex: none; display: grid; gap: 8px; padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 16px) 8px calc(env(safe-area-inset-left) + 16px); }
+#status:not([hidden]) ~ #sources .home-side { padding-top: 8px; }
+.home-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-header h1 { margin: 0; font-size: 22px; }
+.home-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 16px); }
+
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box .search-icon { position: absolute; left: 12px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+#source-search { -webkit-user-select: text; user-select: text; -webkit-appearance: none; appearance: none; font: inherit; font-size: 16px; color: var(--text); background: var(--panel); border: 1px solid transparent; border-radius: 10px; min-height: 44px; padding: 0 44px 0 38px; width: 100%; }
+#source-search:focus { outline: none; border-color: var(--accent); }
+#source-search::-webkit-search-cancel-button { display: none; }
+#search-clear { position: absolute; right: 0; width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
+#search-clear .icon { width: 18px; height: 18px; }
+
 .home-sorts { display: flex; gap: 8px; }
-.home-sorts label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); white-space: nowrap; }
-.home-sorts select { -webkit-user-select: text; user-select: text; flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--panel); border: 1px solid #333; border-radius: 10px; min-height: 40px; padding: 0 8px; }
-.source-group { margin: 14px 0 4px; font-size: 13px; }
-.source-empty { padding: 24px 0; text-align: center; }
-.source-row { display: flex; align-items: center; gap: 4px; }
+.home-sorts label { flex: 1; min-width: 0; display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.home-sorts select { -webkit-user-select: text; user-select: text; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--panel); border: 1px solid transparent; border-radius: 10px; min-height: 40px; padding: 0 8px; }
+.home-sorts select:focus { outline: none; border-color: var(--accent); }
+
+/* Flat grouped list: each group is one panel, rows are separated by hairlines only. */
+#source-list { list-style: none; margin: 0; padding: 0; }
+.source-group { margin: 14px 4px 6px; font-size: 13px; color: var(--muted); }
+#source-list li:first-child.source-group { margin-top: 2px; }
+.source-empty { padding: 24px 0; text-align: center; color: var(--muted); }
+.source-row { display: flex; align-items: center; min-height: 46px; background: var(--panel); }
+li.source-item + li.source-item .source-row { border-top: 1px solid var(--line); }
+li.group-start .source-row { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
 .twisty, .twisty-spacer { flex: none; width: 36px; }
-.twisty { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); }
+.twisty { min-height: 46px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
 .twisty .icon { width: 20px; height: 20px; }
-.source-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; text-align: left; }
+.source-main { flex: 1; min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; text-align: left; }
+.source-kind { flex: none; width: 20px; height: 20px; color: var(--accent); }
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .source-count { flex: none; margin-left: auto; font-size: 13px; color: var(--muted); }
@@ -83,7 +101,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .segmented button { border: 0; border-radius: 0; outline-offset: -2px; min-height: 40px; padding: 0 10px; font-size: 14px; color: var(--muted); background: transparent; white-space: nowrap; }
 .segmented button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .segmented .count { margin-left: .3em; }
-.home-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 .icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.125em; }
 
@@ -133,7 +150,6 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 .swatches .purple, .dot.purple { background: #8e4ec6; }
 
 /* The status bar already pads the top inset; do not pad it twice. */
-#status:not([hidden]) ~ #sources { padding-top: 0; }
 #status:not([hidden]) ~ #viewer header { padding-top: 6px; }
 
 #side { flex: none; }
@@ -186,6 +202,13 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #actions .row.stars button + button, #actions .row.swatches button + button { border-left: 0; }
   #actions .row.stars button + button { border-bottom: 1px solid var(--line); }
   #actions .flag { flex-direction: column; gap: 2px; font-size: 12px; }
+
+  /* Home: controls stay in a fixed left column, the list scrolls in the right one. */
+  #sources { flex-direction: row; }
+  .home-side { width: clamp(220px, 28vw, 320px); align-content: start; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px); border-right: 1px solid var(--line); overflow-y: auto; }
+  .home-sorts { flex-direction: column; }
+  .home-list { padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 16px) 16px; }
+  #status:not([hidden]) ~ #sources .home-list { padding-top: 12px; }
 }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
