@@ -29,11 +29,14 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 ## Controls
 
 - Swipe left or right, or tap the left or right side of the photo, to move between photos
+- Swipe up to pick, swipe down to reject. A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
+- Tap the middle of the photo to hide or show the mark pill and the filename tag
 - Pick and reject jump to the next photo; stars and labels stay on the current one
 - Tap an active flag, star or label again to clear it
 - The filter switch shows both "unmarked" and "all" with live counts; switching keeps you on the current photo when it is in the new list
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels
+- On the home page, search filters folders and collections as you type; sort folders by name or import order and choose the photo order (capture time or filename). Rows with children expand and collapse
 
 Deleting photos is out of scope on purpose: mark them as rejected on the phone, then use Lightroom's `Photo > Delete Rejected Photos` on the computer.
 
@@ -42,6 +45,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 - The page says Lightroom is not running: check that Lightroom is open and the plugin shows "Installed and running". If it still fails, use `Library > Plug-in Extras > Remote Cull: start bridge` to restart the plugin's connection
 - Plugin log: `%TEMP%\lr-remote-cull-plugin.log` records start, exit and failed commands
 - Opening `https://<machine>.ts.net` on the computer itself may time out when Windows does not resolve MagicDNS names; phones and tablets are not affected
+- In Safari, swiping from the left screen edge is the browser's Back gesture and leaves the page. Open the app from the Home Screen icon to avoid it
 
 ## Development
 
