@@ -1,4 +1,4 @@
-import { $, icon } from './dom.js';
+import { $, icon, playAnimation } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
@@ -143,9 +143,7 @@ function showFlash(summary) {
   const text = document.createElement('span');
   text.textContent = summary.text;
   box.append(text);
-  box.classList.remove('show');
-  void box.offsetWidth; // restart the animation when messages come in quick succession
-  box.classList.add('show');
+  playAnimation(box, 'show');
 }
 
 const flash = (field, value) => showFlash(markSummary(field, value));
@@ -350,15 +348,12 @@ export function initViewer(onBack) {
   // Edge taps show a chevron where they landed; a tap with no photo that way nudges the photo.
   function step(delta) {
     const hint = $(delta < 0 ? 'tap-prev' : 'tap-next');
-    hint.classList.remove('show');
-    void hint.offsetWidth;
-    hint.classList.add('show');
+    playAnimation(hint, 'show');
     if (go(delta)) return;
     const img = $('photo');
     const bump = delta < 0 ? 'bump-prev' : 'bump-next';
-    img.classList.remove('bump-prev', 'bump-next');
-    void img.offsetWidth;
-    img.classList.add(bump);
+    img.classList.remove(delta < 0 ? 'bump-next' : 'bump-prev');
+    playAnimation(img, bump);
   }
 
   function toggleOverlays() {
