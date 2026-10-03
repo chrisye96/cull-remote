@@ -1,2 +1,2 @@
-_G.lrRemoteCullRunning = true
+require('Trace')('init')
 require('Bridge').start()

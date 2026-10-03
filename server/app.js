@@ -22,6 +22,15 @@ const LOCAL_HOSTS = new Set(['127.0.0.1:47800', 'localhost:47800']);
 const TAILNET_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net(:443)?$/;
 const defaultAllowedHost = (host) => LOCAL_HOSTS.has(host) || TAILNET_HOST.test(host);
 
+// A request target such as `//` makes the URL constructor throw; treat it as a bad request.
+function parseUrl(req) {
+  try {
+    return new URL(req.url, 'http://localhost');
+  } catch {
+    return null;
+  }
+}
+
 function sendJson(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(body));
@@ -135,12 +144,8 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
   async function publicHandler(req, res) {
     try {
       if (!allowedHost(String(req.headers.host ?? '').toLowerCase())) return sendJson(res, 421, { error: 'bad_host' });
-      let url;
-      try {
-        url = new URL(req.url, 'http://localhost');
-      } catch {
-        return sendJson(res, 400, { error: 'bad_request' });
-      }
+      const url = parseUrl(req);
+      if (!url) return sendJson(res, 400, { error: 'bad_request' });
       if (url.pathname.startsWith('/api/')) return await api(req, res, url);
       return await serveStatic(res, url.pathname);
     } catch (e) {
@@ -152,12 +157,8 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
 
   async function pluginHandler(req, res) {
     try {
-      let url;
-      try {
-        url = new URL(req.url, 'http://localhost');
-      } catch {
-        return sendJson(res, 400, { error: 'bad_request' });
-      }
+      const url = parseUrl(req);
+      if (!url) return sendJson(res, 400, { error: 'bad_request' });
       // A custom header forces a CORS preflight, so a web page cannot park a poll or
       // forge a result with <img>, <form> or a simple fetch.
       const isPluginCall = url.pathname === '/next' || url.pathname.startsWith('/result/');
