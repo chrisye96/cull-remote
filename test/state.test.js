@@ -57,7 +57,7 @@ test('parseValue keeps labels as strings and turns other fields into numbers', (
 });
 
 test('mergeFresh copies newer marks without changing membership or order', () => {
-  const photos = [{ ...blank(), id: 'a' }, { ...blank(), id: 'b' }, { ...blank(), id: 'c' }];
+  const photos = [{ ...blank(), id: 'a' }, { ...blank(), id: 'b' }, { ...blank(), id: 'c', rating: 2 }];
   const fresh = [
     { ...blank(), id: 'b', rating: 4, label: 'green', pick: 1 },
     { ...blank(), id: 'a' },
@@ -67,7 +67,8 @@ test('mergeFresh copies newer marks without changing membership or order', () =>
   assert.equal(changed, 1);
   assert.deepEqual(photos.map((p) => p.id), ['a', 'b', 'c']);
   assert.deepEqual([photos[1].rating, photos[1].label, photos[1].pick], [4, 'green', 1]);
-  assert.equal(photos[2].rating, 0);
+  assert.equal(photos[2].rating, 2);
+  assert.equal(photos.length, 3);
 });
 
 test('mergeFresh leaves fields with an op in flight alone', () => {
