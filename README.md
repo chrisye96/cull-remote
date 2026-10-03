@@ -31,7 +31,9 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - Swipe left or right, or tap the left or right side of the photo, to move between photos
 - Pick and reject jump to the next photo; stars and labels stay on the current one
 - Tap an active flag, star or label again to clear it
-- The top-right switch toggles between unmarked photos only and all photos
+- The filter switch shows both "unmarked" and "all" with live counts; switching keeps you on the current photo when it is in the new list
+- Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
+- In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels
 
 Deleting photos is out of scope on purpose: mark them as rejected on the phone, then use Lightroom's `Photo > Delete Rejected Photos` on the computer.
 
@@ -50,7 +52,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 ## Known limitations
 
-- The photo list is a snapshot taken when you open a folder or collection. Changes made in Lightroom or on another device appear after going back and opening it again (automatic refresh is planned for the next version)
+- Marks refresh from Lightroom while a folder or collection is open (every 5 seconds, longer for very large folders); photos added to or removed from it appear after going back and opening it again
 - Previews are cached in `.cache/previews/` and do not refresh after you re-edit a photo in Lightroom; delete that folder to refresh
 - The "Lightroom is busy" rollback is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
 - Only Lightroom's five default colour labels are recognised: photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
