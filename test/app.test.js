@@ -218,3 +218,18 @@ test('a non-JPEG preview reply is refused with 502 and never cached', async () =
     s.close();
   }
 });
+
+test('status turns offline as soon as the plugin drops its parked poll connection', async () => {
+  const s = await start();
+  try {
+    const req = http.get(`${s.plug}/next`);
+    req.on('error', () => {});
+    await sleep(30);
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: true });
+    req.destroy();
+    await sleep(50);
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
+  } finally {
+    s.close();
+  }
+});

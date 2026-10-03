@@ -149,9 +149,11 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
         return sendJson(res, 400, { error: 'bad_request' });
       }
       if (req.method === 'GET' && url.pathname === '/next') {
-        // ponytail: if the plugin drops this connection mid-poll, one command can be
-        // handed to a dead socket and will fail with lr_timeout. Track res 'close' if it bites.
-        return sendJson(res, 200, (await bridge.next(pollMs)) ?? {});
+        const ac = new AbortController();
+        res.on('close', () => {
+          if (!res.writableEnded) ac.abort();
+        });
+        return sendJson(res, 200, (await bridge.next(pollMs, ac.signal)) ?? {});
       }
       const result = url.pathname.match(/^\/result\/([\w-]+)$/);
       if (req.method === 'POST' && result) {
