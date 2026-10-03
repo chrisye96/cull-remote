@@ -237,6 +237,7 @@ export function initViewer(onBack) {
   let start = null;
   let dragging = false;
   let lastSwipeAt = 0;
+  let slideTimer = null;
 
   function setOffset(px, animate = false) {
     const img = $('photo');
@@ -245,6 +246,9 @@ export function initViewer(onBack) {
   }
 
   stage.addEventListener('touchstart', (event) => {
+    clearTimeout(slideTimer);
+    slideTimer = null;
+    setOffset(0);
     const touch = event.touches[0];
     start = { x: touch.clientX, y: touch.clientY };
     dragging = false;
@@ -278,9 +282,12 @@ export function initViewer(onBack) {
       return;
     }
     setOffset(-delta * stage.clientWidth, true);
-    setTimeout(() => {
+    const seq = openSeq;
+    const from = index;
+    slideTimer = setTimeout(() => {
+      slideTimer = null;
       setOffset(0);
-      go(delta);
+      if (seq === openSeq && from === index) go(delta);
     }, 180);
   });
 
@@ -303,7 +310,7 @@ export function initViewer(onBack) {
     if (!document.hidden) refresh();
   });
   // Rotation or Split View can cross the tier boundary; show the matching preview.
-  HD_QUERY.addEventListener('change', render);
+  HD_QUERY.addEventListener('change', () => { if (!$('viewer').hidden) render(); });
 }
 
 // Never throws: failures are shown inside the viewer so Back always works and the
@@ -312,6 +319,8 @@ export async function openViewer(nextSource) {
   openSeq += 1;
   const token = openSeq;
   source = nextSource;
+  failedUrl = null;
+  delete $('photo').dataset.url;
   sourceName = nextSource.name;
   notice = '加载中';
   all = [];
