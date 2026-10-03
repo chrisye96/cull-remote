@@ -79,6 +79,31 @@ button.on { border-color: var(--accent); color: var(--accent); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
 }
 
+/* Live hint while pulling up or down: dim until the pull is far enough, then armed. */
+#pull { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 14px; background: rgba(0, 0, 0, .55); font-size: 18px; opacity: 0; transform: translate(-50%, -50%) scale(.9); pointer-events: none; transition: transform .12s ease, background-color .12s ease; }
+#pull .icon { width: 24px; height: 24px; }
+#pull.pick { color: var(--accent); }
+#pull.reject { color: #ff6b6b; }
+#pull.armed { transform: translate(-50%, -50%) scale(1.1); background: rgba(0, 0, 0, .8); }
+
+/* Brief chevron where an edge tap landed, pinned inside the photo. */
+.tap-hint { position: absolute; top: 50%; width: 44px; height: 44px; margin-top: -22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); opacity: 0; pointer-events: none; }
+.tap-hint .icon { width: 24px; height: 24px; }
+#tap-prev { left: calc(var(--img-left, 0px) + 10px); }
+#tap-next { left: calc(var(--img-left, 0px) + var(--img-width, 100%) - 54px); }
+.tap-hint.show { animation: tap-hint .35s ease-out; }
+@keyframes tap-hint {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* No photo that way: a small nudge and back. */
+#photo.bump-prev { animation: bump-prev .22s ease-out; }
+#photo.bump-next { animation: bump-next .22s ease-out; }
+@keyframes bump-prev { 50% { transform: translateX(14px); } }
+@keyframes bump-next { 50% { transform: translateX(-14px); } }
+
 button.pending { animation: pending 1s ease-in-out infinite; }
 @keyframes pending { 50% { opacity: .55; } }
 
@@ -129,7 +154,7 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
   #caption { display: block; bottom: calc(max(var(--img-bottom, 0px), env(safe-area-inset-bottom)) + 10px); }
   /* The photo can touch the top of a landscape screen; keep the pill below the safe area. */
   #badges { top: calc(max(var(--img-top, 0px), env(safe-area-inset-top)) + 10px); }
-  #flash { left: calc(50% + env(safe-area-inset-left) / 2); }
+  #flash, #pull { left: calc(50% + env(safe-area-inset-left) / 2); }
 
   #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
   #error { padding: 6px calc(env(safe-area-inset-right) + 8px) 6px 8px; font-size: 12px; }
