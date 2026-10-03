@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -82,4 +82,12 @@ test('mergeFresh leaves fields with an op in flight alone', () => {
 test('mergeFresh reports zero when nothing changed', () => {
   const photos = [{ ...blank(), id: 'a', rating: 2 }];
   assert.equal(mergeFresh(photos, [{ ...blank(), id: 'a', rating: 2 }], () => false), 0);
+});
+
+test('indexAfterFilter stays on the same photo when it is still listed', () => {
+  const list = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  assert.equal(indexAfterFilter(list, 'c'), 2);
+  assert.equal(indexAfterFilter(list, 'zz'), 0);
+  assert.equal(indexAfterFilter(list, null), 0);
+  assert.equal(indexAfterFilter([], 'a'), 0);
 });
