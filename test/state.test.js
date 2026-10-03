@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -123,4 +123,18 @@ test('nextRefreshDelay waits five times the last refresh, never less than the ba
   assert.equal(nextRefreshDelay(400), 5000);
   assert.equal(nextRefreshDelay(1740), 8700);
   assert.equal(nextRefreshDelay(1000, 3000), 5000);
+});
+
+test('sortPhotos orders by capture time or file name without touching the input', () => {
+  const photos = [
+    { id: 'b', name: 'IMG_10.NEF', time: 200 },
+    { id: 'a', name: 'IMG_2.NEF', time: 100 },
+    { id: 'c', name: 'IMG_1.NEF', time: 200 },
+  ];
+  const ids = (list) => list.map((photo) => photo.id);
+  assert.deepEqual(ids(sortPhotos(photos, 'time-asc')), ['a', 'c', 'b']);
+  assert.deepEqual(ids(sortPhotos(photos, 'time-desc')), ['c', 'b', 'a']);
+  assert.deepEqual(ids(sortPhotos(photos, 'name')), ['c', 'a', 'b']);
+  assert.deepEqual(ids(sortPhotos(photos, 'bogus')), ['a', 'c', 'b']);
+  assert.deepEqual(ids(photos), ['b', 'a', 'c']);
 });
