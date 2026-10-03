@@ -115,6 +115,10 @@ test('recentSources respects the limit', () => {
   assert.deepEqual(recentSources(recentFlat(), lastPhoto, 2).map((source) => source.name), ['C', 'B']);
 });
 
+test('recentSources with a limit of 0 returns nothing', () => {
+  assert.deepEqual(recentSources(recentFlat(), { 'f:A': 'p1', 'f:B': 'p2' }, 0), []);
+});
+
 test('recentSources gives nothing for an empty or missing map', () => {
   assert.deepEqual(recentSources(recentFlat(), {}, 5), []);
   assert.deepEqual(recentSources(recentFlat(), undefined, 5), []);

@@ -161,6 +161,8 @@ export function initSources() {
     applySearch();
   });
   search.addEventListener('compositionend', applySearch);
+  // Keep focus in the input on iOS so the keyboard does not flicker.
+  clear.addEventListener('pointerdown', (event) => event.preventDefault());
   clear.addEventListener('click', () => {
     search.value = '';
     applySearch();

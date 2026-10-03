@@ -121,8 +121,11 @@ function renderBadges(photo) {
     if (part) shownBefore = true;
   }
   const flagEl = box.querySelector('.mark-flag');
-  flagEl.classList.toggle('pick', flag?.kind === 'pick');
-  flagEl.classList.toggle('reject', flag?.kind === 'reject');
+  // With no flag the last kind stays, so the part fades out showing the icon it had.
+  if (flag) {
+    flagEl.classList.toggle('pick', flag.kind === 'pick');
+    flagEl.classList.toggle('reject', flag.kind === 'reject');
+  }
   const valueEl = box.querySelector('.mark-rating .value');
   if (rating && valueEl.textContent !== String(rating.value)) valueEl.textContent = String(rating.value);
   if (label) box.querySelector('.mark-label .dot').className = `dot ${label.value}`;
@@ -405,7 +408,7 @@ export function initViewer(onBack) {
     const flag = swipeFlag({ dx, dy, startY: start.y, viewportHeight: window.innerHeight, durationMs: Date.now() - start.at });
     start = null;
     // The pull hint already showed this flag, so the central flash would only repeat it.
-    const hinted = $('pull').classList.contains('armed') && $('pull').style.opacity !== '0';
+    const hinted = $('pull').classList.contains('armed') && Number(getComputedStyle($('pull')).opacity) > 0.5;
     hidePull();
     if (!dragging) {
       // A clearly vertical swipe sets a flag; anything else is left to the click handler.
@@ -487,5 +490,10 @@ export async function openViewer(nextSource) {
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);
   applyFilter();
   index = resumeIndex(all, list, lastPhoto[nextSource.id]);
+  // Opening a folder counts as using it, even when the remembered photo is unchanged.
+  if (list[index]) {
+    rememberCapped(lastPhoto, nextSource.id, list[index].id, LAST_PHOTO_CAP);
+    writePref('lastPhoto', lastPhoto);
+  }
   render();
 }
