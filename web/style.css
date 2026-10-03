@@ -95,7 +95,7 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
 #badges .rating { color: rgba(245, 197, 24, .9); }
 #badges .rating .icon { fill: currentColor; }
 #badges .dot { width: 12px; height: 12px; border-radius: 50%; opacity: .85; }
-#caption { display: none; position: absolute; left: 10px; bottom: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; pointer-events: none; }
+#caption { display: none; position: absolute; left: 10px; bottom: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; max-width: calc(100% - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
@@ -104,20 +104,18 @@ button[data-field="pickStatus"][data-value="-1"].on { border-color: #ff6b6b; }
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
   #back { grid-area: 1 / 2; justify-self: start; align-self: center; min-height: 34px; padding: 0 10px; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 8px; }
-  #title { grid-area: 1 / 2; justify-self: end; align-self: center; flex: none; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 0; }
-  #status:not([hidden]) ~ #viewer #back, #status:not([hidden]) ~ #viewer #title { margin-top: 8px; }
-  #photo-name { display: none; }
-  #photo-pos { margin: 0; }
+  #title { display: none; }
+  #status:not([hidden]) ~ #viewer #back { margin-top: 8px; }
   #filter { grid-area: 2 / 2; margin: 6px calc(env(safe-area-inset-right) + 8px) 0 8px; }
   #filter button { flex: 1; min-height: 0; padding: 4px 0; font-size: 12px; line-height: 1.25; white-space: normal; }
   #filter .count { display: block; margin: 0; }
 
   #stage { grid-area: 1 / 1 / 4 / 2; padding-left: env(safe-area-inset-left); }
-  #caption { display: block; left: calc(env(safe-area-inset-left) + 10px); }
-  #badges { left: calc(env(safe-area-inset-left) + 10px); }
+  #caption { display: block; left: calc(env(safe-area-inset-left) + 10px); bottom: calc(env(safe-area-inset-bottom) + 10px); }
+  #badges { top: calc(env(safe-area-inset-top) + 10px); left: calc(env(safe-area-inset-left) + 10px); }
   #flash { left: calc(50% + env(safe-area-inset-left) / 2); }
 
-  #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; }
+  #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
   #error { padding: 6px calc(env(safe-area-inset-right) + 8px) 6px 8px; font-size: 12px; }
 
   /* Two-column rail: pick over the stars (5 on top), reject over the colour labels. */
