@@ -308,6 +308,13 @@ export function initViewer(onBack) {
 
   stage.addEventListener('touchstart', (event) => {
     completeSlide();
+    if (event.touches.length > 1) {
+      // A second finger makes this a multi-touch gesture, never a swipe or a flag.
+      start = null;
+      dragging = false;
+      setOffset(0);
+      return;
+    }
     const touch = event.touches[0];
     start = { x: touch.clientX, y: touch.clientY };
     dragging = false;
@@ -325,6 +332,10 @@ export function initViewer(onBack) {
   }, { passive: true });
 
   stage.addEventListener('touchend', (event) => {
+    if (event.touches.length > 0) {
+      start = null; // Another finger is still down; this is not a single-finger gesture.
+      return;
+    }
     if (!start) return;
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
@@ -364,7 +375,7 @@ export function initViewer(onBack) {
     const third = stage.clientWidth / 3;
     if (event.clientX < third) go(-1);
     else if (event.clientX > third * 2) go(1);
-    else if (!retryPreview()) stage.classList.toggle('overlays-off');
+    else if (!retryPreview() && list[index]) stage.classList.toggle('overlays-off');
   });
 
   setInterval(refresh, 1000); // Cheap tick; nextRefreshAt decides whether a fetch actually happens.
@@ -383,6 +394,7 @@ export async function openViewer(nextSource) {
   source = nextSource;
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
+  $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
   notice = '加载中';
