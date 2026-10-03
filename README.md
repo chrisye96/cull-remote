@@ -53,6 +53,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 - The photo list is a snapshot taken when you open a folder or collection. Changes made in Lightroom or on another device appear after going back and opening it again (automatic refresh is planned for the next version)
 - Previews are cached in `.cache/previews/` and do not refresh after you re-edit a photo in Lightroom; delete that folder to refresh
 - The "Lightroom is busy" rollback is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
+- Only Lightroom's five default colour labels are recognised: photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
 - Online only for now; offline caching is planned
 
 ## License
