@@ -1,7 +1,7 @@
-import { $ } from './dom.js';
+import { $, icon } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary } from './state.js';
 
 const size = matchMedia('(min-width: 768px)').matches ? 'hd' : 'std';
 const SWIPE_MIN_DX = 50;
@@ -78,6 +78,43 @@ function syncImage(url) {
   img.src = url;
 }
 
+function badge(className, children) {
+  const el = document.createElement('span');
+  el.className = `badge ${className}`;
+  el.append(...children);
+  return el;
+}
+
+// The photo's current marks, always visible in the corner.
+function renderBadges(photo) {
+  const box = $('badges');
+  box.textContent = '';
+  if (!photo) return;
+  if (photo.pick === 1) box.append(badge('pick', [icon('flag')]));
+  if (photo.pick === -1) box.append(badge('reject', [icon('ban')]));
+  if (photo.rating > 0) box.append(badge('rating', [icon('star'), String(photo.rating)]));
+  if (photo.label !== 'none') box.append(badge(`swatch ${photo.label}`, []));
+}
+
+// Short confirmation in the middle of the photo right after a mark.
+function flash(field, value) {
+  const summary = markSummary(field, value);
+  const box = $('flash');
+  box.textContent = '';
+  if (summary.icon) box.append(icon(summary.icon));
+  if (summary.swatch) {
+    const dot = document.createElement('span');
+    dot.className = `dot ${summary.swatch}`;
+    box.append(dot);
+  }
+  const text = document.createElement('span');
+  text.textContent = summary.text;
+  box.append(text);
+  box.classList.remove('show');
+  void box.offsetWidth; // restart the animation when marks come in quick succession
+  box.classList.add('show');
+}
+
 function render() {
   renderFilter();
   const photo = list[index];
@@ -88,6 +125,7 @@ function render() {
   $('actions').hidden = !photo;
   $('empty').hidden = Boolean(photo) && !previewFailed;
   $('title').textContent = photo ? `${photo.name}  ${index + 1}/${list.length}` : sourceName;
+  renderBadges(photo);
   if (!photo) {
     $('empty').textContent = notice || (onlyUnmarked ? '这里没有未标记的照片' : '这里没有照片');
     return;
@@ -99,6 +137,7 @@ function render() {
     const current = photo[KEY[field]];
     button.classList.toggle('on', field === 'rating' ? current >= value : current === value);
     button.setAttribute('aria-pressed', String(current === value));
+    button.classList.toggle('pending', isPending(photo.id, field));
   }
   // Warm the next two previews so swiping feels instant.
   for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, size);
@@ -136,6 +175,7 @@ function mark(field, rawValue) {
   const value = toggledValue(photo, field, parseValue(field, rawValue));
   const previous = setField(photo, field, value);
   showError('');
+  flash(field, value);
   trackPending(photo.id, field, 1);
   // Pick and reject advance right away; the request happens in the background.
   if (!(shouldAdvance(field, value) && go(1))) render();
@@ -185,23 +225,60 @@ export function initViewer(onBack) {
 
   const stage = $('stage');
   let start = null;
+  let dragging = false;
   let lastSwipeAt = 0;
+
+  function setOffset(px, animate = false) {
+    const img = $('photo');
+    img.style.transition = animate ? 'transform .18s ease-out' : 'none';
+    img.style.transform = px ? `translateX(${px}px)` : '';
+  }
+
   stage.addEventListener('touchstart', (event) => {
     const touch = event.touches[0];
     start = { x: touch.clientX, y: touch.clientY };
+    dragging = false;
   }, { passive: true });
+
+  stage.addEventListener('touchmove', (event) => {
+    if (!start) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) dragging = true;
+    if (!dragging) return;
+    const atEdge = (dx > 0 && index === 0) || (dx < 0 && index === list.length - 1);
+    setOffset(atEdge ? dx * 0.3 : dx); // rubber band at the first and last photo
+  }, { passive: true });
+
   stage.addEventListener('touchend', (event) => {
     if (!start) return;
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     start = null;
-    if (Math.abs(dx) > SWIPE_MIN_DX && Math.abs(dx) > Math.abs(dy)) {
-      lastSwipeAt = Date.now();
-      go(dx < 0 ? 1 : -1);
+    if (!dragging) return;
+    dragging = false;
+    lastSwipeAt = Date.now();
+    const delta = dx < 0 ? 1 : -1;
+    const target = index + delta;
+    const passed = Math.abs(dx) > SWIPE_MIN_DX && Math.abs(dx) > Math.abs(dy);
+    if (!passed || target < 0 || target >= list.length) {
+      setOffset(0, true);
+      return;
     }
+    setOffset(-delta * stage.clientWidth, true);
+    setTimeout(() => {
+      setOffset(0);
+      go(delta);
+    }, 180);
   });
-  stage.addEventListener('touchcancel', () => { start = null; });
+
+  stage.addEventListener('touchcancel', () => {
+    start = null;
+    dragging = false;
+    setOffset(0, true);
+  });
   // Tap the left or right third to step; tap the middle to retry a failed preview.
   stage.addEventListener('click', (event) => {
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return; // synthetic click after a swipe

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -90,4 +90,14 @@ test('indexAfterFilter stays on the same photo when it is still listed', () => {
   assert.equal(indexAfterFilter(list, 'zz'), 0);
   assert.equal(indexAfterFilter(list, null), 0);
   assert.equal(indexAfterFilter([], 'a'), 0);
+});
+
+test('markSummary describes every kind of mark for the confirmation flash', () => {
+  assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用' });
+  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '弃用' });
+  assert.deepEqual(markSummary('pickStatus', 0), { icon: 'flag-off', text: '取消旗标' });
+  assert.deepEqual(markSummary('rating', 3), { icon: 'star', text: '3 星' });
+  assert.deepEqual(markSummary('rating', 0), { icon: 'star-off', text: '清除星级' });
+  assert.deepEqual(markSummary('label', 'green'), { swatch: 'green', text: '绿色' });
+  assert.deepEqual(markSummary('label', 'none'), { icon: 'circle-off', text: '清除色标' });
 });
