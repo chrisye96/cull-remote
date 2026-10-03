@@ -158,6 +158,10 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
       } catch {
         return sendJson(res, 400, { error: 'bad_request' });
       }
+      // A custom header forces a CORS preflight, so a web page cannot park a poll or
+      // forge a result with <img>, <form> or a simple fetch.
+      const isPluginCall = url.pathname === '/next' || url.pathname.startsWith('/result/');
+      if (isPluginCall && req.headers['x-lrc-plugin'] !== '1') return sendJson(res, 403, { error: 'forbidden' });
       if (req.method === 'GET' && url.pathname === '/next') {
         const ac = new AbortController();
         res.on('close', () => {

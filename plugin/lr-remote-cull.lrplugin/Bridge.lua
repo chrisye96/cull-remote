@@ -6,9 +6,11 @@ local trace = require 'Trace'
 local Commands = require 'Commands'
 
 local BASE = 'http://127.0.0.1:47801'
+-- The server refuses plugin port calls without this header, so web pages cannot use it.
+local PLUGIN_HEADER = { field = 'X-LRC-Plugin', value = '1' }
 
 local function post(id, body, contentType)
-  local reply = LrHttp.post(BASE .. '/result/' .. id, body, { { field = 'Content-Type', value = contentType } }, 'POST', 10)
+  local reply = LrHttp.post(BASE .. '/result/' .. id, body, { PLUGIN_HEADER, { field = 'Content-Type', value = contentType } }, 'POST', 10)
   if reply == nil then trace('result post failed for command ' .. tostring(id)) end
 end
 
@@ -40,7 +42,7 @@ function Bridge.start()
   LrTasks.startAsyncTask(function()
     while _G.lrRemoteCullRunning and _G.lrRemoteCullGeneration == generation do
       local started = LrDate.currentTime()
-      local body = LrHttp.get(BASE .. '/next', nil, 35)
+      local body = LrHttp.get(BASE .. '/next', { PLUGIN_HEADER }, 35)
       if not body or body == '' then
         -- Companion server is not running; retry quietly.
         LrTasks.sleep(2)

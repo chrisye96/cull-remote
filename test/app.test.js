@@ -37,13 +37,15 @@ async function start({ defaultHost = false } = {}) {
   };
 }
 
+const PLUGIN_HEADER = { 'x-lrc-plugin': '1' };
+
 // Fake plugin: polls until one command arrives, answers it, returns the command.
 async function answerOne(plug, reply) {
   for (;;) {
-    const cmd = await (await fetch(`${plug}/next`)).json();
+    const cmd = await (await fetch(`${plug}/next`, { headers: PLUGIN_HEADER })).json();
     if (!cmd.id) continue;
     const { type = 'application/json', body } = reply(cmd);
-    await fetch(`${plug}/result/${cmd.id}`, { method: 'POST', headers: { 'content-type': type }, body });
+    await fetch(`${plug}/result/${cmd.id}`, { method: 'POST', headers: { ...PLUGIN_HEADER, 'content-type': type }, body });
     return cmd;
   }
 }
@@ -227,7 +229,7 @@ test('a non-JPEG preview reply is refused with 502 and never cached', async () =
 test('status turns offline as soon as the plugin drops its parked poll connection', async () => {
   const s = await start();
   try {
-    const req = http.get(`${s.plug}/next`);
+    const req = http.get(`${s.plug}/next`, { headers: PLUGIN_HEADER });
     req.on('error', () => {});
     await sleep(30);
     assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: true });
@@ -288,6 +290,21 @@ test('ops: a non-JSON content type is refused with 415 and never reaches the plu
     const res = await fetch(`${s.pub}/api/ops`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ ops: [op] }) });
     assert.equal(res.status, 415);
     assert.deepEqual(await res.json(), { error: 'unsupported_media_type' });
+    assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
+  } finally {
+    s.close();
+  }
+});
+
+test('plugin port refuses /next and /result without the plugin header and never touches the bridge', async () => {
+  const s = await start();
+  try {
+    const next = await rawRequest(s.plug, { path: '/next' });
+    assert.equal(next.status, 403);
+    assert.deepEqual(JSON.parse(next.body), { error: 'forbidden' });
+    const result = await rawRequest(s.plug, { path: '/result/abc', method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"ok":true}' });
+    assert.equal(result.status, 403);
+    // A parked poll would have made Lightroom look online.
     assert.deepEqual(await (await fetch(`${s.pub}/api/status`)).json(), { lrOnline: false });
   } finally {
     s.close();
