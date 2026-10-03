@@ -23,7 +23,7 @@
       <div class="search-box">
         <svg class="icon search-icon" aria-hidden="true"><use href="/vendor/lucide.svg#search"></use></svg>
         <input id="source-search" type="search" placeholder="搜索文件夹或收藏夹" aria-label="搜索文件夹或收藏夹" autocomplete="off" enterkeyhint="search">
-        <button id="search-clear" type="button" aria-label="清除搜索" hidden><svg class="icon"><use href="/vendor/lucide.svg#x"></use></svg></button>
+        <button id="search-clear" type="button" aria-label="清除搜索" hidden><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
       </div>
       <div class="home-sorts">
         <label>文件夹排序
@@ -49,7 +49,7 @@
 
   <main id="viewer" hidden>
     <header>
-      <button id="back" type="button"><svg class="icon"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span>返回</span></button>
+      <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span>返回</span></button>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" aria-label="筛选">
         <button type="button" data-filter="unmarked">未标记<span class="count"></span></button>
@@ -74,15 +74,15 @@
       <p id="error" role="alert" hidden></p>
       <footer id="actions">
         <div class="row flags">
-          <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon"><use href="/vendor/lucide.svg#flag"></use></svg><span>留用</span></button>
-          <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon"><use href="/vendor/lucide.svg#ban"></use></svg><span>弃用</span></button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#flag"></use></svg><span>留用</span></button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#ban"></use></svg><span>弃用</span></button>
         </div>
         <div class="row stars">
-          <button type="button" data-field="rating" data-value="1" aria-label="1 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="2" aria-label="2 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="3" aria-label="3 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="4" aria-label="4 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="5" aria-label="5 星"><svg><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="1" aria-label="1 星"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="2" aria-label="2 星"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="3" aria-label="3 星"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="4" aria-label="4 星"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="5" aria-label="5 星"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
         </div>
         <div class="row swatches">
           <button type="button" class="red" data-field="label" data-value="red" aria-label="红色"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>

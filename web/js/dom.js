@@ -19,5 +19,12 @@ export function playAnimation(el, className) {
   el.classList.remove(className);
   void el.offsetWidth;
   el.classList.add(className);
-  el.addEventListener('animationend', () => el.classList.remove(className), { once: true });
+  // animationcancel fires when the element or an ancestor becomes display:none.
+  const done = () => {
+    el.classList.remove(className);
+    el.removeEventListener('animationend', done);
+    el.removeEventListener('animationcancel', done);
+  };
+  el.addEventListener('animationend', done);
+  el.addEventListener('animationcancel', done);
 }

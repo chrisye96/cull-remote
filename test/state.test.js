@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -177,6 +177,13 @@ test('pullProgress grows with the pull and stops at 1', () => {
   assert.equal(pullProgress(-40), 0.5);
   assert.equal(pullProgress(40), 0.5);
   assert.equal(pullProgress(-200), 1);
+});
+
+test('pullOpacity is full only when armed and stays calmer while unarmed', () => {
+  assert.equal(pullOpacity(0.2, true), 1);
+  assert.equal(pullOpacity(0, false), 0.35);
+  assert.equal(pullOpacity(1, false), 0.6);
+  assert.ok(Math.abs(pullOpacity(0.2, false) - 0.48) < 1e-9);
 });
 
 test('tapZone keeps a wide middle so a slightly off-centre tap does not change photo', () => {
