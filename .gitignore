@@ -24,3 +24,7 @@ venv/
 # Misc
 *.log
 *.tmp
+
+# Local scratch
+.superpowers/
+.cache/
