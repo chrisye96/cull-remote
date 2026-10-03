@@ -1,12 +1,14 @@
 import { $, icon } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos } from './state.js';
+import { readPref } from './prefs.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
 const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
+const FLAG_SWIPE_MIN_DY = 80;
 const REFRESH_MS = 5000;
 
 let all = [];
@@ -201,12 +203,13 @@ function go(delta) {
 
 function retryPreview() {
   const photo = list[index];
-  if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return;
+  if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return false;
   failedUrl = null;
   $('photo').classList.add('loading');
   // Cache-busting param so the browser refetches instead of replaying the failure.
   $('photo').src = `${previewUrl(photo.id, previewSize())}&retry=${Date.now()}`;
   render();
+  return true;
 }
 
 function enqueue(task) {
@@ -236,6 +239,15 @@ function mark(field, rawValue) {
       settledOps += 1;
       if (!$('viewer').hidden) render();
     });
+}
+
+// Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
+// repeating it on a photo that already has that flag just moves on.
+function flagByGesture(value) {
+  const photo = list[index];
+  if (!photo) return;
+  if (photo.pick === value) go(1);
+  else mark('pickStatus', String(value));
 }
 
 export function initViewer(onBack) {
@@ -318,7 +330,14 @@ export function initViewer(onBack) {
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     start = null;
-    if (!dragging) return;
+    if (!dragging) {
+      // A clearly vertical swipe sets a flag; anything else is left to the click handler.
+      if (Math.abs(dy) > FLAG_SWIPE_MIN_DY && Math.abs(dy) > Math.abs(dx) * 1.5) {
+        lastSwipeAt = Date.now();
+        flagByGesture(dy < 0 ? 1 : -1);
+      }
+      return;
+    }
     dragging = false;
     lastSwipeAt = Date.now();
     const delta = dx < 0 ? 1 : -1;
@@ -338,13 +357,14 @@ export function initViewer(onBack) {
     dragging = false;
     setOffset(0, true);
   });
-  // Tap the left or right third to step; tap the middle to retry a failed preview.
+  // Tap the left or right third to step. Tap the middle to retry a failed preview,
+  // or otherwise to hide or show the mark pill and the filename tag.
   stage.addEventListener('click', (event) => {
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return; // synthetic click after a swipe
     const third = stage.clientWidth / 3;
     if (event.clientX < third) go(-1);
     else if (event.clientX > third * 2) go(1);
-    else retryPreview();
+    else if (!retryPreview()) stage.classList.toggle('overlays-off');
   });
 
   setInterval(refresh, 1000); // Cheap tick; nextRefreshAt decides whether a fetch actually happens.
@@ -375,7 +395,7 @@ export async function openViewer(nextSource) {
   try {
     const photos = await getPhotos(source.id);
     if (token !== openSeq) return;
-    all = photos;
+    all = sortPhotos(photos, readPref('photoSort', 'time-asc'));
     notice = '';
   } catch (e) {
     if (token !== openSeq) return;
