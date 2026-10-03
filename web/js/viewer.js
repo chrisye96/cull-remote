@@ -1,14 +1,13 @@
 import { $, icon } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos } from './state.js';
-import { readPref } from './prefs.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark } from './state.js';
+import { readChoice, PHOTO_SORTS } from './prefs.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
 const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
-const FLAG_SWIPE_MIN_DY = 80;
 const REFRESH_MS = 5000;
 
 let all = [];
@@ -246,7 +245,7 @@ function mark(field, rawValue) {
 function flagByGesture(value) {
   const photo = list[index];
   if (!photo) return;
-  if (photo.pick === value) go(1);
+  if (gestureMark(photo, value) === 'advance') go(1);
   else mark('pickStatus', String(value));
 }
 
@@ -316,7 +315,7 @@ export function initViewer(onBack) {
       return;
     }
     const touch = event.touches[0];
-    start = { x: touch.clientX, y: touch.clientY };
+    start = { x: touch.clientX, y: touch.clientY, at: Date.now() };
     dragging = false;
   }, { passive: true });
 
@@ -334,18 +333,21 @@ export function initViewer(onBack) {
   stage.addEventListener('touchend', (event) => {
     if (event.touches.length > 0) {
       start = null; // Another finger is still down; this is not a single-finger gesture.
+      dragging = false;
+      setOffset(0, true);
       return;
     }
     if (!start) return;
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
+    const flag = swipeFlag({ dx, dy, startY: start.y, viewportHeight: window.innerHeight, durationMs: Date.now() - start.at });
     start = null;
     if (!dragging) {
       // A clearly vertical swipe sets a flag; anything else is left to the click handler.
-      if (Math.abs(dy) > FLAG_SWIPE_MIN_DY && Math.abs(dy) > Math.abs(dx) * 1.5) {
+      if (flag !== 0) {
         lastSwipeAt = Date.now();
-        flagByGesture(dy < 0 ? 1 : -1);
+        flagByGesture(flag);
       }
       return;
     }
@@ -407,7 +409,7 @@ export async function openViewer(nextSource) {
   try {
     const photos = await getPhotos(source.id);
     if (token !== openSeq) return;
-    all = sortPhotos(photos, readPref('photoSort', 'time-asc'));
+    all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     notice = '';
   } catch (e) {
     if (token !== openSeq) return;

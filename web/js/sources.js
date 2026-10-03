@@ -1,27 +1,22 @@
 import { $, icon } from './dom.js';
 import { getSources } from './api.js';
-import { readPref, writePref } from './prefs.js';
+import { readPref, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
 import { buildTree, sortTree, filterTree, folderHint } from './tree.js';
 
 let cached = null;
 let onPickSource = () => {};
 let query = '';
-const FOLDER_SORTS = ['name-desc', 'name-asc', 'import'];
-const PHOTO_SORTS = ['time-asc', 'time-desc', 'name'];
 const storedExpanded = readPref('expanded', {});
 // node key -> true/false, only for nodes the user toggled
 const expanded = storedExpanded && typeof storedExpanded === 'object' && !Array.isArray(storedExpanded) ? storedExpanded : {};
-const choice = (name, allowed, fallback) => {
-  const value = readPref(name, fallback);
-  return allowed.includes(value) ? value : fallback;
-};
+const searching = () => query.trim() !== '';
 
 // While searching every match is shown; otherwise the user's choice wins and the
 // first level is open by default.
-const isOpen = (node) => (query.trim() ? true : expanded[node.key] ?? node.source.depth === 0);
+const isOpen = (node) => (searching() ? true : expanded[node.key] ?? node.source.depth === 0);
 
 function toggle(node) {
-  if (query.trim()) return; // Searching shows every match; the saved expand state stays untouched.
+  if (searching()) return; // Searching shows every match; the saved expand state stays untouched.
   expanded[node.key] = !isOpen(node);
   writePref('expanded', expanded);
   renderList();
@@ -46,7 +41,7 @@ function row(node, siblings) {
     const twisty = document.createElement('button');
     twisty.type = 'button';
     twisty.className = 'twisty';
-    twisty.disabled = Boolean(query.trim());
+    twisty.disabled = searching();
     twisty.setAttribute('aria-expanded', String(open));
     twisty.setAttribute('aria-label', open ? `折叠 ${source.name}` : `展开 ${source.name}`);
     twisty.append(icon(open ? 'chevron-down' : 'chevron-right'));
@@ -89,7 +84,7 @@ function renderList() {
   const list = $('source-list');
   list.textContent = '';
   if (!cached) return;
-  const tree = filterTree(sortTree(buildTree(cached), choice('folderSort', FOLDER_SORTS, 'name-desc')), query);
+  const tree = filterTree(sortTree(buildTree(cached), readChoice('folderSort', FOLDER_SORTS, 'name-desc')), query);
   const groups = [
     ['文件夹', tree.filter((node) => node.source.kind === 'folder')],
     ['收藏夹', tree.filter((node) => node.source.kind !== 'folder')],
@@ -102,25 +97,34 @@ function renderList() {
   if (!list.children.length) {
     const empty = document.createElement('li');
     empty.className = 'source-empty';
-    empty.textContent = query.trim() ? '没有匹配的文件夹或收藏夹' : '这个目录里还没有文件夹或收藏夹';
+    empty.textContent = searching() ? '没有匹配的文件夹或收藏夹' : '这个目录里还没有文件夹或收藏夹';
     list.append(empty);
   }
 }
 
 // Bind the search box and the two sort selects. Call once at page load.
 export function initSources() {
-  $('source-search').addEventListener('input', (event) => {
-    query = event.target.value;
+  const search = $('source-search');
+  const applySearch = () => {
+    query = search.value;
     renderList();
+  };
+  search.addEventListener('input', (event) => {
+    if (event.isComposing) return; // Wait for the IME to commit; compositionend re-runs this.
+    applySearch();
+  });
+  search.addEventListener('compositionend', applySearch);
+  search.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.isComposing) search.blur(); // Closes the iOS keyboard.
   });
   const folderSort = $('folder-sort');
-  folderSort.value = choice('folderSort', FOLDER_SORTS, 'name-desc');
+  folderSort.value = readChoice('folderSort', FOLDER_SORTS, 'name-desc');
   folderSort.addEventListener('change', () => {
     writePref('folderSort', folderSort.value);
     renderList();
   });
   const photoSort = $('photo-sort');
-  photoSort.value = choice('photoSort', PHOTO_SORTS, 'time-asc');
+  photoSort.value = readChoice('photoSort', PHOTO_SORTS, 'time-asc');
   photoSort.addEventListener('change', () => writePref('photoSort', photoSort.value));
 }
 
