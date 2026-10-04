@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -29,6 +29,25 @@ test('setField writes the value and returns the previous one for rollback', () =
   assert.equal(photo.pick, -1);
   assert.equal(setField(photo, 'rating', 4), 0);
   assert.equal(photo.rating, 4);
+});
+
+test('shouldAdvance follows the rule chosen in settings', () => {
+  assert.equal(shouldAdvance('rating', 5, 'any'), true);
+  assert.equal(shouldAdvance('label', 'red', 'any'), true);
+  assert.equal(shouldAdvance('pickStatus', -1, 'any'), true);
+  assert.equal(shouldAdvance('rating', 0, 'any'), false);
+  assert.equal(shouldAdvance('label', 'none', 'any'), false);
+  assert.equal(shouldAdvance('pickStatus', 0, 'any'), false);
+  assert.equal(shouldAdvance('pickStatus', 1, 'never'), false);
+  assert.equal(shouldAdvance('pickStatus', 1, 'flag'), true);
+  assert.equal(shouldAdvance('rating', 5, 'flag'), false);
+});
+
+test('sizeFor follows the screen on auto and the setting otherwise', () => {
+  assert.equal(sizeFor('auto', true), 'hd');
+  assert.equal(sizeFor('auto', false), 'std');
+  assert.equal(sizeFor('std', true), 'std');
+  assert.equal(sizeFor('hd', false), 'hd');
 });
 
 test('shouldAdvance moves on after a pick or reject only', () => {
