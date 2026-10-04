@@ -18,6 +18,7 @@ const SHELL = [
   '/js/prefs.js',
   '/js/quality.js',
   '/js/queue.js',
+  '/js/settings.js',
   '/js/sources.js',
   '/js/state.js',
   '/js/store.js',
