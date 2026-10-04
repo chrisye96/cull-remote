@@ -2,7 +2,6 @@
 // instance with a small fake catalog, so the web app can be exercised without Lightroom.
 // Marks live in memory. Preview images are borrowed from the real preview cache.
 // Usage: node spike/stand-in-plugin.mjs [pluginPort]
-import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,9 +17,13 @@ if (!samples.length) {
   process.exit(1);
 }
 
-function folder(name, depth, count) {
+// Ids stay the same across restarts, so marks queued while the stand-in was down still
+// find their photo when it comes back.
+const photoId = (folderNo, i) => `00000000-0000-4000-8000-${String(folderNo).padStart(2, '0')}${String(i).padStart(10, '0')}`;
+
+function folder(name, depth, count, folderNo) {
   const photos = Array.from({ length: count }, (_, i) => ({
-    id: randomUUID().toUpperCase(),
+    id: photoId(folderNo, i),
     name: `${name}_${String(i + 1).padStart(4, '0')}.NEF`,
     time: 1700000000 + i * 60,
     rating: 0,
@@ -30,7 +33,7 @@ function folder(name, depth, count) {
   return { source: { id: `f:X:\\Demo\\${name}`, kind: 'folder', name, depth, count }, photos };
 }
 
-const folders = [folder('Small', 0, 12), folder('Medium', 0, 60), folder('Large', 0, 600)];
+const folders = [folder('Small', 0, 12, 1), folder('Medium', 0, 60, 2), folder('Large', 0, 600, 3)];
 const byId = new Map(folders.flatMap((f) => f.photos).map((photo, i) => [photo.id, { photo, sample: samples[i % samples.length] }]));
 
 const fail = (error) => ({ type: 'application/json', body: JSON.stringify({ ok: false, error }) });
