@@ -67,6 +67,9 @@ $('refresh-sources').addEventListener('click', async () => {
   }
 });
 
+// Offline support needs a secure context (the tailnet HTTPS address or localhost).
+navigator.serviceWorker?.register('/sw.js').catch(() => {});
+
 initSources();
 initViewer(() => home({ restoreScroll: true }));
 await initSync({
