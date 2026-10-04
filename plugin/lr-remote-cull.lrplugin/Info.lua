@@ -8,6 +8,7 @@ return {
   LrShutdownPlugin = 'Shutdown.lua',
   LrLibraryMenuItems = {
     { title = 'Remote Cull: start bridge', file = 'StartBridge.lua' },
+    { title = 'Remote Cull: show address and QR code', file = 'ShowAddress.lua' },
   },
   VERSION = { major = 0, minor = 1, revision = 0 },
 }

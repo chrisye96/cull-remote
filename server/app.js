@@ -3,6 +3,7 @@ import path from 'node:path';
 import { BridgeError } from './bridge.js';
 import { PHOTO_ID, validateOp } from './validate.js';
 import { SIZES } from './previews.js';
+import { qrSvg } from './qr.js';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -52,7 +53,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, version = '' }) {
+export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, address = async () => null, version = '' }) {
   // ponytail: in-memory, forgotten on restart, and only the newest DONE_OPS_CAP ids are
   // kept. Ops are "set field to value", so a replay is harmless; persist only if that
   // ever stops being true.
@@ -103,7 +104,14 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
       const startedAt = Date.now();
       const home = await atHome(req);
       res.setHeader('server-timing', `home;dur=${Date.now() - startedAt}`);
-      return sendJson(res, 200, { atHome: home, version });
+      // `address` is where other devices reach this server (the tailnet URL), or null.
+      return sendJson(res, 200, { atHome: home, version, address: await address() });
+    }
+    if (req.method === 'GET' && pathname === '/api/qr.svg') {
+      const url = await address();
+      if (!url) return sendJson(res, 404, { error: 'not_found' });
+      res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'no-store', ...NOSNIFF });
+      return res.end(qrSvg(url));
     }
     if (req.method === 'GET' && pathname === '/api/sources') {
       // Lists go ahead of queued previews: a caching run must not hold up opening a folder.

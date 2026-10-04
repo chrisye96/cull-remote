@@ -92,6 +92,8 @@ await initSync({
 });
 await pollStatus(); // Learn whether the computer answers before choosing between Lightroom and the offline copy.
 await home();
+// The plugin's menu item opens the app here to show the address and its QR code.
+if (location.hash === '#settings') $('open-settings').click();
 setInterval(pollStatus, 5000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) pollStatus();

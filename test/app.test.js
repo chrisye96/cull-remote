@@ -214,7 +214,7 @@ test('ops: a retryable failure halts the rest of the batch, a refused op does no
   }
 });
 
-test('info reports whether the device is at home and the server version', async () => {
+test('info reports whether the device is at home, the server version and the address for other devices', async () => {
   const bridge = createBridge();
   const seen = [];
   const app = createApp({
@@ -227,16 +227,31 @@ test('info reports whether the device is at home and the server version', async 
       return true;
     },
     version: '9.9.9',
+    address: async () => 'https://pc.tail1234.ts.net/',
   });
   const server = await listen(app.publicHandler);
   try {
     const res = await fetch(`http://127.0.0.1:${server.address().port}/api/info`, { headers: { 'x-forwarded-for': '100.64.0.2' } });
-    assert.deepEqual(await res.json(), { atHome: true, version: '9.9.9' });
+    assert.deepEqual(await res.json(), { atHome: true, version: '9.9.9', address: 'https://pc.tail1234.ts.net/' });
+    const qr = await fetch(`http://127.0.0.1:${server.address().port}/api/qr.svg`);
+    assert.equal(qr.status, 200);
+    assert.equal(qr.headers.get('content-type'), 'image/svg+xml');
+    assert.match(await qr.text(), /^<svg /);
     assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
     assert.deepEqual(seen, ['100.64.0.2']);
   } finally {
     server.close();
     server.closeAllConnections();
+  }
+});
+
+test('without a tailnet address info says so and there is no QR code', async () => {
+  const s = await start();
+  try {
+    assert.equal((await (await fetch(`${s.pub}/api/info`)).json()).address, null);
+    assert.equal((await fetch(`${s.pub}/api/qr.svg`)).status, 404);
+  } finally {
+    s.close();
   }
 });
 
