@@ -10,34 +10,65 @@ export class BridgeError extends Error {
 // Hands commands from the HTTP API to the Lightroom plugin's long poll and
 // routes the plugin's results back to the waiting caller.
 export function createBridge({ onlineWindowMs = 30000, commandTimeoutMs = 30000 } = {}) {
-  // Urgent commands (marks) are handed out before normal ones (previews, lists), so a
-  // burst of preview requests cannot hold up a mark. Each queue keeps its own order.
-  const queues = { urgent: [], normal: [] };
+  // Two lanes: urgent (marks, lists) and normal (previews). The plugin keeps polling while
+  // a command runs, and each lane hands out one command at a time, so Lightroom renders one
+  // preview and serves one mark or list beside it. A render can take seconds; nothing in
+  // the urgent lane waits for it. Each lane keeps its own order.
+  // ponytail: a command lost by a plugin reload holds its lane until it times out.
+  const lanes = { urgent: { queue: [], running: null }, normal: { queue: [], running: null } };
   const inflight = new Map();
   let waiter = null;
   let lastPollAt = -Infinity;
 
   const isOnline = () => Date.now() - lastPollAt < onlineWindowMs;
 
-  function send(type, params = {}, { urgent = false } = {}) {
+  // The next command the plugin may start, urgent lane first; undefined when there is none.
+  function take() {
+    for (const lane of [lanes.urgent, lanes.normal]) {
+      if (lane.running || !lane.queue.length) continue;
+      lane.running = lane.queue.shift();
+      inflight.get(lane.running.id).handedAt = Date.now();
+      return lane.running;
+    }
+  }
+
+  // Give the parked poll a command as soon as there is one it may start.
+  function feed() {
+    if (!waiter) return;
+    const cmd = take();
+    if (!cmd) return;
+    const deliver = waiter;
+    waiter = null;
+    deliver(cmd);
+  }
+
+  // A command is over, answered or timed out: its lane moves on.
+  function finish(id) {
+    const entry = inflight.get(id);
+    inflight.delete(id);
+    clearTimeout(entry.timer);
+    const { lane, cmd } = entry;
+    const at = lane.queue.indexOf(cmd);
+    if (at !== -1) lane.queue.splice(at, 1);
+    if (lane.running === cmd) lane.running = null;
+    feed();
+    return entry;
+  }
+
+  // `timing`, when given, is filled in on success: { wait, run } in milliseconds, the
+  // time spent behind other commands and the time the plugin took.
+  function send(type, params = {}, { urgent = false, timing } = {}) {
     if (!isOnline()) return Promise.reject(new BridgeError('lr_offline'));
     const cmd = { id: randomUUID(), type, params };
-    const queue = urgent ? queues.urgent : queues.normal;
+    const lane = urgent ? lanes.urgent : lanes.normal;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        inflight.delete(cmd.id);
-        const at = queue.indexOf(cmd);
-        if (at !== -1) queue.splice(at, 1);
+        finish(cmd.id);
         reject(new BridgeError('lr_timeout'));
       }, commandTimeoutMs);
-      inflight.set(cmd.id, { resolve, reject, timer });
-      if (waiter) {
-        const deliver = waiter;
-        waiter = null;
-        deliver(cmd);
-      } else {
-        queue.push(cmd);
-      }
+      inflight.set(cmd.id, { resolve, reject, timer, timing, lane, cmd, sentAt: Date.now() });
+      lane.queue.push(cmd);
+      feed();
     });
   }
 
@@ -46,7 +77,7 @@ export function createBridge({ onlineWindowMs = 30000, commandTimeoutMs = 30000 
   // handed to a dead connection.
   function next(waitMs, signal) {
     lastPollAt = Date.now();
-    const queued = queues.urgent.shift() ?? queues.normal.shift();
+    const queued = take();
     if (queued) return Promise.resolve(queued);
     if (signal?.aborted) {
       lastPollAt = -Infinity;
@@ -77,12 +108,11 @@ export function createBridge({ onlineWindowMs = 30000, commandTimeoutMs = 30000 
   }
 
   function complete(id, error, data) {
-    const entry = inflight.get(id);
-    if (!entry) return;
-    inflight.delete(id);
-    clearTimeout(entry.timer);
-    if (error) entry.reject(new BridgeError(error));
-    else entry.resolve(data);
+    if (!inflight.has(id)) return;
+    const entry = finish(id);
+    if (error) return entry.reject(new BridgeError(error));
+    if (entry.timing) Object.assign(entry.timing, { wait: entry.handedAt - entry.sentAt, run: Date.now() - entry.handedAt });
+    entry.resolve(data);
   }
 
   return { send, next, complete, isOnline };

@@ -17,6 +17,28 @@ let run = null; // AbortController of the run in progress
 let openSeq = 0; // Bumped on every open; a slow list for an earlier folder is dropped.
 let onChange = () => {};
 
+// DIAG (temporary): shows where the time of opening the dialog goes. Kept until the
+// away-from-home reading has been taken, then remove.
+const diagLines = [];
+const ms = Math.round;
+function diagShow() {
+  let el = $('cache-diag');
+  if (!el) {
+    el = document.createElement('pre');
+    el.id = 'cache-diag';
+    el.style.cssText = 'margin:0;font-size:11px;white-space:pre-wrap;user-select:text';
+    $('cache-dialog').querySelector('.dialog-body').append(el);
+  }
+  el.textContent = diagLines.join('\n');
+}
+// The newest request to `path`: time to the first byte, download time and the server's own figures.
+function diagFetch(path) {
+  const e = performance.getEntriesByType('resource').filter((x) => new URL(x.name).pathname === path).at(-1);
+  if (!e) return 'no request seen';
+  const server = (e.serverTiming ?? []).map((t) => `${t.name} ${ms(t.duration)}`).join(', ');
+  return `first byte ${ms(e.responseStart - e.startTime)} + download ${ms(e.responseEnd - e.responseStart)} (${ms(e.encodedBodySize / 1024)} KB) | server: ${server || 'n/a'}`;
+}
+
 function setBusy(busy) {
   for (const id of Object.values(START)) $(id).hidden = busy;
   $('cache-progress').hidden = !busy;
@@ -44,8 +66,11 @@ function describe() {
 // Which previews are already on the device; counting a large cache takes a moment,
 // so the choices are shown first and corrected when this arrives.
 async function refreshHave(token) {
+  const startedAt = performance.now();
   const have = await cachedUrls().catch(() => new Set());
   if (token !== openSeq || !current) return;
+  diagLines.push(`count ${ms(performance.now() - startedAt)} ms (${have.size} cached previews)`);
+  diagShow();
   current.have = have;
   describe();
 }
@@ -119,16 +144,35 @@ export async function openCacheDialog(source) {
   const size = previewSize();
   let photos;
   let info;
+  // The browser keeps only 250 request timings, and a caching run fills that.
+  performance.clearResourceTimings();
+  diagLines.length = 0;
+  diagLines.push('timing: waiting for the list');
+  diagShow();
+  const t0 = performance.now();
+  let t1 = t0;
   try {
     const loaded = await loadPhotos(source.id);
+    t1 = performance.now();
     if (loaded.stale) throw new Error('network'); // Caching needs the computer.
     photos = sortPhotos(loaded.data, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     info = await getInfo().catch(() => ({ atHome: null }));
   } catch (e) {
-    if (token === openSeq) $('cache-note').textContent = `读取失败：${messageFor(e.message)}`;
+    if (token === openSeq) {
+      $('cache-note').textContent = `读取失败：${messageFor(e.message)}`;
+      diagLines.splice(0, 1, `list failed (${e.message}) after ${ms(performance.now() - t0)} ms: ${diagFetch('/api/photos')}`);
+      diagShow();
+    }
     return;
   }
+  const t2 = performance.now();
   if (token !== openSeq || !$('cache-dialog').open) return;
+  diagLines.splice(0, 1,
+    `list ${ms(t1 - t0)} ms: ${diagFetch('/api/photos')}`,
+    `info ${ms(t2 - t1)} ms (atHome ${info.atHome}): ${diagFetch('/api/info')}`,
+    `until choices ${ms(t2 - t0)} ms`,
+  );
+  diagShow();
   current = { source, photos, size, have: new Set() };
   const away = info.atHome === true ? '' : '当前不在家里的网络，或无法判断，下载可能会用到蜂窝流量。';
   $('cache-note').textContent = `共 ${photos.length} 张，${SIZE_NAME[size]}清晰度。${away}`;

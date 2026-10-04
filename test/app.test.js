@@ -12,6 +12,18 @@ import { createApp } from '../server/app.js';
 
 const PHOTO = 'A1B2C3D4-0000-4000-8000-000000000000';
 
+// Node's fetch refuses the ports on the Fetch standard's blocked list ("bad port"), and
+// this machine hands out random ports from 1024 up, so a listener can land on one.
+const BLOCKED_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
+async function listen(handler) {
+  for (;;) {
+    const server = http.createServer(handler).listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    if (!BLOCKED_PORTS.has(server.address().port)) return server;
+    server.close();
+  }
+}
+
 // Tests listen on a random port, so the host allowlist must also accept it. Pass
 // { defaultHost: true } to exercise the production allowlist instead.
 async function start({ defaultHost = false } = {}) {
@@ -20,9 +32,7 @@ async function start({ defaultHost = false } = {}) {
   let pubPort = 0;
   const extra = defaultHost ? {} : { allowedHost: (host) => host === `127.0.0.1:${pubPort}` };
   const app = createApp({ bridge, previews: createPreviewStore(dir, bridge), webDir: path.resolve('web'), pollMs: 200, ...extra });
-  const pub = http.createServer(app.publicHandler).listen(0, '127.0.0.1');
-  const plug = http.createServer(app.pluginHandler).listen(0, '127.0.0.1');
-  await Promise.all([once(pub, 'listening'), once(plug, 'listening')]);
+  const [pub, plug] = await Promise.all([listen(app.publicHandler), listen(app.pluginHandler)]);
   pubPort = pub.address().port;
   const url = (s) => `http://127.0.0.1:${s.address().port}`;
   return {
@@ -72,6 +82,25 @@ test('sources round-trip through the plugin', async () => {
     assert.equal(res.status, 200);
     assert.equal((await res.json())[0].name, 'x');
     assert.equal((await plugin).type, 'listSources');
+  } finally {
+    s.close();
+  }
+});
+
+test('a photo list is handed to the plugin before previews that were queued earlier', async () => {
+  const s = await start();
+  try {
+    await fetch(`${s.plug}/next`, { headers: PLUGIN_HEADER }); // Online, with no poll parked.
+    const preview = fetch(`${s.pub}/api/preview/${PHOTO}?size=std`);
+    await sleep(30);
+    const list = fetch(`${s.pub}/api/photos?source=${encodeURIComponent('f:F:/x')}`);
+    await sleep(30);
+    const first = await answerOne(s.plug, () => json([]));
+    assert.equal(first.type, 'listPhotos');
+    assert.equal((await list).status, 200);
+    const second = await answerOne(s.plug, () => ({ type: 'image/jpeg', body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) }));
+    assert.equal(second.type, 'getPreview');
+    assert.equal((await preview).status, 200);
   } finally {
     s.close();
   }
@@ -199,8 +228,7 @@ test('info reports whether the device is at home and the server version', async 
     },
     version: '9.9.9',
   });
-  const server = http.createServer(app.publicHandler).listen(0, '127.0.0.1');
-  await once(server, 'listening');
+  const server = await listen(app.publicHandler);
   try {
     const res = await fetch(`http://127.0.0.1:${server.address().port}/api/info`, { headers: { 'x-forwarded-for': '100.64.0.2' } });
     assert.deepEqual(await res.json(), { atHome: true, version: '9.9.9' });

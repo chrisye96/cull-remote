@@ -64,13 +64,18 @@ function Bridge.start()
       else
         local ok, cmd = pcall(json.decode, body)
         if ok and type(cmd) == 'table' and cmd.id then
-          -- LrTasks.pcall, not pcall: handle yields. A failure here must never end the loop.
-          local handled, err = LrTasks.pcall(handle, cmd)
-          if not handled then
-            trace('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
-            -- Best effort so the server is not left waiting for a result.
-            LrTasks.pcall(post, cmd.id, '{"ok":false,"error":"internal"}', 'application/json')
-          end
+          -- Each command runs in its own task and the loop goes straight back to polling,
+          -- so a mark or a list is not kept waiting by a preview that is still rendering.
+          -- The server hands out at most one preview and one other command at a time.
+          LrTasks.startAsyncTask(function()
+            -- LrTasks.pcall, not pcall: handle yields.
+            local handled, err = LrTasks.pcall(handle, cmd)
+            if not handled then
+              trace('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
+              -- Best effort so the server is not left waiting for a result.
+              LrTasks.pcall(post, cmd.id, '{"ok":false,"error":"internal"}', 'application/json')
+            end
+          end)
         elseif LrDate.currentTime() - started < 1 then
           -- Idle, error or non-JSON reply that came back fast (error loop, or a newer
           -- poller released this one): back off instead of spinning.
