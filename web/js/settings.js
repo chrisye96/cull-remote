@@ -94,8 +94,9 @@ export function initSettings(onBack) {
   });
 }
 
-// Refresh the parts that change between visits.
+// Refresh the parts that change between visits. Resolves once the connection details,
+// including the pairing code, are on the page.
 export function showSettings() {
   renderUsage();
-  renderInfo();
+  return renderInfo();
 }

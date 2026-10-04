@@ -77,11 +77,12 @@ navigator.serviceWorker?.register('/sw.js').catch(() => {});
 
 initSources();
 initSettings(() => home({ restoreScroll: true }));
-$('open-settings').addEventListener('click', () => {
+function openSettings() {
   homeScroll = $('home-list').scrollTop;
   show('settings');
-  showSettings();
-});
+  return showSettings();
+}
+$('open-settings').addEventListener('click', openSettings);
 initViewer(() => home({ restoreScroll: true }));
 await initSync({
   onChange: (change) => {
@@ -93,7 +94,10 @@ await initSync({
 await pollStatus(); // Learn whether the computer answers before choosing between Lightroom and the offline copy.
 await home();
 // The plugin's menu item opens the app here to show the address and its QR code.
-if (location.hash === '#settings') $('open-settings').click();
+if (location.hash === '#settings') {
+  await openSettings();
+  $('conn-pair').scrollIntoView({ block: 'center' });
+}
 setInterval(pollStatus, 5000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) pollStatus();
