@@ -7,6 +7,7 @@ import { initViewer, openViewer } from './viewer.js';
 document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
 
 let sourcesLoaded = false;
+let homeScroll = 0; // Scroll position of the source list, restored when coming Back.
 
 function show(view) {
   $('sources').hidden = view !== 'sources';
@@ -18,13 +19,15 @@ function setStatus(text) {
   $('status').hidden = !text;
 }
 
-async function home({ force = false } = {}) {
+async function home({ force = false, restoreScroll = false } = {}) {
   show('sources');
   try {
     await showSources(async (source) => {
+      homeScroll = $('home-list').scrollTop;
       show('viewer');
       await openViewer(source);
     }, { force });
+    if (restoreScroll) $('home-list').scrollTop = homeScroll;
     sourcesLoaded = true;
   } catch (e) {
     sourcesLoaded = false;
@@ -61,7 +64,7 @@ $('refresh-sources').addEventListener('click', async () => {
 });
 
 initSources();
-initViewer(home);
+initViewer(() => home({ restoreScroll: true }));
 await home();
 setInterval(pollStatus, 5000);
 document.addEventListener('visibilitychange', () => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark } from '../web/js/state.js';
+import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -161,8 +161,8 @@ test('swipeFlag ignores gestures that start at the top or bottom screen edge', (
 });
 
 test('swipeFlag ignores slow drags', () => {
-  assert.equal(swipeFlag(gesture({ durationMs: 900 })), 0);
-  assert.equal(swipeFlag(gesture({ durationMs: 800 })), 1);
+  assert.equal(swipeFlag(gesture({ durationMs: 1600 })), 0);
+  assert.equal(swipeFlag(gesture({ durationMs: 1500 })), 1);
 });
 
 test('gestureMark advances when the photo already has the flag and marks otherwise', () => {
@@ -170,4 +170,53 @@ test('gestureMark advances when the photo already has the flag and marks otherwi
   assert.equal(gestureMark({ pick: -1 }, -1), 'advance');
   assert.equal(gestureMark({ pick: -1 }, 1), 'mark');
   assert.equal(gestureMark({ pick: 0 }, 1), 'mark');
+});
+
+test('pullProgress grows with the pull and stops at 1', () => {
+  assert.equal(pullProgress(0), 0);
+  assert.equal(pullProgress(-40), 0.5);
+  assert.equal(pullProgress(40), 0.5);
+  assert.equal(pullProgress(-200), 1);
+});
+
+test('pullOpacity is full only when armed and stays calmer while unarmed', () => {
+  assert.equal(pullOpacity(0.2, true), 1);
+  assert.equal(pullOpacity(0, false), 0.35);
+  assert.equal(pullOpacity(1, false), 0.6);
+  assert.ok(Math.abs(pullOpacity(0.2, false) - 0.48) < 1e-9);
+});
+
+test('tapZone keeps a wide middle so a slightly off-centre tap does not change photo', () => {
+  assert.equal(tapZone(10, 400), 'prev');
+  assert.equal(tapZone(87, 400), 'prev');
+  assert.equal(tapZone(88, 400), 'middle');
+  assert.equal(tapZone(89, 400), 'middle');
+  assert.equal(tapZone(200, 400), 'middle');
+  assert.equal(tapZone(311, 400), 'middle');
+  assert.equal(tapZone(312, 400), 'middle');
+  assert.equal(tapZone(313, 400), 'next');
+  assert.equal(tapZone(399, 400), 'next');
+});
+
+test('resumeIndex returns to the remembered photo or the next listed one after it', () => {
+  const all = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
+  const list = [all[0], all[3], all[4]];
+  assert.equal(resumeIndex(all, list, 'd'), 1);
+  assert.equal(resumeIndex(all, list, 'b'), 1);
+  assert.equal(resumeIndex(all, list, 'c'), 1);
+  assert.equal(resumeIndex(all, [all[0], all[1]], 'e'), 0);
+  assert.equal(resumeIndex(all, list, 'gone'), 0);
+  assert.equal(resumeIndex(all, list, undefined), 0);
+  assert.equal(resumeIndex([], [], 'a'), 0);
+});
+
+test('rememberCapped keeps the most recent entries and drops the oldest', () => {
+  const map = {};
+  rememberCapped(map, 'f:1', 'p1', 2);
+  rememberCapped(map, 'f:2', 'p2', 2);
+  rememberCapped(map, 'f:1', 'p9', 2);
+  assert.deepEqual(Object.keys(map), ['f:2', 'f:1']);
+  assert.equal(map['f:1'], 'p9');
+  rememberCapped(map, 'f:3', 'p3', 2);
+  assert.deepEqual(Object.keys(map), ['f:1', 'f:3']);
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTree, sortTree, filterTree, folderHint } from '../web/js/tree.js';
+import { buildTree, sortTree, filterTree, folderHint, recentSources } from '../web/js/tree.js';
 
 const flat = () => [
   { id: 'f:F:\\Photos', kind: 'folder', name: 'Photos', depth: 0, count: 0 },
@@ -91,4 +91,42 @@ test('folderHint returns nothing when the path does not end with the name', () =
   ]);
   assert.equal(folderHint(odd[0], odd), 'F:\\');
   assert.equal(folderHint(odd[1], odd), '');
+});
+
+const recentFlat = () => [
+  { id: 'f:A', kind: 'folder', name: 'A', depth: 0, count: 1 },
+  { id: 'f:B', kind: 'folder', name: 'B', depth: 0, count: 2 },
+  { id: 'c:1', kind: 'collection', name: 'C', depth: 0, count: 3 },
+  { kind: 'set', name: 'Set', depth: 0, count: 0 },
+];
+
+test('recentSources lists the most recently opened first', () => {
+  const lastPhoto = { 'f:A': 'p1', 'c:1': 'p2', 'f:B': 'p3' };
+  assert.deepEqual(recentSources(recentFlat(), lastPhoto, 5).map((source) => source.name), ['B', 'C', 'A']);
+});
+
+test('recentSources skips ids that are no longer in the source list', () => {
+  const lastPhoto = { 'f:gone': 'p0', 'f:A': 'p1', 'c:gone': 'p2' };
+  assert.deepEqual(recentSources(recentFlat(), lastPhoto, 5).map((source) => source.name), ['A']);
+});
+
+test('recentSources respects the limit', () => {
+  const lastPhoto = { 'f:A': 'p1', 'f:B': 'p2', 'c:1': 'p3' };
+  assert.deepEqual(recentSources(recentFlat(), lastPhoto, 2).map((source) => source.name), ['C', 'B']);
+});
+
+test('recentSources with a limit of 0 returns nothing', () => {
+  assert.deepEqual(recentSources(recentFlat(), { 'f:A': 'p1', 'f:B': 'p2' }, 0), []);
+});
+
+test('recentSources gives nothing for an empty or missing map', () => {
+  assert.deepEqual(recentSources(recentFlat(), {}, 5), []);
+  assert.deepEqual(recentSources(recentFlat(), undefined, 5), []);
+  assert.deepEqual(recentSources(recentFlat(), null, 5), []);
+});
+
+test('recentSources never returns sources without an id', () => {
+  const sources = recentFlat();
+  assert.deepEqual(recentSources(sources, { undefined: 'x', Set: 'y' }, 5), []);
+  assert.ok(recentSources(sources, { 'f:A': 'p' }, 5).every((source) => source.id));
 });

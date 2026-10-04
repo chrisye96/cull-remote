@@ -99,7 +99,7 @@ export function sortPhotos(photos, mode) {
 export const FLAG_SWIPE_MIN_DY = 80;
 export const FLAG_SWIPE_RATIO = 1.5;
 export const FLAG_SWIPE_EDGE_PX = 24;
-export const FLAG_SWIPE_MAX_MS = 800;
+export const FLAG_SWIPE_MAX_MS = 1500;
 
 // Decide whether a finished single-finger gesture is a flag swipe.
 // Returns 1 (pick, swipe up), -1 (reject, swipe down) or 0 (not a flag gesture).
@@ -114,3 +114,40 @@ export function swipeFlag({ dx, dy, startY, viewportHeight, durationMs }) {
 
 // A flag gesture never clears a flag: repeating it on a photo that already has that flag moves on.
 export const gestureMark = (photo, value) => (photo.pick === value ? 'advance' : 'mark');
+
+// How far a vertical pull has come toward the flag threshold, from 0 to 1.
+export const pullProgress = (dy) => Math.min(1, Math.abs(dy) / FLAG_SWIPE_MIN_DY);
+
+// Opacity of the pull hint: full only once the flag is armed, so a bright hint always
+// means that releasing will set the flag.
+export const pullOpacity = (progress, armed) => (armed ? 1 : Math.min(0.6, 0.35 + 0.65 * progress));
+
+// Which part of the photo a tap landed in. The middle is wide on purpose, so a tap that
+// is slightly off-centre does not change photo.
+export const EDGE_TAP_RATIO = 0.22;
+export function tapZone(x, width) {
+  if (x < width * EDGE_TAP_RATIO) return 'prev';
+  if (x > width * (1 - EDGE_TAP_RATIO)) return 'next';
+  return 'middle';
+}
+
+// Where to resume in a folder: the remembered photo if it is still listed, otherwise the
+// first listed photo that follows it in the full order, otherwise the start.
+export function resumeIndex(all, list, photoId) {
+  const listed = new Map(list.map((photo, at) => [photo.id, at]));
+  if (listed.has(photoId)) return listed.get(photoId);
+  const from = all.findIndex((photo) => photo.id === photoId);
+  if (from === -1) return 0;
+  for (let i = from + 1; i < all.length; i += 1) {
+    if (listed.has(all[i].id)) return listed.get(all[i].id);
+  }
+  return 0;
+}
+
+// Remember `value` under `key`, most recent last, keeping at most `cap` entries.
+export function rememberCapped(map, key, value, cap) {
+  delete map[key];
+  map[key] = value;
+  const keys = Object.keys(map);
+  for (const old of keys.slice(0, Math.max(0, keys.length - cap))) delete map[old];
+}
