@@ -71,7 +71,10 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 #photo-pos { flex: none; margin-left: .6em; }
 #back { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 #stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
-#photo { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* The photo follows the finger through transforms. Its own compositor layer moves as a
+   texture; without it WebKit repaints the stage in place and can leave rows of the photo's
+   edge behind at fractional offsets. */
+#photo { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; }
 #photo.loading { visibility: hidden; }
 #empty { color: var(--muted); padding: 24px; text-align: center; }
 #error { margin: 0; padding: 6px 12px; background: #5a1d1d; font-size: 14px; text-align: center; }
