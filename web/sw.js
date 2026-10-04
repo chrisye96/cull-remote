@@ -54,15 +54,18 @@ async function shell(path) {
 async function preview(request) {
   const url = new URL(request.url);
   url.searchParams.delete('retry');
+  const wantsStd = url.searchParams.get('size') === 'std';
+  const other = new URL(url);
+  other.searchParams.set('size', wantsStd ? 'hd' : 'std');
   const cache = await caches.open(PREVIEW_CACHE);
-  const hit = await cache.match(url.href);
+  // A cached high-quality preview also answers a standard-quality request.
+  const hit = (await cache.match(url.href)) ?? (wantsStd ? await cache.match(other.href) : undefined);
   if (hit) return hit;
   try {
     return await fetch(request, { signal: AbortSignal.timeout(PREVIEW_WAIT_MS) });
   } catch {
-    // No connection: the other size is better than nothing.
-    url.searchParams.set('size', url.searchParams.get('size') === 'hd' ? 'std' : 'hd');
-    return (await cache.match(url.href)) ?? Response.error();
+    // No connection: a smaller preview is better than nothing.
+    return (await cache.match(other.href)) ?? Response.error();
   }
 }
 
