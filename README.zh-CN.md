@@ -20,9 +20,11 @@
 
 ## 日常使用
 
-1. 打开 Lightroom Classic
-2. `npm start`，终端会打印 tailnet 地址和二维码
+1. 打开 Lightroom Classic。在 Windows 上插件会自己在后台启动伴随服务（没有窗口），Lightroom 退出约一分钟后服务也会退出。前提是 `node` 在 PATH 里，并且插件留在本仓库目录内（它按自己的位置找到服务）。服务的输出写在 `.cache/server.log`
+2. 配对设备时，在 Lightroom 里选 `图库 > 增效工具额外功能 > Remote Cull: show address and QR code`，浏览器会打开设置页，显示 tailnet 地址和二维码
 3. 用 iPhone 或 iPad 扫码（设备上 Tailscale 需开启）。建议在 Safari 里"添加到主屏幕"，这样可以全屏使用
+
+在 macOS 上，或者想用终端时，打开 Lightroom 后运行 `npm start`：终端会打印同样的地址和二维码，插件发现服务已经在运行就不会再启动一个。
 
 在家和外出用的是同一个地址；在家时 Tailscale 会自动走局域网直连。
 

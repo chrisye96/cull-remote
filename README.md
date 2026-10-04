@@ -22,9 +22,11 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 
 ## Daily use
 
-1. Open Lightroom Classic
-2. `npm start`; the terminal prints your tailnet address and a QR code
+1. Open Lightroom Classic. On Windows the plugin starts the companion server by itself, in the background with no window, and the server leaves about a minute after Lightroom quits. This needs `node` on the PATH and the plugin left inside this folder (it finds the server beside itself). Its output goes to `.cache/server.log`
+2. To pair a device, choose `Library > Plug-in Extras > Remote Cull: show address and QR code` in Lightroom. Your browser opens the settings page with the tailnet address and a QR code
 3. Scan it with the iPhone or iPad (Tailscale must be on). In Safari, use "Add to Home Screen" for a full-screen app
+
+On macOS, or whenever you prefer a terminal, run `npm start` after opening Lightroom: it prints the same address and QR code, and the plugin uses a server that is already running instead of starting another.
 
 ## Controls
 
