@@ -1,11 +1,14 @@
 import { $, icon, playAnimation } from './dom.js';
-import { getPhotos, previewUrl, sendOp } from './api.js';
+import { getPhotos, previewUrl } from './api.js';
+import { loadPhotos, savePhotos } from './data.js';
+import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js';
+import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
-import { readChoice, readPref, writePref, PHOTO_SORTS } from './prefs.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
+import { HD_QUERY, previewSize } from './quality.js';
+import { maybeAutoCache } from './autocache.js';
 
-const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
-const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
@@ -21,31 +24,20 @@ let sourceName = '';
 let notice = ''; // Shown in #empty when there is no photo (loading, open failure).
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
 let failedUrl = null; // URL of the preview that failed to load, if it is still the shown one.
-let opQueue = Promise.resolve(); // Ops go to the server strictly one after another.
 let source = null; // The open folder or collection; null on the home page.
 let refreshing = false;
 let loading = false; // True while the initial getPhotos of an open is in flight.
 let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
-let settledOps = 0; // Ops that finished; a fetch that overlapped one may carry pre-op data.
-const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
+let settledOps = 0; // Bumped when marks are confirmed; a fetch that overlapped one may carry older data.
+let savedAtSettled = -1; // Value of settledOps when this folder's offline copy was last written.
 // sourceId -> id of the photo last shown there, so reopening a folder resumes in place.
-const storedLastPhoto = readPref('lastPhoto', {});
-const lastPhoto = storedLastPhoto && typeof storedLastPhoto === 'object' && !Array.isArray(storedLastPhoto) ? storedLastPhoto : {};
-
-const pendingKey = (photoId, field) => `${photoId}:${field}`;
-const isPending = (photoId, field) => pending.has(pendingKey(photoId, field));
-
-function trackPending(photoId, field, delta) {
-  const key = pendingKey(photoId, field);
-  const count = (pending.get(key) ?? 0) + delta;
-  if (count > 0) pending.set(key, count);
-  else pending.delete(key);
-}
+const lastPhoto = readObject('lastPhoto');
 
 // Pull Lightroom's current marks for the open source and merge them into the snapshot.
 // The timer is throttled by nextRefreshAt so a slow Lightroom is not kept busy; force skips that.
 async function refresh({ force = false } = {}) {
   if (!source || loading || refreshing || document.hidden || $('viewer').hidden) return;
+  if (getLink() === 'network') return; // The status poll notices when the computer is back.
   if (!force && Date.now() < nextRefreshAt) return;
   refreshing = true;
   const token = openSeq;
@@ -60,9 +52,15 @@ async function refresh({ force = false } = {}) {
     } catch {
       return; // Connectivity problems are reported by the status bar; the next tick retries.
     }
-    // Skip when an op finished meanwhile: the response may predate it. The next tick refetches.
+    // Skip when a mark was confirmed meanwhile: the response may predate it. The next tick refetches.
     if (token !== openSeq || settledOps !== settledBefore) return;
-    if (mergeFresh(all, fresh, isPending) > 0) render();
+    const changed = mergeFresh(all, fresh, hasPending);
+    // Keep the offline copy current: after a change, and once after marks were confirmed.
+    if (changed > 0 || savedAtSettled !== settledOps) {
+      savePhotos(source.id, fresh);
+      savedAtSettled = settledOps;
+    }
+    if (changed > 0) render();
   } finally {
     refreshing = false;
     nextRefreshAt = Date.now() + nextRefreshDelay(duration, REFRESH_MS);
@@ -120,8 +118,10 @@ function renderBadges(photo) {
   const flag = find('pick') ?? find('reject');
   const rating = find('rating');
   const label = find('label');
+  // Shown only while the connection is down; online, a mark is confirmed within moments.
+  const unsynced = Boolean(photo) && getLink() !== '' && photoPending(photo.id);
   let shownBefore = false;
-  for (const [name, part] of [['mark-flag', flag], ['mark-rating', rating], ['mark-label', label]]) {
+  for (const [name, part] of [['mark-flag', flag], ['mark-rating', rating], ['mark-label', label], ['mark-unsynced', unsynced]]) {
     const el = box.querySelector(`.${name}`);
     el.classList.toggle('on', Boolean(part));
     el.classList.toggle('sep', Boolean(part) && shownBefore);
@@ -198,7 +198,9 @@ function render() {
     placeOverlays();
     return;
   }
-  $('empty').textContent = previewFailed ? '预览加载失败，点照片中间重试' : '';
+  $('empty').textContent = previewFailed
+    ? (getLink() === 'network' ? '这张照片没有缓存，联网后可以查看；现在仍可标记或跳过' : '预览加载失败，点照片中间重试')
+    : '';
   for (const button of $('actions').querySelectorAll('button')) {
     const { field } = button.dataset;
     const value = parseValue(field, button.dataset.value);
@@ -206,7 +208,8 @@ function render() {
     const on = field === 'rating' ? current >= value : current === value;
     button.classList.toggle('on', on);
     button.setAttribute('aria-pressed', String(on));
-    button.classList.toggle('pending', isPending(photo.id, field));
+    // Pulse only while a request is really in flight; offline, the pill shows the waiting state.
+    button.classList.toggle('pending', getLink() === '' && hasPending(photo.id, field));
   }
   // Warm the next two previews so swiping feels instant.
   for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
@@ -234,33 +237,16 @@ function retryPreview() {
   return true;
 }
 
-function enqueue(task) {
-  const run = opQueue.then(task);
-  opQueue = run.catch(() => {});
-  return run;
-}
-
 function mark(field, rawValue, { quiet = false } = {}) {
   const photo = list[index];
   if (!photo) return;
   const value = toggledValue(photo, field, parseValue(field, rawValue));
-  const previous = setField(photo, field, value);
+  setField(photo, field, value);
   showError('');
   if (!quiet) flash(field, value);
-  trackPending(photo.id, field, 1);
+  pushOp(photo, field, value); // Durable queue; sync.js delivers it now or when the connection returns.
   // Pick and reject advance right away; the request happens in the background.
-  if (!(shouldAdvance(field, value) && go(1))) render();
-  enqueue(() => sendOp(photo.id, field, value))
-    .catch((e) => {
-      // Roll back only if nothing newer has changed this field since.
-      if (shouldRollback(photo, field, value)) setField(photo, field, previous);
-      showError(`${photo.name}：${messageFor(e.message)}`);
-    })
-    .finally(() => {
-      trackPending(photo.id, field, -1);
-      settledOps += 1;
-      if (!$('viewer').hidden) render();
-    });
+  if (!(shouldAdvance(field, value, readChoice('advance', ADVANCE_RULES, 'flag')) && go(1))) render();
 }
 
 // Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
@@ -270,6 +256,18 @@ function flagByGesture(value, quiet = false) {
   if (!photo) return;
   if (gestureMark(photo, value) === 'advance') go(1);
   else mark('pickStatus', String(value), { quiet });
+}
+
+// sync.js reports every queue or connection change; `settled` means marks were confirmed.
+export function onSyncChange({ settled }) {
+  if (settled) settledOps += 1;
+  if (!$('viewer').hidden) render();
+}
+
+// Lightroom refused a mark for good, for example because the photo left the catalog.
+export function onOpFailed(op, error) {
+  showError(`${op.name}：${messageFor(error)}`);
+  refresh({ force: true }); // The catalog is the truth: pull the real value back.
 }
 
 export function initViewer(onBack) {
@@ -482,23 +480,29 @@ export async function openViewer(nextSource) {
   $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
+  onlyUnmarked = readChoice('defaultFilter', FILTERS, 'unmarked') === 'unmarked';
   notice = '加载中';
   loading = true;
+  savedAtSettled = settledOps; // loadPhotos writes the offline copy itself.
   all = [];
   applyFilter();
   showError('');
   render();
   const startedAt = Date.now();
   let loaded = false;
+  let fromLightroom = false;
   try {
-    const photos = await getPhotos(source.id);
+    const { data: photos, stale } = await loadPhotos(source.id);
     if (token !== openSeq) return;
+    fromLightroom = !stale;
     all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
+    applyQueued(all, pendingOps()); // Marks still waiting to sync win over the list.
     notice = '';
     loaded = true;
   } catch (e) {
     if (token !== openSeq) return;
-    notice = messageFor(e.message);
+    // Offline with no copy of this folder: say that, rather than how to fix the connection.
+    notice = e.message === 'network' ? '这个文件夹还没有缓存，联网后才能打开' : messageFor(e.message);
   }
   loading = false;
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);
@@ -514,4 +518,5 @@ export async function openViewer(nextSource) {
     writePref('lastPhoto', lastPhoto);
   }
   render();
+  if (fromLightroom) maybeAutoCache(nextSource, all);
 }

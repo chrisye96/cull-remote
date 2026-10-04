@@ -17,15 +17,15 @@ export function setField(photo, field, value) {
 
 // Which marks jump to the next photo. Flags are a verdict; stars and labels are
 // often combined on one photo, so they stay put.
-export function shouldAdvance(field, value) {
-  return field === 'pickStatus' && value !== 0;
+// The rule comes from the settings page: 'flag' (pick and reject only), 'any' (every
+// mark that sets a value) or 'never'. Clearing a mark never advances.
+export function shouldAdvance(field, value, rule = 'flag') {
+  if (rule === 'never' || value === CLEARED[field]) return false;
+  return rule === 'any' || field === 'pickStatus';
 }
 
-// A failed op may undo its optimistic change only if nothing newer has touched the field.
-// Otherwise the rollback would clobber a later value the user set.
-export function shouldRollback(photo, field, appliedValue) {
-  return photo[KEY[field]] === appliedValue;
-}
+// Preview size for a quality setting: 'auto' follows the screen, the others are fixed.
+export const sizeFor = (quality, largeScreen) => (quality === 'auto' ? (largeScreen ? 'hd' : 'std') : quality);
 
 // Button dataset values are strings; labels stay strings, the other fields are numbers.
 export const parseValue = (field, raw) => (field === 'label' ? raw : Number(raw));

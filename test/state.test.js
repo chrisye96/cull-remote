@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
 
 const blank = () => ({ id: 'x', name: 'a.raw', time: 0, rating: 0, label: 'none', pick: 0 });
 
@@ -31,23 +31,31 @@ test('setField writes the value and returns the previous one for rollback', () =
   assert.equal(photo.rating, 4);
 });
 
+test('shouldAdvance follows the rule chosen in settings', () => {
+  assert.equal(shouldAdvance('rating', 5, 'any'), true);
+  assert.equal(shouldAdvance('label', 'red', 'any'), true);
+  assert.equal(shouldAdvance('pickStatus', -1, 'any'), true);
+  assert.equal(shouldAdvance('rating', 0, 'any'), false);
+  assert.equal(shouldAdvance('label', 'none', 'any'), false);
+  assert.equal(shouldAdvance('pickStatus', 0, 'any'), false);
+  assert.equal(shouldAdvance('pickStatus', 1, 'never'), false);
+  assert.equal(shouldAdvance('pickStatus', 1, 'flag'), true);
+  assert.equal(shouldAdvance('rating', 5, 'flag'), false);
+});
+
+test('sizeFor follows the screen on auto and the setting otherwise', () => {
+  assert.equal(sizeFor('auto', true), 'hd');
+  assert.equal(sizeFor('auto', false), 'std');
+  assert.equal(sizeFor('std', true), 'std');
+  assert.equal(sizeFor('hd', false), 'hd');
+});
+
 test('shouldAdvance moves on after a pick or reject only', () => {
   assert.equal(shouldAdvance('pickStatus', 1), true);
   assert.equal(shouldAdvance('pickStatus', -1), true);
   assert.equal(shouldAdvance('pickStatus', 0), false);
   assert.equal(shouldAdvance('rating', 5), false);
   assert.equal(shouldAdvance('label', 'red'), false);
-});
-
-test('shouldRollback only when the field still holds the value the failed op set', () => {
-  const photo = blank();
-  setField(photo, 'rating', 3);
-  assert.equal(shouldRollback(photo, 'rating', 3), true);
-  setField(photo, 'rating', 5);
-  assert.equal(shouldRollback(photo, 'rating', 3), false);
-  setField(photo, 'pickStatus', -1);
-  assert.equal(shouldRollback(photo, 'pickStatus', -1), true);
-  assert.equal(shouldRollback(photo, 'pickStatus', 1), false);
 });
 
 test('parseValue keeps labels as strings and turns other fields into numbers', () => {

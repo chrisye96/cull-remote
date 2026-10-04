@@ -1,20 +1,24 @@
 import { $ } from './dom.js';
 import { getStatus } from './api.js';
-import { messageFor } from './messages.js';
-import { initSources, showSources } from './sources.js';
-import { initViewer, openViewer } from './viewer.js';
+import { statusLine } from './messages.js';
+import { initSync, drain, setLink, getLink, pendingCount } from './sync.js';
+import { initSources, showSources, showSourcesNotice } from './sources.js';
+import { initSettings, showSettings } from './settings.js';
+import { initViewer, openViewer, onSyncChange, onOpFailed } from './viewer.js';
 
 document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
 
-let sourcesLoaded = false;
+let sourcesFresh = false; // False until the source list has come from Lightroom rather than the offline copy.
 let homeScroll = 0; // Scroll position of the source list, restored when coming Back.
 
 function show(view) {
   $('sources').hidden = view !== 'sources';
   $('viewer').hidden = view !== 'viewer';
+  $('settings').hidden = view !== 'settings';
 }
 
-function setStatus(text) {
+function renderStatus() {
+  const text = statusLine(getLink(), pendingCount());
   $('status').textContent = text;
   $('status').hidden = !text;
 }
@@ -22,16 +26,19 @@ function setStatus(text) {
 async function home({ force = false, restoreScroll = false } = {}) {
   show('sources');
   try {
-    await showSources(async (source) => {
+    const { stale } = await showSources(async (source) => {
       homeScroll = $('home-list').scrollTop;
       show('viewer');
       await openViewer(source);
     }, { force });
     if (restoreScroll) $('home-list').scrollTop = homeScroll;
-    sourcesLoaded = true;
+    sourcesFresh = !stale;
   } catch (e) {
-    sourcesLoaded = false;
-    setStatus(messageFor(e.message));
+    sourcesFresh = false;
+    setLink(e.message);
+    showSourcesNotice(e.message === 'network'
+      ? '离线，这台设备上还没有保存过目录列表。联网后会自动出现'
+      : '暂时读不到目录列表，恢复后会自动出现');
   }
 }
 
@@ -42,10 +49,12 @@ async function pollStatus() {
   polling = true;
   try {
     const { lrOnline } = await getStatus();
-    setStatus(lrOnline ? '' : messageFor('lr_offline'));
-    if (lrOnline && !sourcesLoaded && !$('sources').hidden) await home({ force: true });
+    if (!lrOnline) setLink('lr_offline');
+    else if (pendingCount()) await drain(); // drain() sets the link from its own outcome.
+    else setLink('');
+    if (lrOnline && !sourcesFresh && !$('sources').hidden) await home({ force: true });
   } catch (e) {
-    setStatus(messageFor(e.message));
+    setLink(e.message);
   } finally {
     polling = false;
   }
@@ -63,10 +72,28 @@ $('refresh-sources').addEventListener('click', async () => {
   }
 });
 
+// Offline support needs a secure context (the tailnet HTTPS address or localhost).
+navigator.serviceWorker?.register('/sw.js').catch(() => {});
+
 initSources();
+initSettings(() => home({ restoreScroll: true }));
+$('open-settings').addEventListener('click', () => {
+  homeScroll = $('home-list').scrollTop;
+  show('settings');
+  showSettings();
+});
 initViewer(() => home({ restoreScroll: true }));
+await initSync({
+  onChange: (change) => {
+    renderStatus();
+    onSyncChange(change);
+  },
+  onFailed: onOpFailed,
+});
+await pollStatus(); // Learn whether the computer answers before choosing between Lightroom and the offline copy.
 await home();
 setInterval(pollStatus, 5000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) pollStatus();
 });
+addEventListener('online', pollStatus);

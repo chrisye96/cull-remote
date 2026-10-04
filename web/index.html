@@ -18,7 +18,10 @@
     <div class="home-side">
       <header class="home-header">
         <h1>图库</h1>
-        <button id="refresh-sources" type="button">刷新</button>
+        <div class="home-actions">
+          <button id="open-settings" type="button">设置</button>
+          <button id="refresh-sources" type="button">刷新</button>
+        </div>
       </header>
       <div class="search-box">
         <svg class="icon search-icon" aria-hidden="true"><use href="/vendor/lucide.svg#search"></use></svg>
@@ -47,6 +50,65 @@
     </div>
   </main>
 
+  <main id="settings" hidden>
+    <header class="settings-header">
+      <button id="settings-back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span>返回</span></button>
+      <h1>设置</h1>
+    </header>
+    <div class="settings-body">
+      <section class="settings-group">
+        <h2>筛片</h2>
+        <label class="setting">预览清晰度
+          <select id="set-quality">
+            <option value="auto">自动（按设备）</option>
+            <option value="std">标准</option>
+            <option value="hd">高清</option>
+          </select>
+        </label>
+        <label class="setting">打标后跳到下一张
+          <select id="set-advance">
+            <option value="flag">仅留用和弃用</option>
+            <option value="any">任何标记</option>
+            <option value="never">不跳转</option>
+          </select>
+        </label>
+        <label class="setting">进入文件夹时显示
+          <select id="set-filter">
+            <option value="unmarked">未标记</option>
+            <option value="all">全部</option>
+          </select>
+        </label>
+        <label class="setting">左手模式（横屏时操作栏在左侧）
+          <input id="set-left-hand" type="checkbox">
+        </label>
+      </section>
+      <section class="settings-group">
+        <h2>离线缓存</h2>
+        <label class="setting">在家时自动缓存未标记照片
+          <input id="set-auto-cache" type="checkbox">
+        </label>
+        <label class="setting">自动缓存上限
+          <select id="set-auto-limit">
+            <option value="100">100 张</option>
+            <option value="200">200 张</option>
+            <option value="500">500 张</option>
+            <option value="1000">1000 张</option>
+          </select>
+        </label>
+        <p id="cache-usage" class="setting"></p>
+        <div class="setting">
+          <button id="clear-cache" type="button">清除缓存</button>
+        </div>
+        <p class="note">只清除这台设备上的预览图和照片列表。Lightroom 里的照片和还没同步的标记都不受影响。</p>
+      </section>
+      <section class="settings-group">
+        <h2>连接</h2>
+        <dl id="conn-info"></dl>
+        <p id="home-screen-tip" class="note" hidden>建议在 Safari 里"添加到主屏幕"后从图标打开：可以全屏使用，离线数据也不会因为 7 天没有访问而被系统清理。</p>
+      </section>
+    </div>
+  </main>
+
   <main id="viewer" hidden>
     <header>
       <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span>返回</span></button>
@@ -62,6 +124,7 @@
         <span class="part mark-flag"><svg class="icon pick-icon"><use href="/vendor/lucide.svg#flag"></use></svg><svg class="icon reject-icon"><use href="/vendor/lucide.svg#ban"></use></svg></span>
         <span class="part mark-rating"><svg class="icon"><use href="/vendor/lucide.svg#star"></use></svg><span class="value"></span></span>
         <span class="part mark-label"><span class="dot"></span></span>
+        <span class="part mark-unsynced"><svg class="icon"><use href="/vendor/lucide.svg#cloud-off"></use></svg></span>
       </div>
       <div id="flash" aria-hidden="true"></div>
       <div id="pull" aria-hidden="true"></div>
@@ -94,5 +157,21 @@
       </footer>
     </aside>
   </main>
+
+  <dialog id="cache-dialog" aria-labelledby="cache-title">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="cache-title" tabindex="-1"></h2>
+        <button id="cache-close" type="button" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
+      </div>
+      <p id="cache-note"></p>
+      <button id="cache-unmarked" type="button" class="choice" disabled><span>缓存未标记</span><span class="choice-detail"></span></button>
+      <button id="cache-all" type="button" class="choice" disabled><span>缓存全部</span><span class="choice-detail"></span></button>
+      <p class="note">预览图只保存在这台设备上。缓存期间请保持这个页面在前台，不要锁屏；中断后再点一次会从断点继续。</p>
+      <progress id="cache-progress" hidden></progress>
+      <p id="cache-state" role="status"></p>
+      <button id="cache-cancel" type="button" hidden>取消</button>
+    </div>
+  </dialog>
 </body>
 </html>

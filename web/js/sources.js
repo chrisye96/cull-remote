@@ -1,14 +1,16 @@
 import { $, icon } from './dom.js';
-import { getSources } from './api.js';
-import { readPref, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
+import { loadSources } from './data.js';
+import { initCacheDialog, openCacheDialog } from './cachedialog.js';
+import { bindSelect } from './settings.js';
+import { readObject, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
 import { buildTree, sortTree, filterTree, folderHint, recentSources } from './tree.js';
 
 let cached = null;
+let cachedStale = false; // True when `cached` came from the offline copy.
 let onPickSource = () => {};
 let query = '';
-const storedExpanded = readPref('expanded', {});
 // node key -> true/false, only for nodes the user toggled
-const expanded = storedExpanded && typeof storedExpanded === 'object' && !Array.isArray(storedExpanded) ? storedExpanded : {};
+const expanded = readObject('expanded');
 const searching = () => query.trim() !== '';
 const RECENT_LIMIT = 5;
 
@@ -33,7 +35,8 @@ function span(className, text) {
 const KIND_ICON = { folder: 'folder', set: 'layers' };
 
 // The tappable part of a row: kind icon, name, optional path hint and photo count.
-function sourceButton(source, hint, onActivate) {
+// With `markCached`, a folder that has previews on this device gets a quiet check.
+function sourceButton(source, hint, onActivate, markCached = false) {
   const main = document.createElement('button');
   main.type = 'button';
   main.className = 'source-main';
@@ -41,9 +44,28 @@ function sourceButton(source, hint, onActivate) {
   kind.setAttribute('class', 'icon source-kind');
   main.append(kind, span('source-name', source.name));
   if (hint) main.append(span('source-hint', hint));
+  if (markCached && source.id && readObject('cached')[source.id]) {
+    const mark = icon('circle-check');
+    mark.setAttribute('class', 'icon source-cached');
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', '已缓存');
+    mark.removeAttribute('aria-hidden');
+    main.append(mark);
+  }
   if (source.kind !== 'set') main.append(span('source-count', String(source.count)));
   main.addEventListener('click', onActivate);
   return main;
+}
+
+// The label reflects the current state: "缓存" until this folder has previews on the device.
+function cacheButton(source) {
+  const info = readObject('cached')[source.id];
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = info ? 'source-cache done' : 'source-cache';
+  button.textContent = info ? `已缓存 ${info.count}` : '缓存';
+  button.addEventListener('click', () => openCacheDialog(source));
+  return button;
 }
 
 function rowShell(depth) {
@@ -76,14 +98,14 @@ function row(node, siblings) {
   }
 
   // Collection sets cannot be opened; their row just expands or collapses.
-  line.append(sourceButton(source, folderHint(node, siblings), () => (source.id ? onPickSource(source) : toggle(node))));
+  line.append(sourceButton(source, folderHint(node, siblings), () => (source.id ? onPickSource(source) : toggle(node)), true));
   return item;
 }
 
 // A flat row in the recently opened group: no indentation and no twisty.
 function recentRow(source) {
   const { item, line } = rowShell(0);
-  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)));
+  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)), cacheButton(source));
   return item;
 }
 
@@ -115,7 +137,7 @@ function renderList() {
   if (!cached) return;
   const tree = filterTree(sortTree(buildTree(cached), readChoice('folderSort', FOLDER_SORTS, 'name-desc')), query);
   if (!searching()) {
-    const recent = recentSources(cached, readPref('lastPhoto', {}), RECENT_LIMIT);
+    const recent = recentSources(cached, readObject('lastPhoto'), RECENT_LIMIT);
     if (recent.length) {
       list.append(groupHeading('最近打开'));
       const rows = recent.map(recentRow);
@@ -144,6 +166,7 @@ function renderList() {
 
 // Bind the search box and the two sort selects. Call once at page load.
 export function initSources() {
+  initCacheDialog(renderList);
   const search = $('source-search');
   const clear = $('search-clear');
   const syncClear = () => {
@@ -171,20 +194,25 @@ export function initSources() {
   search.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.isComposing) search.blur(); // Closes the iOS keyboard.
   });
-  const folderSort = $('folder-sort');
-  folderSort.value = readChoice('folderSort', FOLDER_SORTS, 'name-desc');
-  folderSort.addEventListener('change', () => {
-    writePref('folderSort', folderSort.value);
-    renderList();
-  });
-  const photoSort = $('photo-sort');
-  photoSort.value = readChoice('photoSort', PHOTO_SORTS, 'time-asc');
-  photoSort.addEventListener('change', () => writePref('photoSort', photoSort.value));
+  bindSelect('folder-sort', 'folderSort', FOLDER_SORTS, 'name-desc', renderList);
+  bindSelect('photo-sort', 'photoSort', PHOTO_SORTS, 'time-asc');
+}
+
+// Say why the list is empty when it could not be loaded. A list that is already on
+// screen is kept as it is.
+export function showSourcesNotice(text) {
+  if (cached) return;
+  const item = document.createElement('li');
+  item.className = 'source-empty';
+  item.textContent = text;
+  $('source-list').replaceChildren(item);
 }
 
 // The source tree is fetched once per page load; Back reuses it, the refresh button forces it.
+// Resolves with { stale }: true when the list is the offline copy.
 export async function showSources(onPick, { force = false } = {}) {
   onPickSource = onPick;
-  if (force || !cached) cached = await getSources();
+  if (force || !cached) ({ data: cached, stale: cachedStale } = await loadSources());
   renderList();
+  return { stale: cachedStale };
 }
