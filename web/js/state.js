@@ -27,12 +27,6 @@ export function shouldAdvance(field, value, rule = 'flag') {
 // Preview size for a quality setting: 'auto' follows the screen, the others are fixed.
 export const sizeFor = (quality, largeScreen) => (quality === 'auto' ? (largeScreen ? 'hd' : 'std') : quality);
 
-// A failed op may undo its optimistic change only if nothing newer has touched the field.
-// Otherwise the rollback would clobber a later value the user set.
-export function shouldRollback(photo, field, appliedValue) {
-  return photo[KEY[field]] === appliedValue;
-}
-
 // Button dataset values are strings; labels stay strings, the other fields are numbers.
 export const parseValue = (field, raw) => (field === 'label' ? raw : Number(raw));
 

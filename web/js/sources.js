@@ -1,14 +1,14 @@
 import { $, icon } from './dom.js';
-import { getSources } from './api.js';
-import { readPref, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
+import { loadSources } from './data.js';
+import { readObject, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
 import { buildTree, sortTree, filterTree, folderHint, recentSources } from './tree.js';
 
 let cached = null;
+let cachedStale = false; // True when `cached` came from the offline copy.
 let onPickSource = () => {};
 let query = '';
-const storedExpanded = readPref('expanded', {});
 // node key -> true/false, only for nodes the user toggled
-const expanded = storedExpanded && typeof storedExpanded === 'object' && !Array.isArray(storedExpanded) ? storedExpanded : {};
+const expanded = readObject('expanded');
 const searching = () => query.trim() !== '';
 const RECENT_LIMIT = 5;
 
@@ -115,7 +115,7 @@ function renderList() {
   if (!cached) return;
   const tree = filterTree(sortTree(buildTree(cached), readChoice('folderSort', FOLDER_SORTS, 'name-desc')), query);
   if (!searching()) {
-    const recent = recentSources(cached, readPref('lastPhoto', {}), RECENT_LIMIT);
+    const recent = recentSources(cached, readObject('lastPhoto'), RECENT_LIMIT);
     if (recent.length) {
       list.append(groupHeading('最近打开'));
       const rows = recent.map(recentRow);
@@ -183,8 +183,10 @@ export function initSources() {
 }
 
 // The source tree is fetched once per page load; Back reuses it, the refresh button forces it.
+// Resolves with { stale }: true when the list is the offline copy.
 export async function showSources(onPick, { force = false } = {}) {
   onPickSource = onPick;
-  if (force || !cached) cached = await getSources();
+  if (force || !cached) ({ data: cached, stale: cachedStale } = await loadSources());
   renderList();
+  return { stale: cachedStale };
 }
