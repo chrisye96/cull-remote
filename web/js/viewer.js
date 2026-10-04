@@ -1,13 +1,17 @@
-import { $, icon } from './dom.js';
+import { $, icon, playAnimation } from './dom.js';
 import { getPhotos, previewUrl, sendOp } from './api.js';
 import { messageFor } from './messages.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, shouldRollback, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { readChoice, readPref, writePref, PHOTO_SORTS } from './prefs.js';
 
 const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
 const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
+const PULL_FOLLOW = 0.35; // The photo moves this fraction of the finger's vertical travel.
+const PULL_MAX_PX = 70;
+const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on this device.
 
 let all = [];
 let list = [];
@@ -24,6 +28,9 @@ let loading = false; // True while the initial getPhotos of an open is in flight
 let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
 let settledOps = 0; // Ops that finished; a fetch that overlapped one may carry pre-op data.
 const pending = new Map(); // `${photoId}:${field}` -> number of ops still in flight
+// sourceId -> id of the photo last shown there, so reopening a folder resumes in place.
+const storedLastPhoto = readPref('lastPhoto', {});
+const lastPhoto = storedLastPhoto && typeof storedLastPhoto === 'object' && !Array.isArray(storedLastPhoto) ? storedLastPhoto : {};
 
 const pendingKey = (photoId, field) => `${photoId}:${field}`;
 const isPending = (photoId, field) => pending.has(pendingKey(photoId, field));
@@ -74,14 +81,14 @@ function applyFilter(keepPhotoId = null) {
 }
 
 // Both options stay visible with live counts; the active one is highlighted.
+// The buttons are static markup: only the count text and aria-pressed change.
 function renderFilter() {
   const unmarked = all.filter(isUnmarked).length;
   for (const button of $('filter').querySelectorAll('button')) {
     const isAll = button.dataset.filter === 'all';
-    const count = document.createElement('span');
-    count.className = 'count';
-    count.textContent = String(isAll ? all.length : unmarked);
-    button.replaceChildren(isAll ? '全部' : '未标记', count);
+    const countEl = button.querySelector('.count');
+    const count = String(isAll ? all.length : unmarked);
+    if (countEl.textContent !== count) countEl.textContent = count;
     button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
   }
 }
@@ -97,35 +104,48 @@ function syncImage(url) {
   img.src = url;
 }
 
-function badgePart(part) {
-  const el = document.createElement('span');
-  el.className = `part ${part.kind}`;
-  if (part.kind === 'pick') el.append(icon('flag'));
-  if (part.kind === 'reject') el.append(icon('ban'));
-  if (part.kind === 'rating') el.append(icon('star'), String(part.value));
-  if (part.kind === 'label') el.classList.add('dot', part.value);
-  return el;
-}
+// All of the photo's marks in one pill. The parts are static; only classes and text
+// change, so a mark that is already showing never redraws when another one is added.
+let badgesPhotoId = null;
 
-// All of the photo's marks in one pill in the corner; hidden when it has none.
 function renderBadges(photo) {
   const box = $('badges');
+  // A different photo shows its marks at once; only marks changed on the same photo animate.
+  const photoId = photo ? photo.id : null;
+  const instant = photoId !== badgesPhotoId;
+  badgesPhotoId = photoId;
+  if (instant) box.classList.add('instant');
   const parts = photo ? badgeParts(photo) : [];
-  box.replaceChildren();
-  parts.forEach((part, i) => {
-    if (i > 0) {
-      const sep = document.createElement('span');
-      sep.className = 'sep';
-      box.append(sep);
-    }
-    box.append(badgePart(part));
-  });
-  box.hidden = parts.length === 0;
+  const find = (kind) => parts.find((part) => part.kind === kind);
+  const flag = find('pick') ?? find('reject');
+  const rating = find('rating');
+  const label = find('label');
+  let shownBefore = false;
+  for (const [name, part] of [['mark-flag', flag], ['mark-rating', rating], ['mark-label', label]]) {
+    const el = box.querySelector(`.${name}`);
+    el.classList.toggle('on', Boolean(part));
+    el.classList.toggle('sep', Boolean(part) && shownBefore);
+    if (part) shownBefore = true;
+  }
+  const flagEl = box.querySelector('.mark-flag');
+  // With no flag the last kind stays, so the part fades out showing the icon it had.
+  if (flag) {
+    flagEl.classList.toggle('pick', flag.kind === 'pick');
+    flagEl.classList.toggle('reject', flag.kind === 'reject');
+  }
+  const valueEl = box.querySelector('.mark-rating .value');
+  if (rating && valueEl.textContent !== String(rating.value)) valueEl.textContent = String(rating.value);
+  if (label) box.querySelector('.mark-label .dot').className = `dot ${label.value}`;
+  box.hidden = !shownBefore;
+  if (instant) {
+    // Reading a layout value commits the untransitioned state before transitions return.
+    void box.offsetWidth;
+    box.classList.remove('instant');
+  }
 }
 
-// Short confirmation in the middle of the photo right after a mark.
-function flash(field, value) {
-  const summary = markSummary(field, value);
+// Short message in the middle of the photo: an icon or a colour dot, then text.
+function showFlash(summary) {
   const box = $('flash');
   box.textContent = '';
   if (summary.icon) box.append(icon(summary.icon));
@@ -137,10 +157,10 @@ function flash(field, value) {
   const text = document.createElement('span');
   text.textContent = summary.text;
   box.append(text);
-  box.classList.remove('show');
-  void box.offsetWidth; // restart the animation when marks come in quick succession
-  box.classList.add('show');
+  playAnimation(box, 'show');
 }
+
+const flash = (field, value) => showFlash(markSummary(field, value));
 
 // Pin the corner overlays to the photo's displayed box. offset* ignores the swipe transform.
 function placeOverlays() {
@@ -169,6 +189,10 @@ function render() {
   $('caption').textContent = photo ? `${photo.name} · ${position}` : '';
   $('caption').hidden = !photo;
   renderBadges(photo);
+  if (photo && source && lastPhoto[source.id] !== photo.id) {
+    rememberCapped(lastPhoto, source.id, photo.id, LAST_PHOTO_CAP);
+    writePref('lastPhoto', lastPhoto);
+  }
   if (!photo) {
     $('empty').textContent = notice || (onlyUnmarked ? '这里没有未标记的照片' : '这里没有照片');
     placeOverlays();
@@ -201,12 +225,13 @@ function go(delta) {
 
 function retryPreview() {
   const photo = list[index];
-  if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return;
+  if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return false;
   failedUrl = null;
   $('photo').classList.add('loading');
   // Cache-busting param so the browser refetches instead of replaying the failure.
   $('photo').src = `${previewUrl(photo.id, previewSize())}&retry=${Date.now()}`;
   render();
+  return true;
 }
 
 function enqueue(task) {
@@ -215,13 +240,13 @@ function enqueue(task) {
   return run;
 }
 
-function mark(field, rawValue) {
+function mark(field, rawValue, { quiet = false } = {}) {
   const photo = list[index];
   if (!photo) return;
   const value = toggledValue(photo, field, parseValue(field, rawValue));
   const previous = setField(photo, field, value);
   showError('');
-  flash(field, value);
+  if (!quiet) flash(field, value);
   trackPending(photo.id, field, 1);
   // Pick and reject advance right away; the request happens in the background.
   if (!(shouldAdvance(field, value) && go(1))) render();
@@ -236,6 +261,15 @@ function mark(field, rawValue) {
       settledOps += 1;
       if (!$('viewer').hidden) render();
     });
+}
+
+// Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
+// repeating it on a photo that already has that flag just moves on.
+function flagByGesture(value, quiet = false) {
+  const photo = list[index];
+  if (!photo) return;
+  if (gestureMark(photo, value) === 'advance') go(1);
+  else mark('pickStatus', String(value), { quiet });
 }
 
 export function initViewer(onBack) {
@@ -278,10 +312,10 @@ export function initViewer(onBack) {
   let slideTimer = null;
   let pendingSlide = null; // { delta, seq, from } of the slide-out that has not completed yet.
 
-  function setOffset(px, animate = false) {
+  function setOffset(px, animate = false, py = 0) {
     const img = $('photo');
     img.style.transition = animate ? 'transform .18s ease-out' : 'none';
-    img.style.transform = px ? `translateX(${px}px)` : '';
+    img.style.transform = px || py ? `translate(${px}px, ${py}px)` : '';
   }
 
   // Finish a step that is still sliding out so a quick second flick does not lose it.
@@ -294,10 +328,65 @@ export function initViewer(onBack) {
     if (slide && slide.seq === openSeq && slide.from === index) go(slide.delta);
   }
 
+  // Live hint while the finger pulls up (pick) or down (reject).
+  function showPull(value, progress, armed) {
+    const box = $('pull');
+    if (box.dataset.value !== String(value)) {
+      const summary = markSummary('pickStatus', value);
+      box.dataset.value = String(value);
+      box.replaceChildren(icon(summary.icon), summary.text);
+    }
+    box.className = `${value === 1 ? 'pick' : 'reject'}${armed ? ' armed' : ''}`;
+    box.style.opacity = String(pullOpacity(progress, armed));
+  }
+
+  function hidePull() {
+    $('pull').style.opacity = '0';
+  }
+
+  function updatePull(dx, dy) {
+    const eligible = Boolean(list[index])
+      && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)
+      && start.y >= FLAG_SWIPE_EDGE_PX && start.y <= window.innerHeight - FLAG_SWIPE_EDGE_PX;
+    if (!eligible) {
+      hidePull();
+      setOffset(0);
+      return;
+    }
+    const value = dy < 0 ? 1 : -1;
+    const armed = swipeFlag({ dx, dy, startY: start.y, viewportHeight: window.innerHeight, durationMs: Date.now() - start.at }) === value;
+    showPull(value, pullProgress(dy), armed);
+    setOffset(0, false, Math.max(-PULL_MAX_PX, Math.min(PULL_MAX_PX, dy * PULL_FOLLOW)));
+  }
+
+  // Edge taps show a chevron where they landed; a tap with no photo that way nudges the photo.
+  function step(delta) {
+    const hint = $(delta < 0 ? 'tap-prev' : 'tap-next');
+    playAnimation(hint, 'show');
+    if (go(delta)) return;
+    const img = $('photo');
+    const bump = delta < 0 ? 'bump-prev' : 'bump-next';
+    img.classList.remove(delta < 0 ? 'bump-next' : 'bump-prev');
+    playAnimation(img, bump);
+  }
+
+  function toggleOverlays() {
+    const off = stage.classList.toggle('overlays-off');
+    showFlash(off ? { icon: 'eye-off', text: '已隐藏标记' } : { icon: 'eye', text: '已显示标记' });
+  }
+
   stage.addEventListener('touchstart', (event) => {
     completeSlide();
+    if (event.touches.length > 1) {
+      // A second finger makes this a multi-touch gesture, never a swipe or a flag.
+      start = null;
+      dragging = false;
+      hidePull();
+      setOffset(0);
+      return;
+    }
     const touch = event.touches[0];
-    start = { x: touch.clientX, y: touch.clientY };
+    start = { x: touch.clientX, y: touch.clientY, at: Date.now() };
     dragging = false;
   }, { passive: true });
 
@@ -307,18 +396,43 @@ export function initViewer(onBack) {
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) dragging = true;
-    if (!dragging) return;
+    if (!dragging) {
+      updatePull(dx, dy);
+      return;
+    }
+    hidePull();
     const atEdge = (dx > 0 && index === 0) || (dx < 0 && index === list.length - 1);
     setOffset(atEdge ? dx * 0.3 : dx); // rubber band at the first and last photo
   }, { passive: true });
 
   stage.addEventListener('touchend', (event) => {
+    if (event.touches.length > 0) {
+      start = null; // Another finger is still down; this is not a single-finger gesture.
+      dragging = false;
+      hidePull();
+      setOffset(0, true);
+      return;
+    }
     if (!start) return;
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
+    const flag = swipeFlag({ dx, dy, startY: start.y, viewportHeight: window.innerHeight, durationMs: Date.now() - start.at });
     start = null;
-    if (!dragging) return;
+    // The pull hint already showed this flag, so the central flash would only repeat it.
+    const hinted = $('pull').classList.contains('armed') && Number(getComputedStyle($('pull')).opacity) > 0.5;
+    hidePull();
+    if (!dragging) {
+      // A clearly vertical swipe sets a flag; anything else is left to the click handler.
+      if (flag !== 0) {
+        lastSwipeAt = Date.now();
+        setOffset(0);
+        flagByGesture(flag, hinted);
+      } else {
+        setOffset(0, true); // let the photo settle back after a pull that was not far enough
+      }
+      return;
+    }
     dragging = false;
     lastSwipeAt = Date.now();
     const delta = dx < 0 ? 1 : -1;
@@ -336,15 +450,17 @@ export function initViewer(onBack) {
   stage.addEventListener('touchcancel', () => {
     start = null;
     dragging = false;
+    hidePull();
     setOffset(0, true);
   });
-  // Tap the left or right third to step; tap the middle to retry a failed preview.
+  // Tap the left or right edge to step. Tap the wide middle to retry a failed preview,
+  // or otherwise to hide or show the mark pill and the filename tag.
   stage.addEventListener('click', (event) => {
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return; // synthetic click after a swipe
-    const third = stage.clientWidth / 3;
-    if (event.clientX < third) go(-1);
-    else if (event.clientX > third * 2) go(1);
-    else retryPreview();
+    const zone = tapZone(event.clientX - stage.getBoundingClientRect().left, stage.clientWidth);
+    if (zone === 'prev') step(-1);
+    else if (zone === 'next') step(1);
+    else if (!retryPreview() && list[index]) toggleOverlays();
   });
 
   setInterval(refresh, 1000); // Cheap tick; nextRefreshAt decides whether a fetch actually happens.
@@ -363,6 +479,7 @@ export async function openViewer(nextSource) {
   source = nextSource;
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
+  $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
   notice = '加载中';
@@ -372,11 +489,13 @@ export async function openViewer(nextSource) {
   showError('');
   render();
   const startedAt = Date.now();
+  let loaded = false;
   try {
     const photos = await getPhotos(source.id);
     if (token !== openSeq) return;
-    all = photos;
+    all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     notice = '';
+    loaded = true;
   } catch (e) {
     if (token !== openSeq) return;
     notice = messageFor(e.message);
@@ -384,5 +503,15 @@ export async function openViewer(nextSource) {
   loading = false;
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);
   applyFilter();
+  index = resumeIndex(all, list, lastPhoto[nextSource.id]);
+  // Opening a folder counts as using it, even when the remembered photo is unchanged.
+  if (list[index]) {
+    rememberCapped(lastPhoto, nextSource.id, list[index].id, LAST_PHOTO_CAP);
+    writePref('lastPhoto', lastPhoto);
+  } else if (loaded && all.length) {
+    // The filter hides every photo here, but the folder was still opened.
+    rememberCapped(lastPhoto, nextSource.id, lastPhoto[nextSource.id] ?? all[0].id, LAST_PHOTO_CAP);
+    writePref('lastPhoto', lastPhoto);
+  }
   render();
 }
