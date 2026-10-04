@@ -95,5 +95,16 @@
       </footer>
     </aside>
   </main>
+
+  <dialog id="cache-dialog" aria-labelledby="cache-title">
+    <h2 id="cache-title"></h2>
+    <p id="cache-note"></p>
+    <button id="cache-unmarked" type="button" disabled>缓存未标记</button>
+    <button id="cache-all" type="button" disabled>缓存全部</button>
+    <p class="note">预览图只保存在这台设备上。缓存期间请保持这个页面在前台，不要锁屏；中断后再点一次会从断点继续。</p>
+    <progress id="cache-progress" hidden></progress>
+    <p id="cache-state" role="status"></p>
+    <button id="cache-close" type="button">关闭</button>
+  </dialog>
 </body>
 </html>
