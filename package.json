@@ -1,5 +1,5 @@
 {
-  "name": "lr-remote-cull",
+  "name": "cull-remote",
   "version": "0.4.0",
   "description": "Cull Lightroom Classic photos from a phone or tablet",
   "scripts": {

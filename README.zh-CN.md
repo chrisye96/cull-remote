@@ -1,4 +1,4 @@
-# lr-remote-cull
+# Cull Remote for Adobe Lightroom Classic
 
 [English](README.md) | 简体中文
 
@@ -6,7 +6,7 @@
 
 ## 组成
 
-- `plugin/lr-remote-cull.lrplugin`：Lightroom 插件，长轮询本机伴随服务并执行指令
+- `plugin/cull-remote.lrplugin`：Lightroom 插件，长轮询本机伴随服务并执行指令
 - `server/`：电脑上运行的伴随服务（Node.js 24），只监听 `127.0.0.1`
 - `web/`：手机和平板上打开的网页
 - `spike/`：开发期的预览性能实验，结论见 `docs/spike-results.md`
@@ -14,14 +14,14 @@
 ## 一次性安装
 
 1. `npm install`
-2. Lightroom Classic：`文件 > 增效工具管理器 > 添加`，选择 `plugin/lr-remote-cull.lrplugin`
+2. Lightroom Classic：`文件 > 增效工具管理器 > 添加`，选择 `plugin/cull-remote.lrplugin`
 3. Tailscale：电脑、iPhone、iPad 登录同一账号；在管理后台 `https://login.tailscale.com/admin/dns` 启用 MagicDNS 和 HTTPS Certificates
 4. `tailscale serve --bg 47800`（只把网页端口暴露给自己的 tailnet，重启后保留）
 
 ## 日常使用
 
 1. 打开 Lightroom Classic。在 Windows 上插件会自己在后台启动伴随服务（没有窗口），Lightroom 退出约一分钟后服务也会退出。前提是 `node` 在 PATH 里，并且插件留在本仓库目录内（它按自己的位置找到服务）。服务的输出写在 `.cache/server.log`
-2. 配对设备时，在 Lightroom 里选 `图库 > 增效工具额外功能 > Remote Cull: show address and QR code`，浏览器会打开设置页，显示 tailnet 地址和二维码
+2. 配对设备时，在 Lightroom 里选 `图库 > 增效工具额外功能 > Cull Remote: show address and QR code`，浏览器会打开设置页，显示 tailnet 地址和二维码
 3. 用 iPhone 或 iPad 扫码（设备上 Tailscale 需开启）。建议在 Safari 里"添加到主屏幕"，这样可以全屏使用
 
 在 macOS 上，或者想用终端时，打开 Lightroom 后运行 `npm start`：终端会打印同样的地址和二维码，插件发现服务已经在运行就不会再启动一个。
@@ -55,8 +55,8 @@
 
 ## 排查
 
-- 网页顶部提示"Lightroom 未运行"：确认 Lightroom 已打开且插件状态为"已安装并正在运行"。仍不行时，点 `图库 > 增效工具额外信息 > Remote Cull: start bridge` 手动重启插件的连接
-- 插件日志：`%TEMP%\lr-remote-cull-plugin.log`，记录启动、退出和出错的命令
+- 网页顶部提示"Lightroom 未运行"：确认 Lightroom 已打开且插件状态为"已安装并正在运行"。仍不行时，点 `图库 > 增效工具额外信息 > Cull Remote: start bridge` 手动重启插件的连接
+- 插件日志：`%TEMP%\cull-remote-plugin.log`，记录启动、退出和出错的命令
 - 电脑本机访问 `https://<机器名>.ts.net` 可能超时，这是 Windows 没有使用 MagicDNS 解析，不影响手机和平板
 - 在 Safari 里从屏幕左边缘右滑是浏览器的"后退"手势，会离开页面。从主屏幕图标打开可以避免
 

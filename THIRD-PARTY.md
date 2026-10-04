@@ -2,7 +2,7 @@
 
 Each component below keeps its own licence.
 
-- `plugin/lr-remote-cull.lrplugin/json.lua`: rxi/json.lua v0.1.2, MIT License, https://github.com/rxi/json.lua
+- `plugin/cull-remote.lrplugin/json.lua`: rxi/json.lua v0.1.2, MIT License, https://github.com/rxi/json.lua
 - `qrcode-terminal` (npm dependency, prints and draws the QR code): Apache License 2.0, https://github.com/gtanner/qrcode-terminal. It contains QRCode for JavaScript by Kazuhiko Arase, MIT License
 - `lucide-static` (npm dependency, the icons): ISC License, https://github.com/lucide-icons/lucide
 

@@ -1,4 +1,4 @@
-# lr-remote-cull
+# Cull Remote for Adobe Lightroom Classic
 
 English | [简体中文](README.zh-CN.md)
 
@@ -6,7 +6,7 @@ Cull Lightroom Classic photos from an iPhone or iPad: set pick/reject flags, sta
 
 ## How it fits together
 
-- `plugin/lr-remote-cull.lrplugin`: Lightroom plugin that long-polls the local companion server and runs its commands
+- `plugin/cull-remote.lrplugin`: Lightroom plugin that long-polls the local companion server and runs its commands
 - `server/`: companion server (Node.js 24) on your computer, listening on `127.0.0.1` only
 - `web/`: the page you open on the phone or tablet
 - `spike/`: the preview performance experiment from development; results in `docs/spike-results.md`
@@ -16,14 +16,14 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 ## One-time setup
 
 1. `npm install`
-2. Lightroom Classic: `File > Plug-in Manager > Add`, choose `plugin/lr-remote-cull.lrplugin`
+2. Lightroom Classic: `File > Plug-in Manager > Add`, choose `plugin/cull-remote.lrplugin`
 3. Tailscale: sign the computer, iPhone and iPad in to the same account; in `https://login.tailscale.com/admin/dns` enable MagicDNS and HTTPS Certificates
 4. `tailscale serve --bg 47800` (exposes only the web port to your tailnet; persists across reboots)
 
 ## Daily use
 
 1. Open Lightroom Classic. On Windows the plugin starts the companion server by itself, in the background with no window, and the server leaves about a minute after Lightroom quits. This needs `node` on the PATH and the plugin left inside this folder (it finds the server beside itself). Its output goes to `.cache/server.log`
-2. To pair a device, choose `Library > Plug-in Extras > Remote Cull: show address and QR code` in Lightroom. Your browser opens the settings page with the tailnet address and a QR code
+2. To pair a device, choose `Library > Plug-in Extras > Cull Remote: show address and QR code` in Lightroom. Your browser opens the settings page with the tailnet address and a QR code
 3. Scan it with the iPhone or iPad (Tailscale must be on). In Safari, use "Add to Home Screen" for a full-screen app
 
 On macOS, or whenever you prefer a terminal, run `npm start` after opening Lightroom: it prints the same address and QR code, and the plugin uses a server that is already running instead of starting another.
@@ -55,8 +55,8 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 ## Troubleshooting
 
-- The page says Lightroom is not running: check that Lightroom is open and the plugin shows "Installed and running". If it still fails, use `Library > Plug-in Extras > Remote Cull: start bridge` to restart the plugin's connection
-- Plugin log: `%TEMP%\lr-remote-cull-plugin.log` records start, exit and failed commands
+- The page says Lightroom is not running: check that Lightroom is open and the plugin shows "Installed and running". If it still fails, use `Library > Plug-in Extras > Cull Remote: start bridge` to restart the plugin's connection
+- Plugin log: `%TEMP%\cull-remote-plugin.log` records start, exit and failed commands
 - Opening `https://<machine>.ts.net` on the computer itself may time out when Windows does not resolve MagicDNS names; phones and tablets are not affected
 - In Safari, swiping from the left screen edge is the browser's Back gesture and leaves the page. Open the app from the Home Screen icon to avoid it
 
