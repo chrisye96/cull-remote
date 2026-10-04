@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { pickForCache, estimateBytes, formatBytes, cacheChoice, runPool } from '../web/js/cacheplan.js';
+import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, runPool } from '../web/js/cacheplan.js';
 
 const photo = (id, marks = {}) => ({ id, name: `${id}.raw`, time: 0, rating: 0, label: 'none', pick: 0, ...marks });
 
@@ -24,6 +24,15 @@ test('formatBytes picks a readable unit', () => {
   assert.equal(formatBytes(300 * 1024), '300 KB');
   assert.equal(formatBytes(44 * 210 * 1024), '9 MB');
   assert.equal(formatBytes(2515 * 574 * 1024), '1.4 GB');
+});
+
+test('uncached treats a larger cached preview as covering a smaller one, not the reverse', () => {
+  const urlFor = (id, size) => `/${id}?${size}`;
+  const photos = [photo('a'), photo('b'), photo('c')];
+  const have = new Set(['/a?std', '/b?hd']);
+  assert.deepEqual(uncached(photos, 'std', have, urlFor).map((p) => p.id), ['c']);
+  assert.deepEqual(uncached(photos, 'hd', have, urlFor).map((p) => p.id), ['a', 'c']);
+  assert.deepEqual(uncached(photos, 'hd', new Set(), urlFor).length, 3);
 });
 
 test('cacheChoice says how much is left to download and disables a choice with nothing to do', () => {

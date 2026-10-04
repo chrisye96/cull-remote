@@ -4,7 +4,7 @@ import { loadPhotos } from './data.js';
 import { messageFor } from './messages.js';
 import { cachePhotos, cachedUrls, recordCached } from './cacher.js';
 import { stopAutoCache } from './autocache.js';
-import { pickForCache, cacheChoice } from './cacheplan.js';
+import { pickForCache, cacheChoice, uncached } from './cacheplan.js';
 import { previewSize } from './quality.js';
 import { sortPhotos } from './state.js';
 import { readChoice, PHOTO_SORTS } from './prefs.js';
@@ -21,7 +21,7 @@ let onChange = () => {};
 function setBusy(busy) {
   for (const id of Object.values(START)) $(id).hidden = busy;
   $('cache-progress').hidden = !busy;
-  $('cache-close').textContent = busy ? '取消' : '关闭';
+  $('cache-cancel').hidden = !busy;
 }
 
 // Write both choices: how many photos each covers and how many are still to download.
@@ -34,7 +34,7 @@ function describe() {
       continue;
     }
     const picked = pickForCache(current.photos, mode);
-    const left = picked.filter((photo) => !current.have.has(previewUrl(photo.id, current.size))).length;
+    const left = uncached(picked, current.size, current.have, previewUrl).length;
     const choice = cacheChoice(LABEL[mode], picked.length, left, current.size);
     button.disabled = choice.disabled;
     button.textContent = choice.text;
@@ -98,11 +98,9 @@ async function start(mode) {
 export function initCacheDialog(changed) {
   onChange = changed;
   for (const [mode, id] of Object.entries(START)) $(id).addEventListener('click', () => start(mode));
-  $('cache-close').addEventListener('click', () => {
-    if (run) run.abort();
-    else $('cache-dialog').close();
-  });
-  // Esc or any other way of closing also stops the run.
+  $('cache-cancel').addEventListener('click', () => run?.abort());
+  $('cache-close').addEventListener('click', () => $('cache-dialog').close());
+  // Closing the dialog, by its button or by Esc, also stops the run.
   $('cache-dialog').addEventListener('close', () => run?.abort());
 }
 
