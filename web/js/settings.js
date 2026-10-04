@@ -2,8 +2,8 @@ import { $ } from './dom.js';
 import { getInfo, getStatus } from './api.js';
 import { readChoice, readPref, writePref, QUALITIES, ADVANCE_RULES, FILTERS, AUTO_CACHE_LIMITS } from './prefs.js';
 import { clearCopies } from './store.js';
-import { PREVIEW_CACHE, clearPreviews } from './cacher.js';
-import { formatBytes } from './cacheplan.js';
+import { cachedUrls, clearPreviews } from './cacher.js';
+import { estimateCached, formatBytes } from './cacheplan.js';
 import { pendingCount } from './sync.js';
 
 const HOME_TEXT = { true: '家里的网络（直连）', false: '不在家，或经过中继', null: '无法判断' };
@@ -38,21 +38,15 @@ async function renderUsage() {
   usageSeq += 1;
   const mine = usageSeq;
   $('cache-usage').textContent = '正在统计';
-  let count = 0;
+  let urls = [];
   try {
-    count = (await (await caches.open(PREVIEW_CACHE)).keys()).length;
+    urls = [...(await cachedUrls())];
   } catch {
     // Cache Storage is unavailable; nothing is cached.
   }
-  let total = '';
-  try {
-    const { usage } = await navigator.storage.estimate();
-    if (usage) total = `，本应用共占用约 ${formatBytes(usage)}`;
-  } catch {
-    // estimate() is missing on older Safari; the count alone is shown.
-  }
   if (mine !== usageSeq) return; // A newer count is on its way.
-  $('cache-usage').textContent = `已缓存预览 ${count} 张${total}`;
+  const size = urls.length ? `，约 ${formatBytes(estimateCached(urls))}` : '';
+  $('cache-usage').textContent = `已缓存预览 ${urls.length} 张${size}`;
 }
 
 function infoRow(list, term, text) {
