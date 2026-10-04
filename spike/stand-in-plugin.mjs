@@ -61,8 +61,10 @@ for (;;) {
   try {
     const cmd = await (await fetch(`${base}/next`, { headers })).json();
     if (!cmd.id) continue;
-    const { type, body } = await answer(cmd);
-    await fetch(`${base}/result/${cmd.id}`, { method: 'POST', headers: { ...headers, 'content-type': type }, body });
+    // Like the real plugin: answer in the background and go straight back to polling.
+    answer(cmd)
+      .then(({ type, body }) => fetch(`${base}/result/${cmd.id}`, { method: 'POST', headers: { ...headers, 'content-type': type }, body }))
+      .catch(() => {}); // The server went away; it times the command out on its own.
   } catch {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // The server is not up yet.
   }
