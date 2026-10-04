@@ -3,6 +3,7 @@ import { getStatus } from './api.js';
 import { statusLine } from './messages.js';
 import { initSync, drain, setLink, getLink, pendingCount } from './sync.js';
 import { initSources, showSources } from './sources.js';
+import { initSettings, showSettings } from './settings.js';
 import { initViewer, openViewer, onSyncChange, onOpFailed } from './viewer.js';
 
 document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
@@ -13,6 +14,7 @@ let homeScroll = 0; // Scroll position of the source list, restored when coming 
 function show(view) {
   $('sources').hidden = view !== 'sources';
   $('viewer').hidden = view !== 'viewer';
+  $('settings').hidden = view !== 'settings';
 }
 
 function renderStatus() {
@@ -71,6 +73,12 @@ $('refresh-sources').addEventListener('click', async () => {
 navigator.serviceWorker?.register('/sw.js').catch(() => {});
 
 initSources();
+initSettings(() => home({ restoreScroll: true }));
+$('open-settings').addEventListener('click', () => {
+  homeScroll = $('home-list').scrollTop;
+  show('settings');
+  showSettings();
+});
 initViewer(() => home({ restoreScroll: true }));
 await initSync({
   onChange: (change) => {

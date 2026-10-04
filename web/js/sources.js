@@ -1,6 +1,7 @@
 import { $, icon } from './dom.js';
 import { loadSources } from './data.js';
 import { initCacheDialog, openCacheDialog } from './cachedialog.js';
+import { bindSelect } from './settings.js';
 import { readObject, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
 import { buildTree, sortTree, filterTree, folderHint, recentSources } from './tree.js';
 
@@ -193,15 +194,8 @@ export function initSources() {
   search.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.isComposing) search.blur(); // Closes the iOS keyboard.
   });
-  const folderSort = $('folder-sort');
-  folderSort.value = readChoice('folderSort', FOLDER_SORTS, 'name-desc');
-  folderSort.addEventListener('change', () => {
-    writePref('folderSort', folderSort.value);
-    renderList();
-  });
-  const photoSort = $('photo-sort');
-  photoSort.value = readChoice('photoSort', PHOTO_SORTS, 'time-asc');
-  photoSort.addEventListener('change', () => writePref('photoSort', photoSort.value));
+  bindSelect('folder-sort', 'folderSort', FOLDER_SORTS, 'name-desc', renderList);
+  bindSelect('photo-sort', 'photoSort', PHOTO_SORTS, 'time-asc');
 }
 
 // The source tree is fetched once per page load; Back reuses it, the refresh button forces it.

@@ -5,7 +5,7 @@ import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
-import { readChoice, readObject, writePref, PHOTO_SORTS } from './prefs.js';
+import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 
 const SWIPE_MIN_DX = 50;
@@ -245,7 +245,7 @@ function mark(field, rawValue, { quiet = false } = {}) {
   if (!quiet) flash(field, value);
   pushOp(photo, field, value); // Durable queue; sync.js delivers it now or when the connection returns.
   // Pick and reject advance right away; the request happens in the background.
-  if (!(shouldAdvance(field, value) && go(1))) render();
+  if (!(shouldAdvance(field, value, readChoice('advance', ADVANCE_RULES, 'flag')) && go(1))) render();
 }
 
 // Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
@@ -479,6 +479,7 @@ export async function openViewer(nextSource) {
   $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
+  onlyUnmarked = readChoice('defaultFilter', FILTERS, 'unmarked') === 'unmarked';
   notice = '加载中';
   loading = true;
   savedAtSettled = settledOps; // loadPhotos writes the offline copy itself.
