@@ -42,7 +42,7 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 
 ## Working offline
 
-- Each row in "最近打开" (recently opened) on the home page ends with a `缓存` (cache) button. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and estimated size. Keep the page in the foreground while it runs; if it is interrupted, tap again and it continues where it stopped. The button then reads `已缓存 N`, and cached folders in the list get a small check next to their count
+- Each row in "最近打开" (recently opened) on the home page ends with a `缓存` (cache) button. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and estimated size. Keep the page in the foreground while it runs; if it is interrupted, tap again and it continues where it stopped. When the run completes the dialog closes, the button reads `已缓存 N`, and cached folders in the list get a small check next to their count. Opening it again shows how many photos are still missing and disables a choice that is fully cached. If caching is too slow, cancel, lower the preview quality in settings and continue: high-quality previews already downloaded stay in use and only the missing ones are fetched
 - To cache a folder you have not opened yet, open it once and it appears under recently opened
 - When the phone and the computer are on the same local network, opening a folder caches its unmarked photos automatically (500 at most by default; switch it off or change the limit in settings)
 - When the computer cannot be reached, cached folders still browse and mark as usual. The top bar reads `离线，待同步 N 条` (offline, N marks waiting) and the mark pill shows a cloud icon; marks are stored on the device and survive closing the page
@@ -73,7 +73,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 - When Lightroom is busy a mark stays queued and is retried; this path is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
 - Only Lightroom's five default colour labels are recognised: photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
 - Offline data lives in the browser: Safari, Chrome and the Home Screen app each keep their own copy. Only the Home Screen app is exempt from iOS clearing that data after 7 days without a visit
-- Offline use is supported in Safari and the Home Screen app; Chrome on iOS has not been verified
+- Offline use was verified item by item in Chrome on iOS (iPhone and iPad, 2026-10-04). Safari and the Home Screen app run on the same browser engine and are expected to behave the same, but have not been verified item by item
 - With no network at all, a cold start takes a few seconds (the page shell and the connection probe each wait for a timeout)
 - Previews cached on the device do not follow later edits in Lightroom either; clear the cache in settings and cache again
 
