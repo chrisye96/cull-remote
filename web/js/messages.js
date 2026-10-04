@@ -12,3 +12,13 @@ const MESSAGES = {
 };
 
 export const messageFor = (code) => MESSAGES[code] ?? '操作失败，请重试';
+
+const SHORT = { network: '离线', lr_offline: 'Lightroom 未运行', lr_busy: 'Lightroom 正忙', lr_timeout: 'Lightroom 响应超时' };
+
+// Text of the top status bar. `code` is '' while everything is reachable. With marks
+// waiting, the bar says how many instead of how to fix the connection.
+export function statusLine(code, pendingCount) {
+  if (!code) return '';
+  if (pendingCount > 0) return `${SHORT[code] ?? messageFor(code)}，待同步 ${pendingCount} 条`;
+  return messageFor(code);
+}
