@@ -17,8 +17,8 @@ let run = null; // AbortController of the run in progress
 let openSeq = 0; // Bumped on every open; a slow list for an earlier folder is dropped.
 let onChange = () => {};
 
-// DIAG (temporary, branch diag/cache-dialog-timing): shows where the time of opening the
-// dialog goes. Remove before merging.
+// DIAG (temporary): shows where the time of opening the dialog goes. Kept until the
+// away-from-home reading has been taken, then remove.
 const diagLines = [];
 const ms = Math.round;
 function diagShow() {
