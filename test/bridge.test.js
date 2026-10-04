@@ -52,6 +52,33 @@ test('a plugin error rejects with the plugin error string as code', async () => 
   await assert.rejects(sent, hasCode('lr_busy'));
 });
 
+test('urgent commands overtake queued normal ones and keep their own order', async () => {
+  const bridge = createBridge();
+  await bridge.next(5);
+  const sends = [
+    bridge.send('getPreview'),
+    bridge.send('getPreview'),
+    bridge.send('setMeta', { n: 1 }, { urgent: true }),
+    bridge.send('setMeta', { n: 2 }, { urgent: true }),
+  ];
+  const order = [];
+  for (let i = 0; i < 4; i += 1) {
+    const cmd = await bridge.next(1000);
+    order.push(cmd.params.n ?? cmd.type);
+    bridge.complete(cmd.id, null, true);
+  }
+  assert.deepEqual(order, [1, 2, 'getPreview', 'getPreview']);
+  await Promise.all(sends);
+});
+
+test('a timed-out command leaves its queue and is never delivered', async () => {
+  const bridge = createBridge({ commandTimeoutMs: 20 });
+  await bridge.next(5);
+  await assert.rejects(bridge.send('setMeta', {}, { urgent: true }), hasCode('lr_timeout'));
+  await assert.rejects(bridge.send('listSources'), hasCode('lr_timeout'));
+  assert.equal(await bridge.next(5), null);
+});
+
 test('a command nobody answers rejects with lr_timeout', async () => {
   const bridge = createBridge({ commandTimeoutMs: 20 });
   await bridge.next(5);
