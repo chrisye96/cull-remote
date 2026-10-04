@@ -11,6 +11,15 @@ export function pickForCache(photos, mode, limit = 0) {
 
 export const estimateBytes = (count, size) => count * AVG_BYTES[size];
 
+// Rough size of the cached previews, from their URLs. The browser's own storage figure
+// is not shown: WebKit only counts it upwards between recounts, so it does not drop
+// after a delete and would read as space that cannot be freed.
+export function estimateCached(urls) {
+  let bytes = 0;
+  for (const url of urls) bytes += AVG_BYTES[url.includes('size=hd') ? 'hd' : 'std'];
+  return bytes;
+}
+
 export function formatBytes(bytes) {
   if (bytes < 1024 ** 2) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   if (bytes < 1024 ** 3) return `${Math.round(bytes / 1024 ** 2)} MB`;
@@ -26,13 +35,13 @@ export function uncached(photos, size, have, urlFor) {
   return photos.filter((photo) => !COVERED_BY[size].some((cachedSize) => have.has(urlFor(photo.id, cachedSize))));
 }
 
-// Label and state of one choice in the caching dialog. `count` photos are covered and
-// `left` of them are not on the device yet; the size estimate is for what is left.
-export function cacheChoice(label, count, left, size) {
-  if (count === 0) return { text: `${label}（0 张）`, disabled: true };
-  if (left === 0) return { text: `${label}（${count} 张，已全部缓存）`, disabled: true };
+// Second line and state of one choice in the caching dialog. `count` photos are covered
+// and `left` of them are not on the device yet; the size estimate is for what is left.
+export function cacheChoice(count, left, size) {
+  if (count === 0) return { detail: '0 张', disabled: true };
+  if (left === 0) return { detail: `${count} 张，已全部缓存`, disabled: true };
   const todo = left === count ? '' : `还差 ${left} 张，`;
-  return { text: `${label}（${count} 张，${todo}约 ${formatBytes(estimateBytes(left, size))}）`, disabled: false };
+  return { detail: `${count} 张，${todo}约 ${formatBytes(estimateBytes(left, size))}`, disabled: false };
 }
 
 // Run `worker` over `items` with at most `limit` running at once. The first error stops

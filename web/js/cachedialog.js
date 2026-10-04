@@ -11,7 +11,6 @@ import { readChoice, PHOTO_SORTS } from './prefs.js';
 
 const SIZE_NAME = { std: '标准', hd: '高清' };
 const START = { unmarked: 'cache-unmarked', all: 'cache-all' };
-const LABEL = { unmarked: '缓存未标记', all: '缓存全部' };
 
 let current = null; // { source, photos, size, have } once the folder's list has loaded
 let run = null; // AbortController of the run in progress
@@ -28,16 +27,17 @@ function setBusy(busy) {
 function describe() {
   for (const [mode, id] of Object.entries(START)) {
     const button = $(id);
+    const detail = button.querySelector('.choice-detail');
     if (!current) {
       button.disabled = true;
-      button.textContent = LABEL[mode];
+      detail.textContent = '';
       continue;
     }
     const picked = pickForCache(current.photos, mode);
     const left = uncached(picked, current.size, current.have, previewUrl).length;
-    const choice = cacheChoice(LABEL[mode], picked.length, left, current.size);
+    const choice = cacheChoice(picked.length, left, current.size);
     button.disabled = choice.disabled;
-    button.textContent = choice.text;
+    detail.textContent = choice.detail;
   }
 }
 
@@ -114,6 +114,8 @@ export async function openCacheDialog(source) {
   setBusy(false);
   describe();
   $('cache-dialog').showModal();
+  // Start on the title: otherwise the close button, first in the dialog, opens with a focus ring.
+  $('cache-title').focus();
   const size = previewSize();
   let photos;
   let info;
