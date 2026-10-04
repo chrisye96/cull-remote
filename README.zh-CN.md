@@ -81,4 +81,6 @@
 
 ## 许可
 
-MIT
+MIT，见 `LICENSE`。用到的第三方组件列在 `THIRD-PARTY.md`。
+
+Adobe 和 Lightroom 是 Adobe 在美国和（或）其他国家的注册商标或商标。本项目与 Adobe 没有关联，也未获其认可或赞助。

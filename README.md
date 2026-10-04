@@ -81,4 +81,6 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 ## License
 
-MIT
+MIT; see `LICENSE`. Third-party components are listed in `THIRD-PARTY.md`.
+
+Adobe and Lightroom are either registered trademarks or trademarks of Adobe in the United States and/or other countries. This project is not affiliated with, endorsed by or sponsored by Adobe.
