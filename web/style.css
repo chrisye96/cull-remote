@@ -75,7 +75,14 @@ dialog[open] { display: grid; gap: 10px; }
 dialog::backdrop { background: rgba(0, 0, 0, .6); }
 dialog h2 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 dialog p { margin: 0; font-size: 14px; }
-dialog button { background: var(--bg); }
+dialog p:empty { display: none; }
+dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font-size: 15px; }
+.dialog-head { display: flex; align-items: center; gap: 8px; }
+.dialog-head h2 { flex: 1; min-width: 0; }
+/* Close is the usual round × in the corner; the negative margin keeps the title on the padding line. */
+#cache-close { flex: none; width: 36px; height: 36px; min-height: 0; margin: -6px -6px -6px 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); }
+#cache-close .icon { width: 20px; height: 20px; }
+#cache-cancel { justify-self: center; min-height: 36px; padding: 0 20px; font-size: 14px; white-space: nowrap; }
 dialog progress { width: 100%; accent-color: var(--accent); }
 .note { font-size: 13px; color: var(--muted); }
 

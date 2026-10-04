@@ -1,10 +1,10 @@
 import { $ } from './dom.js';
-import { getInfo } from './api.js';
+import { getInfo, previewUrl } from './api.js';
 import { loadPhotos } from './data.js';
 import { messageFor } from './messages.js';
-import { cachePhotos, recordCached } from './cacher.js';
+import { cachePhotos, cachedUrls, recordCached } from './cacher.js';
 import { stopAutoCache } from './autocache.js';
-import { pickForCache, estimateBytes, formatBytes } from './cacheplan.js';
+import { pickForCache, cacheChoice, uncached } from './cacheplan.js';
 import { previewSize } from './quality.js';
 import { sortPhotos } from './state.js';
 import { readChoice, PHOTO_SORTS } from './prefs.js';
@@ -13,7 +13,7 @@ const SIZE_NAME = { std: '标准', hd: '高清' };
 const START = { unmarked: 'cache-unmarked', all: 'cache-all' };
 const LABEL = { unmarked: '缓存未标记', all: '缓存全部' };
 
-let current = null; // { source, photos, size } once the folder's list has loaded
+let current = null; // { source, photos, size, have } once the folder's list has loaded
 let run = null; // AbortController of the run in progress
 let openSeq = 0; // Bumped on every open; a slow list for an earlier folder is dropped.
 let onChange = () => {};
@@ -21,18 +21,33 @@ let onChange = () => {};
 function setBusy(busy) {
   for (const id of Object.values(START)) $(id).hidden = busy;
   $('cache-progress').hidden = !busy;
-  $('cache-close').textContent = busy ? '取消' : '关闭';
+  $('cache-cancel').hidden = !busy;
 }
 
-function describe(mode) {
-  const button = $(START[mode]);
-  const count = current ? pickForCache(current.photos, mode).length : 0;
-  button.disabled = count === 0;
-  button.textContent = !current
-    ? LABEL[mode]
-    : count === 0
-      ? `${LABEL[mode]}（0 张）`
-      : `${LABEL[mode]}（${count} 张，约 ${formatBytes(estimateBytes(count, current.size))}）`;
+// Write both choices: how many photos each covers and how many are still to download.
+function describe() {
+  for (const [mode, id] of Object.entries(START)) {
+    const button = $(id);
+    if (!current) {
+      button.disabled = true;
+      button.textContent = LABEL[mode];
+      continue;
+    }
+    const picked = pickForCache(current.photos, mode);
+    const left = uncached(picked, current.size, current.have, previewUrl).length;
+    const choice = cacheChoice(LABEL[mode], picked.length, left, current.size);
+    button.disabled = choice.disabled;
+    button.textContent = choice.text;
+  }
+}
+
+// Which previews are already on the device; counting a large cache takes a moment,
+// so the choices are shown first and corrected when this arrives.
+async function refreshHave(token) {
+  const have = await cachedUrls().catch(() => new Set());
+  if (token !== openSeq || !current) return;
+  current.have = have;
+  describe();
 }
 
 async function start(mode) {
@@ -48,7 +63,8 @@ async function start(mode) {
   // Ask the browser not to evict this site's data; it may say no, which changes nothing here.
   navigator.storage?.persist?.().catch(() => {});
   let last = { cached: 0, failed: 0 };
-  let ending;
+  let ending = '';
+  let finished = false; // True when every photo of the run is on the device.
   try {
     last = await cachePhotos(picked, size, {
       signal,
@@ -58,9 +74,8 @@ async function start(mode) {
         $('cache-state').textContent = `已缓存 ${progress.cached} / ${picked.length}`;
       },
     });
-    ending = last.failed
-      ? `完成，已缓存 ${last.cached} 张，${last.failed} 张失败，再点一次可以重试`
-      : `完成，已缓存 ${last.cached} 张`;
+    finished = last.failed === 0;
+    ending = `已缓存 ${last.cached} 张，${last.failed} 张失败，再点一次可以重试`;
   } catch (e) {
     if (signal.aborted) ending = `已取消，已缓存 ${last.cached} 张`;
     else if (e.name === 'QuotaExceededError') ending = `设备存储空间不足，已缓存 ${last.cached} 张`;
@@ -69,19 +84,23 @@ async function start(mode) {
   run = null;
   if (last.cached) recordCached(source.id, last.cached);
   setBusy(false);
-  $('cache-state').textContent = ending;
   onChange();
+  if (finished) {
+    // Nothing left to decide: the row's "已缓存 N" on the home page is the confirmation.
+    $('cache-dialog').close();
+    return;
+  }
+  $('cache-state').textContent = ending;
+  refreshHave(openSeq);
 }
 
 // Bind the dialog's buttons. Call once at page load; `changed` runs after every run.
 export function initCacheDialog(changed) {
   onChange = changed;
   for (const [mode, id] of Object.entries(START)) $(id).addEventListener('click', () => start(mode));
-  $('cache-close').addEventListener('click', () => {
-    if (run) run.abort();
-    else $('cache-dialog').close();
-  });
-  // Esc or any other way of closing also stops the run.
+  $('cache-cancel').addEventListener('click', () => run?.abort());
+  $('cache-close').addEventListener('click', () => $('cache-dialog').close());
+  // Closing the dialog, by its button or by Esc, also stops the run.
   $('cache-dialog').addEventListener('close', () => run?.abort());
 }
 
@@ -93,8 +112,7 @@ export async function openCacheDialog(source) {
   $('cache-note').textContent = '正在读取照片列表';
   $('cache-state').textContent = '';
   setBusy(false);
-  describe('unmarked');
-  describe('all');
+  describe();
   $('cache-dialog').showModal();
   const size = previewSize();
   let photos;
@@ -109,9 +127,9 @@ export async function openCacheDialog(source) {
     return;
   }
   if (token !== openSeq || !$('cache-dialog').open) return;
-  current = { source, photos, size };
+  current = { source, photos, size, have: new Set() };
   const away = info.atHome === true ? '' : '当前不在家里的网络，或无法判断，下载可能会用到蜂窝流量。';
   $('cache-note').textContent = `共 ${photos.length} 张，${SIZE_NAME[size]}清晰度。${away}`;
-  describe('unmarked');
-  describe('all');
+  describe();
+  refreshHave(token);
 }

@@ -33,8 +33,9 @@ async function run(store, mode, work) {
 
 export const kvGet = async (key) => (await run('kv', 'readonly', (kv) => kv.get(key))).result;
 export const kvSet = (key, value) => run('kv', 'readwrite', (kv) => void kv.put(value, key));
-// Drop the offline copies. Waiting marks are kept: they are small, and losing them loses work.
-export const clearCopies = () => run('kv', 'readwrite', (kv) => void kv.clear());
+// Drop the offline photo lists. The folder tree stays, so the home page still opens
+// without a connection; waiting marks stay too, because losing them loses work.
+export const clearCopies = () => run('kv', 'readwrite', (kv) => void kv.delete(IDBKeyRange.bound('photos:', 'photos:￿')));
 
 export const addOp = (op) => run('ops', 'readwrite', (ops) => void ops.put(op));
 export const deleteOps = (opIds) => run('ops', 'readwrite', (ops) => opIds.forEach((opId) => ops.delete(opId)));
