@@ -112,11 +112,9 @@ function renderBadges(photo) {
   const box = $('badges');
   // A different photo shows its marks at once; only marks changed on the same photo animate.
   const photoId = photo ? photo.id : null;
-  if (photoId !== badgesPhotoId) {
-    badgesPhotoId = photoId;
-    box.classList.add('instant');
-    requestAnimationFrame(() => box.classList.remove('instant'));
-  }
+  const instant = photoId !== badgesPhotoId;
+  badgesPhotoId = photoId;
+  if (instant) box.classList.add('instant');
   const parts = photo ? badgeParts(photo) : [];
   const find = (kind) => parts.find((part) => part.kind === kind);
   const flag = find('pick') ?? find('reject');
@@ -139,6 +137,11 @@ function renderBadges(photo) {
   if (rating && valueEl.textContent !== String(rating.value)) valueEl.textContent = String(rating.value);
   if (label) box.querySelector('.mark-label .dot').className = `dot ${label.value}`;
   box.hidden = !shownBefore;
+  if (instant) {
+    // Reading a layout value commits the untransitioned state before transitions return.
+    void box.offsetWidth;
+    box.classList.remove('instant');
+  }
 }
 
 // Short message in the middle of the photo: an icon or a colour dot, then text.
