@@ -31,14 +31,23 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - Swipe left or right, or tap the left or right side of the photo, to move between photos
 - Swipe up to pick, swipe down to reject. While you drag, the photo follows your finger and a hint shows what releasing will do; let go early and nothing happens. A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
 - Tap the middle of the photo (the central half) to hide or show the mark pill and the filename tag; a short message confirms which
-- Pick and reject jump to the next photo; stars and labels stay on the current one
+- Pick and reject jump to the next photo; stars and labels stay on the current one (settings can make every mark advance, or none)
 - Tap an active flag, star or label again to clear it
 - The filter switch shows both "unmarked" and "all" with live counts; switching keeps you on the current photo when it is in the new list
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
-- In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels
+- In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels (on the left with left-hand mode in settings)
 - On the home page, search filters folders and collections as you type (the × button clears it); sort folders by name or import order and choose the photo order (capture time or filename). Rows with children expand and collapse. In landscape the search and sort controls stay in a column on the left while the list scrolls on the right
 - "最近打开" (recently opened) at the top of the home page lists the last five folders or collections opened on this device
 - Each folder or collection remembers the photo you were on (per device), so going back and reopening it resumes there
+
+## Working offline
+
+- Each row in "最近打开" (recently opened) on the home page ends with a `缓存` (cache) button. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and estimated size. Keep the page in the foreground while it runs; if it is interrupted, tap again and it continues where it stopped. The button then reads `已缓存 N`, and cached folders in the list get a small check next to their count
+- To cache a folder you have not opened yet, open it once and it appears under recently opened
+- When the phone and the computer are on the same local network, opening a folder caches its unmarked photos automatically (500 at most by default; switch it off or change the limit in settings)
+- When the computer cannot be reached, cached folders still browse and mark as usual. The top bar reads `离线，待同步 N 条` (offline, N marks waiting) and the mark pill shows a cloud icon; marks are stored on the device and survive closing the page
+- Once the connection is back the marks sync to Lightroom in the order you made them. The same happens when Lightroom is closed: marks wait and are delivered when it opens
+- Settings (top right of the home page): preview quality, whether a mark advances to the next photo, whether a folder opens on unmarked or all photos, left-hand mode, automatic caching, cache usage and clearing, connection details. Clearing the cache removes previews and photo lists only, never marks that have not synced
 
 Deleting photos is out of scope on purpose: mark them as rejected on the phone, then use Lightroom's `Photo > Delete Rejected Photos` on the computer.
 
@@ -52,6 +61,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 ## Development
 
 - `npm test`
+- To test without touching the server in daily use: with the environment variable `LRC_DEV=1`, `npm start` runs a second instance on `47810/47811`; `node spike/stand-in-plugin.mjs` then plays the Lightroom plugin (fake photos, marks kept in memory)
 - Design: `docs/superpowers/specs/`
 - Implementation plans: `docs/superpowers/plans/`
 - Branches: `main` is stable, `dev` integrates, features on `feat/*`, fixes on `fix/*`
@@ -60,9 +70,12 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 - Marks refresh from Lightroom while a folder or collection is open (every 5 seconds, longer for very large folders); photos added to or removed from it appear after going back and opening it again
 - Previews are cached in `.cache/previews/` and do not refresh after you re-edit a photo in Lightroom; delete that folder to refresh
-- The "Lightroom is busy" rollback is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
+- When Lightroom is busy a mark stays queued and is retried; this path is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
 - Only Lightroom's five default colour labels are recognised: photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
-- Online only for now; offline caching is planned
+- Offline data lives in the browser: Safari, Chrome and the Home Screen app each keep their own copy. Only the Home Screen app is exempt from iOS clearing that data after 7 days without a visit
+- Offline use is supported in Safari and the Home Screen app; Chrome on iOS has not been verified
+- With no network at all, a cold start takes a few seconds (the page shell and the connection probe each wait for a timeout)
+- Previews cached on the device do not follow later edits in Lightroom either; clear the cache in settings and cache again
 
 ## License
 
