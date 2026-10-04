@@ -501,7 +501,8 @@ export async function openViewer(nextSource) {
     loaded = true;
   } catch (e) {
     if (token !== openSeq) return;
-    notice = messageFor(e.message);
+    // Offline with no copy of this folder: say that, rather than how to fix the connection.
+    notice = e.message === 'network' ? '这个文件夹还没有缓存，联网后才能打开' : messageFor(e.message);
   }
   loading = false;
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);

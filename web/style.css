@@ -75,7 +75,10 @@ dialog[open] { display: grid; gap: 10px; }
 dialog::backdrop { background: rgba(0, 0, 0, .6); }
 dialog h2 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 dialog p { margin: 0; font-size: 14px; }
-dialog button { background: var(--bg); }
+dialog p:empty { display: none; }
+dialog button { background: var(--bg); min-height: 40px; font-size: 15px; }
+/* Closing is secondary: a small quiet button at the end, not a full-width bar. */
+#cache-close { justify-self: end; min-height: 36px; padding: 0 16px; font-size: 14px; color: var(--muted); background: transparent; }
 dialog progress { width: 100%; accent-color: var(--accent); }
 .note { font-size: 13px; color: var(--muted); }
 
