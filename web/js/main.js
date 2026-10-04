@@ -2,7 +2,7 @@ import { $ } from './dom.js';
 import { getStatus } from './api.js';
 import { statusLine } from './messages.js';
 import { initSync, drain, setLink, getLink, pendingCount } from './sync.js';
-import { initSources, showSources } from './sources.js';
+import { initSources, showSources, showSourcesNotice } from './sources.js';
 import { initSettings, showSettings } from './settings.js';
 import { initViewer, openViewer, onSyncChange, onOpFailed } from './viewer.js';
 
@@ -36,6 +36,9 @@ async function home({ force = false, restoreScroll = false } = {}) {
   } catch (e) {
     sourcesFresh = false;
     setLink(e.message);
+    showSourcesNotice(e.message === 'network'
+      ? '离线，这台设备上还没有保存过目录列表。联网后会自动出现'
+      : '暂时读不到目录列表，恢复后会自动出现');
   }
 }
 

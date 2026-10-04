@@ -17,6 +17,15 @@ export function formatBytes(bytes) {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
+// Label and state of one choice in the caching dialog. `count` photos are covered and
+// `left` of them are not on the device yet; the size estimate is for what is left.
+export function cacheChoice(label, count, left, size) {
+  if (count === 0) return { text: `${label}（0 张）`, disabled: true };
+  if (left === 0) return { text: `${label}（${count} 张，已全部缓存）`, disabled: true };
+  const todo = left === count ? '' : `还差 ${left} 张，`;
+  return { text: `${label}（${count} 张，${todo}约 ${formatBytes(estimateBytes(left, size))}）`, disabled: false };
+}
+
 // Run `worker` over `items` with at most `limit` running at once. The first error stops
 // the lanes from taking new items and is rethrown.
 export async function runPool(items, limit, worker) {

@@ -71,6 +71,15 @@ export async function cachePhotos(photos, size, { signal, concurrency = 3, onPro
   return { cached, failed };
 }
 
+// Preview URLs (path and query, as previewUrl builds them) that are on this device.
+export async function cachedUrls() {
+  const requests = await (await caches.open(PREVIEW_CACHE)).keys();
+  return new Set(requests.map((request) => {
+    const url = new URL(request.url);
+    return url.pathname + url.search;
+  }));
+}
+
 // Remember how many previews of a folder are on this device, for the home page.
 export function recordCached(sourceId, count) {
   const cached = readObject('cached');

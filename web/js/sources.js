@@ -198,6 +198,16 @@ export function initSources() {
   bindSelect('photo-sort', 'photoSort', PHOTO_SORTS, 'time-asc');
 }
 
+// Say why the list is empty when it could not be loaded. A list that is already on
+// screen is kept as it is.
+export function showSourcesNotice(text) {
+  if (cached) return;
+  const item = document.createElement('li');
+  item.className = 'source-empty';
+  item.textContent = text;
+  $('source-list').replaceChildren(item);
+}
+
 // The source tree is fetched once per page load; Back reuses it, the refresh button forces it.
 // Resolves with { stale }: true when the list is the offline copy.
 export async function showSources(onPick, { force = false } = {}) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { pickForCache, estimateBytes, formatBytes, runPool } from '../web/js/cacheplan.js';
+import { pickForCache, estimateBytes, formatBytes, cacheChoice, runPool } from '../web/js/cacheplan.js';
 
 const photo = (id, marks = {}) => ({ id, name: `${id}.raw`, time: 0, rating: 0, label: 'none', pick: 0, ...marks });
 
@@ -24,6 +24,13 @@ test('formatBytes picks a readable unit', () => {
   assert.equal(formatBytes(300 * 1024), '300 KB');
   assert.equal(formatBytes(44 * 210 * 1024), '9 MB');
   assert.equal(formatBytes(2515 * 574 * 1024), '1.4 GB');
+});
+
+test('cacheChoice says how much is left to download and disables a choice with nothing to do', () => {
+  assert.deepEqual(cacheChoice('缓存全部', 0, 0, 'std'), { text: '缓存全部（0 张）', disabled: true });
+  assert.deepEqual(cacheChoice('缓存全部', 60, 60, 'std'), { text: '缓存全部（60 张，约 12 MB）', disabled: false });
+  assert.deepEqual(cacheChoice('缓存全部', 600, 540, 'hd'), { text: '缓存全部（600 张，还差 540 张，约 303 MB）', disabled: false });
+  assert.deepEqual(cacheChoice('缓存未标记', 60, 0, 'hd'), { text: '缓存未标记（60 张，已全部缓存）', disabled: true });
 });
 
 test('runPool visits every item and never runs more than the limit at once', async () => {
