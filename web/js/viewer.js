@@ -6,9 +6,8 @@ import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, writePref, PHOTO_SORTS } from './prefs.js';
+import { HD_QUERY, previewSize } from './quality.js';
 
-const HD_QUERY = matchMedia('(min-width: 768px) and (min-height: 600px)');
-const previewSize = () => (HD_QUERY.matches ? 'hd' : 'std');
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
