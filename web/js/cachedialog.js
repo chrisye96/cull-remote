@@ -3,6 +3,7 @@ import { getInfo } from './api.js';
 import { loadPhotos } from './data.js';
 import { messageFor } from './messages.js';
 import { cachePhotos, recordCached } from './cacher.js';
+import { stopAutoCache } from './autocache.js';
 import { pickForCache, estimateBytes, formatBytes } from './cacheplan.js';
 import { previewSize } from './quality.js';
 import { sortPhotos } from './state.js';
@@ -37,6 +38,7 @@ function describe(mode) {
 async function start(mode) {
   const { source, photos, size } = current;
   const picked = pickForCache(photos, mode);
+  stopAutoCache(); // The manual run takes over.
   run = new AbortController();
   const { signal } = run;
   setBusy(true);

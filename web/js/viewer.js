@@ -7,6 +7,7 @@ import { messageFor } from './messages.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
+import { maybeAutoCache } from './autocache.js';
 
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
@@ -489,9 +490,11 @@ export async function openViewer(nextSource) {
   render();
   const startedAt = Date.now();
   let loaded = false;
+  let fromLightroom = false;
   try {
-    const { data: photos } = await loadPhotos(source.id);
+    const { data: photos, stale } = await loadPhotos(source.id);
     if (token !== openSeq) return;
+    fromLightroom = !stale;
     all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     applyQueued(all, pendingOps()); // Marks still waiting to sync win over the list.
     notice = '';
@@ -514,4 +517,5 @@ export async function openViewer(nextSource) {
     writePref('lastPhoto', lastPhoto);
   }
   render();
+  if (fromLightroom) maybeAutoCache(nextSource, all);
 }

@@ -1,6 +1,6 @@
 import { $ } from './dom.js';
 import { getInfo, getStatus } from './api.js';
-import { readChoice, readPref, writePref, QUALITIES, ADVANCE_RULES, FILTERS } from './prefs.js';
+import { readChoice, readPref, writePref, QUALITIES, ADVANCE_RULES, FILTERS, AUTO_CACHE_LIMITS } from './prefs.js';
 import { clearCopies } from './store.js';
 import { PREVIEW_CACHE } from './cacher.js';
 import { formatBytes } from './cacheplan.js';
@@ -85,6 +85,8 @@ export function initSettings(onBack) {
   bindSelect('set-filter', 'defaultFilter', FILTERS, 'unmarked');
   bindCheckbox('set-left-hand', 'leftHand', false, applyLeftHand);
   applyLeftHand();
+  bindCheckbox('set-auto-cache', 'autoCache', true);
+  bindSelect('set-auto-limit', 'autoCacheLimit', AUTO_CACHE_LIMITS, '500');
   $('clear-cache').addEventListener('click', async () => {
     if (!confirm('清除这台设备上缓存的预览图和照片列表？还没同步的标记不受影响。')) return;
     await caches.delete(PREVIEW_CACHE).catch(() => {});
