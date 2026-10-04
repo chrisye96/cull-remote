@@ -29,14 +29,16 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 ## Controls
 
 - Swipe left or right, or tap the left or right side of the photo, to move between photos
-- Swipe up to pick, swipe down to reject. A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
-- Tap the middle of the photo to hide or show the mark pill and the filename tag
+- Swipe up to pick, swipe down to reject. While you drag, the photo follows your finger and a hint shows what releasing will do; let go early and nothing happens. A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
+- Tap the middle of the photo (the central half) to hide or show the mark pill and the filename tag; a short message confirms which
 - Pick and reject jump to the next photo; stars and labels stay on the current one
 - Tap an active flag, star or label again to clear it
 - The filter switch shows both "unmarked" and "all" with live counts; switching keeps you on the current photo when it is in the new list
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels
-- On the home page, search filters folders and collections as you type; sort folders by name or import order and choose the photo order (capture time or filename). Rows with children expand and collapse
+- On the home page, search filters folders and collections as you type (the × button clears it); sort folders by name or import order and choose the photo order (capture time or filename). Rows with children expand and collapse. In landscape the search and sort controls stay in a column on the left while the list scrolls on the right
+- "最近打开" (recently opened) at the top of the home page lists the last five folders or collections opened on this device
+- Each folder or collection remembers the photo you were on (per device), so going back and reopening it resumes there
 
 Deleting photos is out of scope on purpose: mark them as rejected on the phone, then use Lightroom's `Photo > Delete Rejected Photos` on the computer.
 
