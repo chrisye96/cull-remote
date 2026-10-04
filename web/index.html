@@ -159,17 +159,19 @@
   </main>
 
   <dialog id="cache-dialog" aria-labelledby="cache-title">
-    <div class="dialog-head">
-      <h2 id="cache-title" tabindex="-1"></h2>
-      <button id="cache-close" type="button" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="cache-title" tabindex="-1"></h2>
+        <button id="cache-close" type="button" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
+      </div>
+      <p id="cache-note"></p>
+      <button id="cache-unmarked" type="button" class="choice" disabled><span>缓存未标记</span><span class="choice-detail"></span></button>
+      <button id="cache-all" type="button" class="choice" disabled><span>缓存全部</span><span class="choice-detail"></span></button>
+      <p class="note">预览图只保存在这台设备上。缓存期间请保持这个页面在前台，不要锁屏；中断后再点一次会从断点继续。</p>
+      <progress id="cache-progress" hidden></progress>
+      <p id="cache-state" role="status"></p>
+      <button id="cache-cancel" type="button" hidden>取消</button>
     </div>
-    <p id="cache-note"></p>
-    <button id="cache-unmarked" type="button" class="choice" disabled><span>缓存未标记</span><span class="choice-detail"></span></button>
-    <button id="cache-all" type="button" class="choice" disabled><span>缓存全部</span><span class="choice-detail"></span></button>
-    <p class="note">预览图只保存在这台设备上。缓存期间请保持这个页面在前台，不要锁屏；中断后再点一次会从断点继续。</p>
-    <progress id="cache-progress" hidden></progress>
-    <p id="cache-state" role="status"></p>
-    <button id="cache-cancel" type="button" hidden>取消</button>
   </dialog>
 </body>
 </html>
