@@ -155,6 +155,75 @@ test('ops: a busy Lightroom is reported as retryable', async () => {
   }
 });
 
+test('ops: a retryable failure halts the rest of the batch, a refused op does not', async () => {
+  const s = await start();
+  const post = (ops) =>
+    fetch(`${s.pub}/api/ops`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ops }) }).then((r) => r.json());
+  const op = (n) => ({ opId: `halt-${n}`, photoId: PHOTO, field: 'rating', value: n, ts: n });
+  const reply = (body) => () => ({ body: JSON.stringify(body) });
+  try {
+    const busy = answerOne(s.plug, reply({ ok: false, error: 'lr_busy' }));
+    await sleep(30);
+    assert.deepEqual((await post([op(1), op(2)])).results, [
+      { opId: 'halt-1', ok: false, error: 'lr_busy', retryable: true },
+      { opId: 'halt-2', ok: false, error: 'lr_busy', retryable: true },
+    ]);
+    assert.equal((await busy).params.value, 1); // The second op never reached the plugin.
+    // A photo that is gone is final for that op only; the next op still runs.
+    const answers = (async () => {
+      await answerOne(s.plug, reply({ ok: false, error: 'photo_not_found' }));
+      return answerOne(s.plug, reply({ ok: true, data: true }));
+    })();
+    await sleep(30);
+    assert.deepEqual((await post([op(3), op(4)])).results, [
+      { opId: 'halt-3', ok: false, error: 'photo_not_found', retryable: false },
+      { opId: 'halt-4', ok: true },
+    ]);
+    assert.equal((await answers).params.value, 4);
+  } finally {
+    s.close();
+  }
+});
+
+test('info reports whether the device is at home and the server version', async () => {
+  const bridge = createBridge();
+  const seen = [];
+  const app = createApp({
+    bridge,
+    previews: createPreviewStore(await mkdtemp(path.join(tmpdir(), 'lrc-')), bridge),
+    webDir: path.resolve('web'),
+    allowedHost: () => true,
+    atHome: async (req) => {
+      seen.push(req.headers['x-forwarded-for']);
+      return true;
+    },
+    version: '9.9.9',
+  });
+  const server = http.createServer(app.publicHandler).listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/info`, { headers: { 'x-forwarded-for': '100.64.0.2' } });
+    assert.deepEqual(await res.json(), { atHome: true, version: '9.9.9' });
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual(seen, ['100.64.0.2']);
+  } finally {
+    server.close();
+    server.closeAllConnections();
+  }
+});
+
+test('the local host allowlist follows the public port', async () => {
+  const bridge = createBridge();
+  const app = createApp({ bridge, previews: createPreviewStore(await mkdtemp(path.join(tmpdir(), 'lrc-')), bridge), webDir: path.resolve('web'), publicPort: 47810 });
+  const call = (host) =>
+    new Promise((resolve) => {
+      app.publicHandler({ method: 'GET', url: '/api/status', headers: { host } }, { writeHead: (status) => resolve(status), end() {} });
+    });
+  assert.equal(await call('127.0.0.1:47810'), 200);
+  assert.equal(await call('127.0.0.1:47800'), 421);
+  assert.equal(await call('my-pc.tail1234.ts.net'), 200);
+});
+
 test('static files cannot escape the web directory', async () => {
   const s = await start();
   try {

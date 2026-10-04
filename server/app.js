@@ -18,9 +18,11 @@ const RETRYABLE = new Set(['lr_offline', 'lr_busy', 'lr_timeout']);
 // DNS-rebinding defence: a page on another origin can resolve its own hostname to
 // 127.0.0.1, but the browser still sends that hostname in Host. Only accept the
 // local address and Tailscale names (tailscale serve proxies HTTPS on :443).
-const LOCAL_HOSTS = new Set(['127.0.0.1:47800', 'localhost:47800']);
 const TAILNET_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net(:443)?$/;
-const defaultAllowedHost = (host) => LOCAL_HOSTS.has(host) || TAILNET_HOST.test(host);
+const localOrTailnet = (port) => {
+  const local = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+  return (host) => local.has(host) || TAILNET_HOST.test(host);
+};
 
 // A request target such as `//` makes the URL constructor throw; treat it as a bad request.
 function parseUrl(req) {
@@ -31,8 +33,11 @@ function parseUrl(req) {
   }
 }
 
+const NOSNIFF = { 'x-content-type-options': 'nosniff' };
+const DONE_OPS_CAP = 5000;
+
 function sendJson(res, status, body) {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...NOSNIFF });
   res.end(JSON.stringify(body));
 }
 
@@ -47,11 +52,18 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, allowedHost = defaultAllowedHost }) {
-  // ponytail: in-memory, forgotten on restart. Ops are "set field to value", so a
-  // replay after a restart is harmless; persist only if that ever stops being true.
+export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, version = '' }) {
+  // ponytail: in-memory, forgotten on restart, and only the newest DONE_OPS_CAP ids are
+  // kept. Ops are "set field to value", so a replay is harmless; persist only if that
+  // ever stops being true.
   const doneOps = new Set();
   const root = path.resolve(webDir);
+
+  function rememberDone(opId) {
+    doneOps.add(opId);
+    // A Set iterates in insertion order, so the first value is the oldest.
+    if (doneOps.size > DONE_OPS_CAP) doneOps.delete(doneOps.values().next().value);
+  }
 
   async function applyOps(ops) {
     const results = [];
@@ -67,8 +79,8 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
         results.push({ opId, ok: false, error: halted, retryable: true });
       } else {
         try {
-          await bridge.send('setMeta', { photoId: op.photoId, field: op.field, value: op.value });
-          doneOps.add(opId);
+          await bridge.send('setMeta', { photoId: op.photoId, field: op.field, value: op.value }, { urgent: true });
+          rememberDone(opId);
           results.push({ opId, ok: true });
         } catch (e) {
           if (!(e instanceof BridgeError)) throw e;
@@ -87,6 +99,9 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
     if (req.method === 'GET' && pathname === '/api/status') {
       return sendJson(res, 200, { lrOnline: bridge.isOnline() });
     }
+    if (req.method === 'GET' && pathname === '/api/info') {
+      return sendJson(res, 200, { atHome: await atHome(req), version });
+    }
     if (req.method === 'GET' && pathname === '/api/sources') {
       return sendJson(res, 200, await bridge.send('listSources'));
     }
@@ -100,7 +115,7 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
       const size = url.searchParams.get('size') ?? '';
       if (!PHOTO_ID.test(preview[1]) || !Object.hasOwn(SIZES, size)) return sendJson(res, 400, { error: 'invalid_preview' });
       const jpeg = await previews.get(preview[1], size);
-      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=3600' });
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=3600', ...NOSNIFF });
       return res.end(jpeg);
     }
     if (req.method === 'POST' && pathname === '/api/ops') {
@@ -121,7 +136,7 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
   async function sendFile(res, file) {
     try {
       const body = await readFile(file);
-      res.writeHead(200, { 'content-type': MIME[path.extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-cache' });
+      res.writeHead(200, { 'content-type': MIME[path.extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-cache', ...NOSNIFF });
       res.end(body);
     } catch {
       sendJson(res, 404, { error: 'not_found' });
