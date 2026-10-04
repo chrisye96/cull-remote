@@ -8,6 +8,7 @@ const SHELL = [
   '/style.css',
   '/vendor/lucide.svg',
   '/js/api.js',
+  '/js/autocache.js',
   '/js/cachedialog.js',
   '/js/cacheplan.js',
   '/js/cacher.js',

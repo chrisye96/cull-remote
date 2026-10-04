@@ -84,6 +84,17 @@
       </section>
       <section class="settings-group">
         <h2>离线缓存</h2>
+        <label class="setting">在家时自动缓存未标记照片
+          <input id="set-auto-cache" type="checkbox">
+        </label>
+        <label class="setting">自动缓存上限
+          <select id="set-auto-limit">
+            <option value="100">100 张</option>
+            <option value="200">200 张</option>
+            <option value="500">500 张</option>
+            <option value="1000">1000 张</option>
+          </select>
+        </label>
         <p id="cache-usage" class="setting"></p>
         <div class="setting">
           <button id="clear-cache" type="button">清除缓存</button>
