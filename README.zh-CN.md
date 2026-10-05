@@ -64,8 +64,6 @@
 
 - `npm test`
 - 不碰日常使用的服务做测试：设置环境变量 `LRC_DEV=1` 后 `npm start` 会在 `47810/47811` 另起一个实例，再运行 `node spike/stand-in-plugin.mjs` 充当 Lightroom 插件（照片是假的，标记只存在内存里）
-- 设计文档：`docs/superpowers/specs/`
-- 实施计划：`docs/superpowers/plans/`
 - 分支：`main` 稳定，`dev` 集成，功能在 `feat/*`，修复在 `fix/*`
 
 ## 已知限制

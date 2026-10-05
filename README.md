@@ -64,8 +64,6 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 - `npm test`
 - To test without touching the server in daily use: with the environment variable `LRC_DEV=1`, `npm start` runs a second instance on `47810/47811`; `node spike/stand-in-plugin.mjs` then plays the Lightroom plugin (fake photos, marks kept in memory)
-- Design: `docs/superpowers/specs/`
-- Implementation plans: `docs/superpowers/plans/`
 - Branches: `main` is stable, `dev` integrates, features on `feat/*`, fixes on `fix/*`
 
 ## Known limitations
