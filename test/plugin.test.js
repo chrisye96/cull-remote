@@ -11,3 +11,9 @@ test('the plugin reports the same version as package.json', async () => {
   assert.ok(found, 'VERSION line not found in Info.lua');
   assert.equal(found.slice(1).join('.'), pkg.version);
 });
+
+test('package-lock.json carries the same version as package.json', async () => {
+  const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+  assert.equal(lock.version, pkg.version);
+  assert.equal(lock.packages[''].version, pkg.version);
+});

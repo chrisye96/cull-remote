@@ -10,5 +10,5 @@ return {
     { title = 'Cull Remote: start bridge', file = 'StartBridge.lua' },
     { title = 'Cull Remote: show address and QR code', file = 'ShowAddress.lua' },
   },
-  VERSION = { major = 0, minor = 4, revision = 0 },
+  VERSION = { major = 0, minor = 5, revision = 0 },
 }
