@@ -1,5 +1,5 @@
 # Summarize the spike output: median time to the last callback and actual JPEG size per tier.
-$dir = Join-Path $env:TEMP 'lr-remote-cull-spike'
+$dir = Join-Path $env:TEMP 'cull-remote-spike'
 Add-Type -AssemblyName System.Drawing
 
 $rows = Import-Csv (Join-Path $dir 'results.csv')

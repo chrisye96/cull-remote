@@ -475,6 +475,9 @@ export async function openViewer(nextSource) {
   openSeq += 1;
   const token = openSeq;
   source = nextSource;
+  // Opening a folder counts as using it, even when the user leaves before its list arrives.
+  rememberCapped(lastPhoto, nextSource.id, lastPhoto[nextSource.id] ?? '', LAST_PHOTO_CAP);
+  writePref('lastPhoto', lastPhoto);
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
   $('stage').classList.remove('overlays-off');
@@ -489,7 +492,6 @@ export async function openViewer(nextSource) {
   showError('');
   render();
   const startedAt = Date.now();
-  let loaded = false;
   let fromLightroom = false;
   try {
     const { data: photos, stale } = await loadPhotos(source.id);
@@ -498,7 +500,6 @@ export async function openViewer(nextSource) {
     all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     applyQueued(all, pendingOps()); // Marks still waiting to sync win over the list.
     notice = '';
-    loaded = true;
   } catch (e) {
     if (token !== openSeq) return;
     // Offline with no copy of this folder: say that, rather than how to fix the connection.
@@ -508,15 +509,6 @@ export async function openViewer(nextSource) {
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);
   applyFilter();
   index = resumeIndex(all, list, lastPhoto[nextSource.id]);
-  // Opening a folder counts as using it, even when the remembered photo is unchanged.
-  if (list[index]) {
-    rememberCapped(lastPhoto, nextSource.id, list[index].id, LAST_PHOTO_CAP);
-    writePref('lastPhoto', lastPhoto);
-  } else if (loaded && all.length) {
-    // The filter hides every photo here, but the folder was still opened.
-    rememberCapped(lastPhoto, nextSource.id, lastPhoto[nextSource.id] ?? all[0].id, LAST_PHOTO_CAP);
-    writePref('lastPhoto', lastPhoto);
-  }
-  render();
+  render(); // Also remembers the photo now shown.
   if (fromLightroom) maybeAutoCache(nextSource, all);
 }

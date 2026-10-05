@@ -63,7 +63,11 @@ async function renderInfo() {
   const [status, info] = await Promise.allSettled([getStatus(), getInfo()]);
   const list = $('conn-info');
   list.textContent = '';
-  infoRow(list, '地址', location.origin);
+  // The address other devices use; on the computer itself that differs from this page's own.
+  const address = info.status === 'fulfilled' ? info.value.address : null;
+  infoRow(list, '地址', address ?? location.origin);
+  $('conn-pair').hidden = !address;
+  if (address) $('conn-qr').src = '/api/qr.svg';
   infoRow(list, 'Lightroom', status.status === 'fulfilled' ? (status.value.lrOnline ? '已连接' : '未运行') : '连不上电脑');
   infoRow(list, '网络位置', info.status === 'fulfilled' ? HOME_TEXT[String(info.value.atHome)] : '未知');
   infoRow(list, '待同步标记', `${pendingCount()} 条`);
@@ -90,8 +94,9 @@ export function initSettings(onBack) {
   });
 }
 
-// Refresh the parts that change between visits.
+// Refresh the parts that change between visits. Resolves once the connection details,
+// including the pairing code, are on the page.
 export function showSettings() {
   renderUsage();
-  renderInfo();
+  return renderInfo();
 }

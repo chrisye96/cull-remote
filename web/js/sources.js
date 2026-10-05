@@ -194,6 +194,7 @@ export function initSources() {
   search.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.isComposing) search.blur(); // Closes the iOS keyboard.
   });
+  $('to-top').addEventListener('click', () => $('home-list').scrollTo({ top: 0, behavior: 'smooth' }));
   bindSelect('folder-sort', 'folderSort', FOLDER_SORTS, 'name-desc', renderList);
   bindSelect('photo-sort', 'photoSort', PHOTO_SORTS, 'time-asc');
 }

@@ -6,7 +6,7 @@ local LrFileUtils = import 'LrFileUtils'
 local LrDialogs = import 'LrDialogs'
 
 local SIZES = { 400, 1280, 2560 }
-local OUT = LrPathUtils.child(LrPathUtils.getStandardFilePath('temp'), 'lr-remote-cull-spike')
+local OUT = LrPathUtils.child(LrPathUtils.getStandardFilePath('temp'), 'cull-remote-spike')
 
 -- Error text may contain commas and newlines; flatten it so one CSV row stays one row.
 local function csvSafe(value)

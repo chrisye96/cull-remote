@@ -1,10 +1,10 @@
 return {
   LrSdkVersion = 13.0,
   LrSdkMinimumVersion = 10.0,
-  LrToolkitIdentifier = 'dev.chrisye.lrremotecull.spike',
-  LrPluginName = 'LR Remote Cull Spike',
+  LrToolkitIdentifier = 'dev.chrisye.cullremote.spike',
+  LrPluginName = 'Cull Remote Spike',
   LrLibraryMenuItems = {
-    { title = 'Remote Cull: run preview benchmark', file = 'Bench.lua' },
+    { title = 'Cull Remote: run preview benchmark', file = 'Bench.lua' },
   },
   VERSION = { major = 0, minor = 0, revision = 1 },
 }

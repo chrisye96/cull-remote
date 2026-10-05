@@ -1,6 +1,8 @@
 local LrTasks = import 'LrTasks'
 local LrHttp = import 'LrHttp'
 local LrDate = import 'LrDate'
+local LrPathUtils = import 'LrPathUtils'
+local LrFileUtils = import 'LrFileUtils'
 local json = require 'json'
 local trace = require 'Trace'
 local Commands = require 'Commands'
@@ -19,6 +21,30 @@ local KNOWN_ERRORS = {
   invalid_size = true,
   preview_timeout = true,
 }
+
+local LAUNCH_EVERY_SECONDS = 30
+
+-- The companion server lives beside the plugin in the same checkout. When it does not
+-- answer, start it in the background; it leaves again once Lightroom has gone. Windows
+-- only for now. Elsewhere, or when node or the server is missing, start it by hand
+-- with npm start.
+local function launchServer()
+  if not WIN_ENV or _G.lrRemoteCullLaunchFailed then return end
+  local now = LrDate.currentTime()
+  if now - (_G.lrRemoteCullLaunchedAt or 0) < LAUNCH_EVERY_SECONDS then return end
+  _G.lrRemoteCullLaunchedAt = now
+  local repo = LrPathUtils.parent(LrPathUtils.parent(_PLUGIN.path))
+  local script = LrPathUtils.child(LrPathUtils.child(repo, 'server'), 'index.js')
+  if not LrFileUtils.exists(script) then
+    _G.lrRemoteCullLaunchFailed = true
+    trace('server not started: no file at ' .. script)
+    return
+  end
+  local code = LrTasks.execute('node "' .. script .. '" --background')
+  trace('server start, exit code ' .. tostring(code))
+  -- Node is missing or broken: asking again every half minute would not help.
+  if code ~= 0 then _G.lrRemoteCullLaunchFailed = true end
+end
 
 local function post(id, body, contentType)
   local reply = LrHttp.post(BASE .. '/result/' .. id, body, { PLUGIN_HEADER, { field = 'Content-Type', value = contentType } }, 'POST', 10)
@@ -59,18 +85,24 @@ function Bridge.start()
       local started = LrDate.currentTime()
       local body = LrHttp.get(BASE .. '/next', { PLUGIN_HEADER }, 35)
       if not body or body == '' then
-        -- Companion server is not running; retry quietly.
+        -- Companion server is not running: start it, then retry quietly.
+        launchServer()
         LrTasks.sleep(2)
       else
         local ok, cmd = pcall(json.decode, body)
         if ok and type(cmd) == 'table' and cmd.id then
-          -- LrTasks.pcall, not pcall: handle yields. A failure here must never end the loop.
-          local handled, err = LrTasks.pcall(handle, cmd)
-          if not handled then
-            trace('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
-            -- Best effort so the server is not left waiting for a result.
-            LrTasks.pcall(post, cmd.id, '{"ok":false,"error":"internal"}', 'application/json')
-          end
+          -- Each command runs in its own task and the loop goes straight back to polling,
+          -- so a mark or a list is not kept waiting by a preview that is still rendering.
+          -- The server hands out at most one preview and one other command at a time.
+          LrTasks.startAsyncTask(function()
+            -- LrTasks.pcall, not pcall: handle yields.
+            local handled, err = LrTasks.pcall(handle, cmd)
+            if not handled then
+              trace('command ' .. tostring(cmd.id) .. ' failed: ' .. tostring(err))
+              -- Best effort so the server is not left waiting for a result.
+              LrTasks.pcall(post, cmd.id, '{"ok":false,"error":"internal"}', 'application/json')
+            end
+          end)
         elseif LrDate.currentTime() - started < 1 then
           -- Idle, error or non-JSON reply that came back fast (error loop, or a newer
           -- poller released this one): back off instead of spinning.
