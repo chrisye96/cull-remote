@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup-dark.svg">
+    <img src="docs/brand/lockup-light.svg" alt="Cull Remote" width="320">
+  </picture>
+</p>
+
 # Cull Remote for Adobe Lightroom Classic
 
 English | [简体中文](README.zh-CN.md)
@@ -64,6 +71,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 
 - `npm test`
 - To test without touching the server in daily use: with the environment variable `LRC_DEV=1`, `npm start` runs a second instance on `47810/47811`; `node spike/stand-in-plugin.mjs` then plays the Lightroom plugin (fake photos, marks kept in memory)
+- The logo and icons are generated: `docs/brand/` and `web/icons/` come from a script, described in `tools/README.md`
 - Branches: `main` is stable, `dev` integrates, features on `feat/*`, fixes on `fix/*`
 
 ## Known limitations
@@ -74,6 +82,7 @@ Deleting photos is out of scope on purpose: mark them as rejected on the phone, 
 - Only Lightroom's five default colour labels are recognised: photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
 - Offline data lives in the browser: Safari, Chrome and the Home Screen app each keep their own copy. Only the Home Screen app is exempt from iOS clearing that data after 7 days without a visit
 - Offline use was verified item by item in Chrome on iOS (iPhone and iPad, 2026-10-04). Safari and the Home Screen app run on the same browser engine and are expected to behave the same, but have not been verified item by item
+- Android is untested: the page ships a web manifest and icons so Chrome can install it to the home screen, but nothing has been tried on an Android device
 - With no network at all, a cold start takes a few seconds (the page shell and the connection probe each wait for a timeout)
 - Previews cached on the device do not follow later edits in Lightroom either; clear the cache in settings and cache again
 

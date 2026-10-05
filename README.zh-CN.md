@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup-dark.svg">
+    <img src="docs/brand/lockup-light.svg" alt="Cull Remote" width="320">
+  </picture>
+</p>
+
 # Cull Remote for Adobe Lightroom Classic
 
 [English](README.md) | 简体中文
@@ -64,6 +71,7 @@
 
 - `npm test`
 - 不碰日常使用的服务做测试：设置环境变量 `LRC_DEV=1` 后 `npm start` 会在 `47810/47811` 另起一个实例，再运行 `node spike/stand-in-plugin.mjs` 充当 Lightroom 插件（照片是假的，标记只存在内存里）
+- logo 和图标是生成出来的：`docs/brand/` 和 `web/icons/` 由脚本产生，说明见 `tools/README.md`
 - 分支：`main` 稳定，`dev` 集成，功能在 `feat/*`，修复在 `fix/*`
 
 ## 已知限制
@@ -74,6 +82,7 @@
 - 只识别 Lightroom 默认的五种色标；使用自定义色标集打的标签会显示为未标记，点按色块会替换掉原标签
 - 离线数据保存在浏览器里，Safari、Chrome 和主屏幕应用各有一份，互不共享。只有从主屏幕图标打开，iOS 才不会在 7 天没有访问后清理这些数据
 - 离线功能已在 iOS 的 Chrome 上逐项实测可用（iPhone 与 iPad，2026-10-04）。Safari 和主屏幕应用用的是同一个浏览器内核，预期同样可用，但还没有逐项实测
+- Android 尚未测试：页面带有 web manifest 和图标，Chrome 可以把它安装到主屏幕，但还没有在任何 Android 设备上试过
 - 完全没有网络时冷启动要等几秒（页面外壳和连接探测各有超时）
 - 缓存到设备上的预览同样不会随 Lightroom 里的重新调色更新，需要在设置里清除缓存后重新缓存
 
