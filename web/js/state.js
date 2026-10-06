@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 // Wire field name -> property on the photo object returned by /api/photos.
 export const KEY = { rating: 'rating', label: 'label', pickStatus: 'pick' };
 const CLEARED = { rating: 0, label: 'none', pickStatus: 0 };
@@ -56,19 +58,17 @@ export function indexAfterFilter(list, photoId) {
   return at === -1 ? 0 : at;
 }
 
-const LABEL_NAMES = { red: '红色', yellow: '黄色', green: '绿色', blue: '蓝色', purple: '紫色' };
-
 // What the confirmation flash shows right after a mark is applied.
 export function markSummary(field, value) {
   if (field === 'pickStatus') {
-    if (value === 1) return { icon: 'flag', text: '留用' };
-    if (value === -1) return { icon: 'ban', text: '弃用' };
-    return { icon: 'flag-off', text: '取消旗标' };
+    if (value === 1) return { icon: 'flag', text: t('mark.pick') };
+    if (value === -1) return { icon: 'ban', text: t('mark.reject') };
+    return { icon: 'flag-off', text: t('mark.unflag') };
   }
   if (field === 'rating') {
-    return value > 0 ? { icon: 'star', text: `${value} 星` } : { icon: 'star-off', text: '清除星级' };
+    return value > 0 ? { icon: 'star', text: t('mark.stars', { n: value }) } : { icon: 'star-off', text: t('mark.noRating') };
   }
-  return value === 'none' ? { icon: 'circle-off', text: '清除色标' } : { swatch: value, text: LABEL_NAMES[value] };
+  return value === 'none' ? { icon: 'circle-off', text: t('mark.noLabel') } : { swatch: value, text: t(`label.${value}`) };
 }
 
 // The parts of the mark pill shown on the photo, in display order.

@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, estimateCached, runPool } from '../web/js/cacheplan.js';
+import { setLang } from '../web/js/i18n.js';
+
+// These tests pin the original Simplified Chinese wording.
+setLang('zh-CN');
 
 const photo = (id, marks = {}) => ({ id, name: `${id}.raw`, time: 0, rating: 0, label: 'none', pick: 0, ...marks });
 
