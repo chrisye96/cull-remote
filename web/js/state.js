@@ -58,11 +58,12 @@ export function indexAfterFilter(list, photoId) {
   return at === -1 ? 0 : at;
 }
 
-// What the confirmation flash shows right after a mark is applied.
+// What the confirmation flash shows right after a mark is applied. `tone` gives pick and
+// reject the colour they have everywhere else.
 export function markSummary(field, value) {
   if (field === 'pickStatus') {
-    if (value === 1) return { icon: 'flag', text: t('mark.pick') };
-    if (value === -1) return { icon: 'ban', text: t('mark.reject') };
+    if (value === 1) return { icon: 'flag', text: t('mark.pick'), tone: 'pick' };
+    if (value === -1) return { icon: 'ban', text: t('mark.reject'), tone: 'reject' };
     return { icon: 'flag-off', text: t('mark.unflag') };
   }
   if (field === 'rating') {
@@ -125,6 +126,33 @@ export function smoothBins(bins, radius) {
     out[level] = sum / (to - from + 1);
   }
   return out;
+}
+
+// A line of things waiting to load, of which at most `limit` load at once. `start(item,
+// done)` begins one and calls `done` when it has finished, well or badly. An item dropped
+// before its turn never starts.
+export function createLoadQueue(limit, start) {
+  const waiting = new Set();
+  let running = 0;
+  function pump() {
+    for (const item of waiting) {
+      if (running >= limit) return;
+      waiting.delete(item);
+      running += 1;
+      start(item, () => {
+        running -= 1;
+        pump();
+      });
+    }
+  }
+  return {
+    want(item) {
+      waiting.add(item);
+      pump();
+    },
+    drop: (item) => waiting.delete(item),
+    clear: () => waiting.clear(),
+  };
 }
 
 // Wait at least five times as long as the last refresh took, and never less than the base interval.

@@ -145,6 +145,7 @@
       <button id="prev-photo" type="button" class="sr-only" data-i18n="viewer.prev"></button>
       <button id="next-photo" type="button" class="sr-only" data-i18n="viewer.next"></button>
     </header>
+    <div id="view">
     <div id="stage">
       <img id="photo" alt="">
       <div id="badges" aria-hidden="true" hidden>
@@ -166,6 +167,9 @@
       <span id="tap-next" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="/vendor/lucide.svg#chevron-right"></use></svg></span>
       <span id="caption" aria-hidden="true" hidden></span>
       <p id="empty" role="status" hidden></p>
+    </div>
+    <div id="grid" data-i18n-aria-label="viewer.grid" hidden></div>
+    <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="/vendor/lucide.svg#layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="/vendor/lucide.svg#image"></use></svg></button>
     </div>
     <aside id="side">
       <p id="error" role="alert" hidden></p>

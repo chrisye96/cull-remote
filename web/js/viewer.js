@@ -9,12 +9,13 @@ import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mer
 import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
+import { initGrid, renderGrid, revealInGrid } from './grid.js';
 
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
 const PULL_FOLLOW = 0.35; // The photo moves this fraction of the finger's vertical travel.
-const PULL_MAX_PX = 70;
+const PULL_MAX_PX = 200; // Far enough that a pull across a phone screen never reaches it.
 const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on this device.
 
 let all = [];
@@ -26,6 +27,7 @@ let notice = ''; // Shown in #empty when there is no photo (loading, open failur
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
 let failedUrl = null; // URL of the preview that failed to load, if it is still the shown one.
 let source = null; // The open folder or collection; null on the home page.
+let gridOpen = false; // The thumbnail grid is asked for in place of the single photo.
 let refreshing = false;
 let loading = false; // True while the initial getPhotos of an open is in flight.
 let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
@@ -215,6 +217,7 @@ function placeInfo() {
 function showFlash(summary) {
   const box = $('flash');
   box.textContent = '';
+  box.dataset.tone = summary.tone ?? '';
   if (summary.icon) box.append(icon(summary.icon));
   if (summary.swatch) {
     const dot = document.createElement('span');
@@ -248,8 +251,10 @@ function placeOverlays() {
 function render() {
   renderFilter();
   const photo = list[index];
+  const showGrid = gridOpen && Boolean(photo);
   const url = photo ? previewUrl(photo.id, previewSize()) : null;
-  if (photo) syncImage(url);
+  // Behind the grid the large preview would only take Lightroom's time from the thumbnails.
+  if (photo && !showGrid) syncImage(url);
   const previewFailed = Boolean(photo) && failedUrl === url;
   $('photo').hidden = !photo || previewFailed;
   $('photo').alt = photo ? photo.name : '';
@@ -262,6 +267,12 @@ function render() {
   $('caption').hidden = !photo;
   renderBadges(photo);
   renderInfo(photo);
+  $('viewer').classList.toggle('grid-open', showGrid);
+  $('stage').hidden = showGrid;
+  $('grid').hidden = !showGrid;
+  $('grid-toggle').hidden = !photo;
+  $('grid-toggle').setAttribute('aria-pressed', String(showGrid));
+  if (showGrid) renderGrid(list, photo.id);
   if (photo && source && lastPhoto[source.id] !== photo.id) {
     rememberCapped(lastPhoto, source.id, photo.id, LAST_PHOTO_CAP);
     writePref('lastPhoto', lastPhoto);
@@ -283,8 +294,15 @@ function render() {
     button.classList.toggle('pending', getLink() === '' && hasPending(photo.id, field));
   }
   // Warm the next two previews so swiping feels instant.
-  for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
+  if (!showGrid) for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
   placeOverlays();
+}
+
+function setGrid(open) {
+  gridOpen = open;
+  showError('');
+  render();
+  if (open) revealInGrid();
 }
 
 // Returns true when it moved (and rendered).
@@ -377,6 +395,7 @@ export function initViewer(onBack) {
     applyFilter(currentId);
     showError('');
     render();
+    if (gridOpen) revealInGrid();
   });
   $('actions').addEventListener('click', (event) => {
     const button = event.target.closest('button');
@@ -472,6 +491,12 @@ export function initViewer(onBack) {
   document.addEventListener('keydown', (event) => {
     if ($('viewer').hidden || event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key.toLowerCase();
+    // G as in Lightroom. The grid only shows, so the marking keys rest while it is open.
+    if (key === 'g' && list.length) return setGrid(!gridOpen);
+    if (gridOpen) {
+      if (key === 'escape') setGrid(false);
+      return;
+    }
     if (key === 'arrowleft') step(-1);
     else if (key === 'arrowright') step(1);
     else if (key === 'p') flagByGesture(1);
@@ -577,6 +602,14 @@ export function initViewer(onBack) {
   HD_QUERY.addEventListener('change', () => { if (!$('viewer').hidden) render(); });
   placeInfo();
   RAIL_INFO_QUERY.addEventListener('change', placeInfo);
+  initGrid($('grid'), (photoId) => {
+    const at = list.findIndex((photo) => photo.id === photoId);
+    if (at === -1) return;
+    index = at;
+    setGrid(false);
+    announce($('caption').textContent);
+  });
+  $('grid-toggle').addEventListener('click', () => setGrid(!gridOpen));
   $('info').addEventListener('click', (event) => {
     event.stopPropagation(); // Over the photo it lies on a tap zone; the tap is for the panel.
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return;
@@ -596,6 +629,7 @@ export async function openViewer(nextSource) {
   writePref('lastPhoto', lastPhoto);
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
+  gridOpen = false;
   $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;

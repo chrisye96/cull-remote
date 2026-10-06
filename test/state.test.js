@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -106,8 +106,8 @@ test('indexAfterFilter stays on the same photo when it is still listed', () => {
 });
 
 test('markSummary describes every kind of mark for the confirmation flash', () => {
-  assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用' });
-  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '排除' });
+  assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用', tone: 'pick' });
+  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '排除', tone: 'reject' });
   assert.deepEqual(markSummary('pickStatus', 0), { icon: 'flag-off', text: '取消旗标' });
   assert.deepEqual(markSummary('rating', 3), { icon: 'star', text: '3 星' });
   assert.deepEqual(markSummary('rating', 0), { icon: 'star-off', text: '清除星级' });
@@ -275,4 +275,27 @@ test('smoothBins spreads a spike over its neighbours and leaves the clipping end
   assert.equal(out[255], 70);
   assert.equal(out[1], 0);
   assert.equal(out[254], 0);
+});
+
+test('createLoadQueue runs a limited number at once and skips what was dropped before its turn', () => {
+  const started = [];
+  const finish = new Map();
+  const queue = createLoadQueue(2, (item, done) => {
+    started.push(item);
+    finish.set(item, done);
+  });
+  for (const item of ['a', 'b', 'c', 'd']) queue.want(item);
+  assert.deepEqual(started, ['a', 'b']);
+  queue.drop('c');
+  finish.get('a')();
+  assert.deepEqual(started, ['a', 'b', 'd']);
+  queue.want('c');
+  assert.deepEqual(started, ['a', 'b', 'd']);
+  finish.get('b')();
+  assert.deepEqual(started, ['a', 'b', 'd', 'c']);
+  queue.want('e');
+  queue.clear();
+  finish.get('d')();
+  finish.get('c')();
+  assert.deepEqual(started, ['a', 'b', 'd', 'c']);
 });
