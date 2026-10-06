@@ -5,8 +5,8 @@ import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
 import { t } from './i18n.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
-import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
 
@@ -145,6 +145,72 @@ function renderBadges(photo) {
   }
 }
 
+const HIST_SAMPLE_PX = 320; // Longest side of the downscaled copy the histogram is counted from.
+const HIST_SMOOTH = 2; // Levels averaged on either side; 0 draws the raw counts.
+const HIST_COLORS =['#ff4d4d', '#3ddc5a', '#4d7dff']; // Together they add up to white.
+let histSrc = ''; // Address of the bitmap the histogram shows; '' while it is blank.
+let sampler = null;
+
+// Exposure, lens and a histogram of the preview on screen. render() runs on every sync
+// and refresh, so the histogram is counted again only when a different bitmap is shown.
+function renderInfo(photo) {
+  // Settings choose the parts; a tap on the panel folds all of it down to an icon.
+  const wantHistogram = readPref('showHistogram', true) === true;
+  const exposure = photo && readPref('showExposure', true) === true ? exposureText(photo) : '';
+  const lens = photo && readPref('showLens', true) === true ? lensText(photo) : '';
+  const collapsed = readPref('infoCollapsed', false) === true;
+  const info = $('info');
+  info.hidden = !photo || !(wantHistogram || exposure || lens);
+  info.classList.toggle('collapsed', collapsed);
+  info.setAttribute('aria-expanded', String(!collapsed));
+  $('histogram').hidden = !wantHistogram;
+  if ($('exposure').textContent !== exposure) $('exposure').textContent = exposure;
+  if ($('lens').textContent !== lens) $('lens').textContent = lens;
+  const img = $('photo');
+  const shown = Boolean(photo) && wantHistogram && !collapsed && !img.hidden && !img.classList.contains('loading') && img.naturalWidth > 0;
+  const src = shown ? img.currentSrc : '';
+  if (src === histSrc) return;
+  histSrc = src;
+  const canvas = $('histogram');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!shown) return;
+  // ponytail: counted from a small copy, where a few clipped pixels average away. Count
+  // the full preview if exact clipping ever matters.
+  const scale = HIST_SAMPLE_PX / Math.max(img.naturalWidth, img.naturalHeight);
+  sampler ??= document.createElement('canvas');
+  sampler.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  sampler.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const copy = sampler.getContext('2d', { willReadFrequently: true });
+  copy.drawImage(img, 0, 0, sampler.width, sampler.height);
+  const bins = histogram(copy.getImageData(0, 0, sampler.width, sampler.height).data).map((channel) => smoothBins(channel, HIST_SMOOTH));
+  // Pure black and pure white hold the clipped pixels and can dwarf every other level,
+  // so they do not set the scale; a clipped end shows as a full-height bar instead.
+  const peak = Math.max(1, ...bins.map((channel) => Math.max(...channel.subarray(1, 255))));
+  const step = canvas.width / 256;
+  const top = (count) => canvas.height * (1 - Math.min(1, count / peak));
+  ctx.globalCompositeOperation = 'lighter';
+  bins.forEach((channel, at) => {
+    ctx.fillStyle = HIST_COLORS[at];
+    ctx.beginPath();
+    ctx.moveTo(step, canvas.height);
+    for (let level = 1; level < 255; level += 1) ctx.lineTo((level + 0.5) * step, top(channel[level]));
+    ctx.lineTo(255 * step, canvas.height);
+    ctx.fill();
+    ctx.fillRect(0, top(channel[0]), step, canvas.height);
+    ctx.fillRect(255 * step, top(channel[255]), step, canvas.height);
+  });
+}
+
+// On a tall landscape screen the rail has room to spare under the filter, so the panel
+// sits there and covers nothing. Everywhere else it lies over the corner of the stage.
+const RAIL_INFO_QUERY = matchMedia('(orientation: landscape) and (min-height: 700px)');
+
+function placeInfo() {
+  if (RAIL_INFO_QUERY.matches) $('side').prepend($('info'));
+  else $('stage').insertBefore($('info'), $('flash'));
+}
+
 // Short message in the middle of the photo: an icon or a colour dot, then text.
 function showFlash(summary) {
   const box = $('flash');
@@ -195,6 +261,7 @@ function render() {
   $('caption').textContent = photo ? `${photo.name} · ${position}` : '';
   $('caption').hidden = !photo;
   renderBadges(photo);
+  renderInfo(photo);
   if (photo && source && lastPhoto[source.id] !== photo.id) {
     rememberCapped(lastPhoto, source.id, photo.id, LAST_PHOTO_CAP);
     writePref('lastPhoto', lastPhoto);
@@ -508,6 +575,14 @@ export function initViewer(onBack) {
   });
   // Rotation or Split View can cross the tier boundary; show the matching preview.
   HD_QUERY.addEventListener('change', () => { if (!$('viewer').hidden) render(); });
+  placeInfo();
+  RAIL_INFO_QUERY.addEventListener('change', placeInfo);
+  $('info').addEventListener('click', (event) => {
+    event.stopPropagation(); // Over the photo it lies on a tap zone; the tap is for the panel.
+    if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return;
+    writePref('infoCollapsed', readPref('infoCollapsed', false) !== true);
+    render();
+  });
 }
 
 // Never throws: failures are shown inside the viewer so Back always works and the

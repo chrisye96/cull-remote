@@ -94,6 +94,15 @@
         </label>
       </section>
       <section class="settings-group">
+        <h2 id="set-info-title" data-i18n="exif.title"></h2>
+        <div class="setting check-list" role="group" aria-labelledby="set-info-title">
+          <label><input id="set-info-histogram" type="checkbox"><span data-i18n="exif.histogram"></span></label>
+          <label><input id="set-info-exposure" type="checkbox"><span data-i18n="exif.exposure"></span></label>
+          <label><input id="set-info-lens" type="checkbox"><span data-i18n="exif.lens"></span></label>
+        </div>
+        <p class="note" data-i18n="exif.note"></p>
+      </section>
+      <section class="settings-group">
         <h2 data-i18n="settings.offline"></h2>
         <label class="setting"><span data-i18n="settings.autoCache"></span>
           <input id="set-auto-cache" type="checkbox">
@@ -144,6 +153,13 @@
         <span class="part mark-label"><span class="dot"></span></span>
         <span class="part mark-unsynced"><svg class="icon"><use href="/vendor/lucide.svg#cloud-off"></use></svg></span>
       </div>
+      <button id="info" type="button" aria-expanded="true" hidden>
+        <span class="sr-only" data-i18n="exif.title"></span>
+        <svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chart-no-axes-column"></use></svg>
+        <canvas id="histogram" width="512" height="192" aria-hidden="true"></canvas>
+        <span id="exposure"></span>
+        <span id="lens"></span>
+      </button>
       <div id="flash" aria-hidden="true"></div>
       <div id="pull" aria-hidden="true"></div>
       <span id="tap-prev" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="/vendor/lucide.svg#chevron-left"></use></svg></span>

@@ -29,6 +29,8 @@ function folder(name, depth, count, folderNo) {
     rating: 0,
     label: 'none',
     pick: 0,
+    // Every fourth photo has no exposure data, like a scan.
+    ...(i % 4 === 3 ? {} : { shutter: [1 / 1250, 1 / 60, 0.4][i % 4], aperture: [2.8, 8, 11][i % 3], iso: 100 * 2 ** (i % 8), focal: 24 + i, lens: 'NIKKOR Z 24-70mm f/2.8 S' }),
   }));
   return { source: { id: `f:X:\\Demo\\${name}`, kind: 'folder', name, depth, count }, photos };
 }
