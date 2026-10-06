@@ -4,6 +4,7 @@ import { loadPhotos, savePhotos } from './data.js';
 import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js';
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
+import { t } from './i18n.js';
 import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
@@ -160,7 +161,11 @@ function showFlash(summary) {
   playAnimation(box, 'show');
 }
 
-const flash = (field, value) => showFlash(markSummary(field, value));
+// The flash, the photo and the mark pill are pictures. This says the same in words, in a
+// live region, for a screen reader: the mark just set and the photo now shown.
+function announce(text) {
+  $('live').textContent = text;
+}
 
 // Pin the corner overlays to the photo's displayed box. offset* ignores the swipe transform.
 function placeOverlays() {
@@ -181,6 +186,7 @@ function render() {
   if (photo) syncImage(url);
   const previewFailed = Boolean(photo) && failedUrl === url;
   $('photo').hidden = !photo || previewFailed;
+  $('photo').alt = photo ? photo.name : '';
   $('actions').hidden = !photo;
   $('empty').hidden = Boolean(photo) && !previewFailed;
   $('photo-name').textContent = photo ? photo.name : sourceName;
@@ -194,13 +200,11 @@ function render() {
     writePref('lastPhoto', lastPhoto);
   }
   if (!photo) {
-    $('empty').textContent = notice || (onlyUnmarked ? '这里没有未标记的照片' : '这里没有照片');
+    $('empty').textContent = notice || t(onlyUnmarked ? 'viewer.noUnmarked' : 'viewer.noPhotos');
     placeOverlays();
     return;
   }
-  $('empty').textContent = previewFailed
-    ? (getLink() === 'network' ? '这张照片没有缓存，联网后可以查看；现在仍可标记或跳过' : '预览加载失败，点照片中间重试')
-    : '';
+  $('empty').textContent = previewFailed ? t(getLink() === 'network' ? 'viewer.notCached' : 'viewer.previewFailed') : '';
   for (const button of $('actions').querySelectorAll('button')) {
     const { field } = button.dataset;
     const value = parseValue(field, button.dataset.value);
@@ -223,6 +227,7 @@ function go(delta) {
   index = target;
   showError('');
   render();
+  announce($('caption').textContent);
   return true;
 }
 
@@ -243,10 +248,28 @@ function mark(field, rawValue, { quiet = false } = {}) {
   const value = toggledValue(photo, field, parseValue(field, rawValue));
   setField(photo, field, value);
   showError('');
-  if (!quiet) flash(field, value);
+  const summary = markSummary(field, value);
+  if (!quiet) showFlash(summary);
   pushOp(photo, field, value); // Durable queue; sync.js delivers it now or when the connection returns.
   // Pick and reject advance right away; the request happens in the background.
-  if (!(shouldAdvance(field, value, readChoice('advance', ADVANCE_RULES, 'flag')) && go(1))) render();
+  const advanced = shouldAdvance(field, value, readChoice('advance', ADVANCE_RULES, 'flag')) && go(1);
+  if (!advanced) render();
+  announce(advanced ? `${summary.text} · ${$('caption').textContent}` : summary.text);
+}
+
+// Keyboard marks set a value, as in Lightroom, where the buttons toggle: pressing the key
+// of the rating a photo already has leaves it alone.
+function clearField(field) {
+  const photo = list[index];
+  const current = photo?.[KEY[field]];
+  if (current) mark(field, String(current)); // Marking the active value again clears it.
+}
+
+function rate(stars) {
+  const photo = list[index];
+  if (!photo || photo.rating === stars) return;
+  if (stars === 0) clearField('rating');
+  else mark('rating', String(stars));
 }
 
 // Swipe up picks, swipe down rejects. Unlike the buttons a gesture never clears a flag:
@@ -266,7 +289,7 @@ export function onSyncChange({ settled }) {
 
 // Lightroom refused a mark for good, for example because the photo left the catalog.
 export function onOpFailed(op, error) {
-  showError(`${op.name}：${messageFor(error)}`);
+  showError(t('viewer.opFailed', { name: op.name, reason: messageFor(error) }));
   refresh({ force: true }); // The catalog is the truth: pull the real value back.
 }
 
@@ -370,8 +393,26 @@ export function initViewer(onBack) {
 
   function toggleOverlays() {
     const off = stage.classList.toggle('overlays-off');
-    showFlash(off ? { icon: 'eye-off', text: '已隐藏标记' } : { icon: 'eye', text: '已显示标记' });
+    showFlash(off ? { icon: 'eye-off', text: t('viewer.marksHidden') } : { icon: 'eye', text: t('viewer.marksShown') });
   }
+
+  $('prev-photo').addEventListener('click', () => step(-1));
+  $('next-photo').addEventListener('click', () => step(1));
+
+  // The keys Lightroom uses: arrows to move, P, X and U for the flag, 0 to 5 for stars,
+  // 6 to 9 for the first four colour labels.
+  const LABEL_KEYS = { 6: 'red', 7: 'yellow', 8: 'green', 9: 'blue' };
+  document.addEventListener('keydown', (event) => {
+    if ($('viewer').hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key === 'arrowleft') step(-1);
+    else if (key === 'arrowright') step(1);
+    else if (key === 'p') flagByGesture(1);
+    else if (key === 'x') flagByGesture(-1);
+    else if (key === 'u') clearField('pickStatus');
+    else if (key >= '0' && key <= '5') rate(Number(key));
+    else if (LABEL_KEYS[key]) mark('label', LABEL_KEYS[key]);
+  });
 
   stage.addEventListener('touchstart', (event) => {
     completeSlide();
@@ -484,7 +525,7 @@ export async function openViewer(nextSource) {
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
   onlyUnmarked = readChoice('defaultFilter', FILTERS, 'unmarked') === 'unmarked';
-  notice = '加载中';
+  notice = t('viewer.loading');
   loading = true;
   savedAtSettled = settledOps; // loadPhotos writes the offline copy itself.
   all = [];
@@ -503,7 +544,7 @@ export async function openViewer(nextSource) {
   } catch (e) {
     if (token !== openSeq) return;
     // Offline with no copy of this folder: say that, rather than how to fix the connection.
-    notice = e.message === 'network' ? '这个文件夹还没有缓存，联网后才能打开' : messageFor(e.message);
+    notice = e.message === 'network' ? t('viewer.folderNotCached') : messageFor(e.message);
   }
   loading = false;
   nextRefreshAt = Date.now() + nextRefreshDelay(Date.now() - startedAt, REFRESH_MS);

@@ -23,13 +23,20 @@ button:active { transform: scale(.94); filter: brightness(1.3); }
 .row button:active { transform: none; }
 button:disabled { opacity: .5; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Focus moves to a view when it opens, for keyboards and screen readers; a ring around the whole view says nothing. */
+main:focus { outline: none; }
+/* For assistive technology only: announcements, and controls that touch gestures replace on screen. */
+.sr-only { position: absolute; width: 1px; height: 1px; min-height: 0; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* A keyboard user who tabs onto one of those controls gets to see it. */
+button.sr-only:focus-visible { position: fixed; z-index: 1; top: calc(env(safe-area-inset-top) + 8px); left: 50%; transform: translateX(-50%); width: auto; height: auto; min-height: 44px; margin: 0; padding: 0 14px; border: 1px solid #333; clip-path: none; }
 
 #status { padding: calc(env(safe-area-inset-top) + 6px) calc(env(safe-area-inset-right) + 12px) 6px calc(env(safe-area-inset-left) + 12px); background: #5a1d1d; text-align: center; font-size: 14px; }
 
 #sources { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .home-side { flex: none; display: grid; gap: 8px; padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 16px) 8px calc(env(safe-area-inset-left) + 16px); }
 #status:not([hidden]) ~ #sources .home-side { padding-top: 8px; }
-.home-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Longer languages wrap onto another row instead of pushing the page wider. */
+.home-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
 .home-header h1 { margin: 0; font-size: 22px; }
 .home-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 16px); }
 
@@ -99,7 +106,7 @@ dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font
 dialog progress { width: 100%; accent-color: var(--accent); }
 .note { font-size: 13px; color: var(--muted); }
 
-.home-actions { display: flex; gap: 8px; }
+.home-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 #settings { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .settings-header { flex: none; display: flex; align-items: center; gap: 12px; padding: calc(env(safe-area-inset-top) + 16px) calc(env(safe-area-inset-right) + 16px) 12px calc(env(safe-area-inset-left) + 16px); }
@@ -272,7 +279,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
   /* Home: controls stay in a fixed left column, the list scrolls in the right one. */
   #sources { flex-direction: row; }
-  .home-side { width: clamp(220px, 28vw, 320px); align-content: start; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px); border-right: 1px solid var(--line); overflow-y: auto; }
+  .home-side { width: clamp(220px, 28vw, 320px); grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px); border-right: 1px solid var(--line); overflow-y: auto; }
   .home-sorts { flex-direction: column; }
   #to-top { align-self: stretch; min-height: 44px; }
   #to-top span { display: inline; }
@@ -292,6 +299,11 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
 }
 
+/* German labels run a third longer; in the narrow phone rail they need smaller type to stay inside their buttons. */
+@media (orientation: landscape) and (max-height: 599px) {
+  :lang(de) #actions .flag, :lang(de) #filter button { font-size: 11px; letter-spacing: -.02em; }
+}
+
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
 @media (orientation: landscape) and (min-height: 600px) {
   #viewer { --rail: clamp(150px, 15vw, 200px); }
@@ -307,6 +319,16 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   .swatches .check { width: 26px; height: 26px; }
   .left-hand #back, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 10px); padding-right: 10px; }
+}
+
+/* Reduce Motion: keep the fades that carry information, drop the movement and the endless pulse. */
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+  button:active { transform: none; }
+  button.pending { animation: none; opacity: .7; }
+  #photo.bump-prev, #photo.bump-next { animation: none; }
+  #pull { transition: opacity .18s ease; }
+  #pull.armed { transform: translate(-50%, -50%); }
 }
 
 /* iPad portrait keeps the larger check; phones use the smaller base size. */

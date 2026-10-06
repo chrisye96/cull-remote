@@ -1,4 +1,5 @@
 import { isUnmarked } from './state.js';
+import { t } from './i18n.js';
 
 // Measured averages per preview, see docs/spike-results.md.
 export const AVG_BYTES = { std: 210 * 1024, hd: 574 * 1024 };
@@ -38,10 +39,12 @@ export function uncached(photos, size, have, urlFor) {
 // Second line and state of one choice in the caching dialog. `count` photos are covered
 // and `left` of them are not on the device yet; the size estimate is for what is left.
 export function cacheChoice(count, left, size) {
-  if (count === 0) return { detail: '0 张', disabled: true };
-  if (left === 0) return { detail: `${count} 张，已全部缓存`, disabled: true };
-  const todo = left === count ? '' : `还差 ${left} 张，`;
-  return { detail: `${count} 张，${todo}约 ${formatBytes(estimateBytes(left, size))}`, disabled: false };
+  const photos = t('count.photos', { n: count });
+  if (count === 0) return { detail: photos, disabled: true };
+  if (left === 0) return { detail: t('cache.allCached', { photos }), disabled: true };
+  const bytes = formatBytes(estimateBytes(left, size));
+  const detail = left === count ? t('common.withSize', { what: photos, size: bytes }) : t('cache.partial', { photos, left, size: bytes });
+  return { detail, disabled: false };
 }
 
 // Run `worker` over `items` with at most `limit` running at once. The first error stops

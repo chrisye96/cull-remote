@@ -5,16 +5,26 @@ import { initSync, drain, setLink, getLink, pendingCount } from './sync.js';
 import { initSources, showSources, showSourcesNotice } from './sources.js';
 import { initSettings, showSettings } from './settings.js';
 import { initViewer, openViewer, onSyncChange, onOpFailed } from './viewer.js';
+import { t, useStoredLang, applyStatic } from './i18n.js';
+
+// The markup carries no text of its own; every view stays hidden until this has run.
+useStoredLang();
+applyStatic();
 
 document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS Safari apply :active pressed states
 
 let sourcesFresh = false; // False until the source list has come from Lightroom rather than the offline copy.
 let homeScroll = 0; // Scroll position of the source list, restored when coming Back.
+let shown = '';
 
 function show(view) {
   $('sources').hidden = view !== 'sources';
   $('viewer').hidden = view !== 'viewer';
   $('settings').hidden = view !== 'settings';
+  // Focus follows the view, so a keyboard or a screen reader is not left on a control that
+  // just became hidden. Only on a real change: the home page is shown again while typing a search.
+  if (view !== shown) $(view).focus({ preventScroll: true });
+  shown = view;
 }
 
 function renderStatus() {
@@ -36,9 +46,7 @@ async function home({ force = false, restoreScroll = false } = {}) {
   } catch (e) {
     sourcesFresh = false;
     setLink(e.message);
-    showSourcesNotice(e.message === 'network'
-      ? '离线，这台设备上还没有保存过目录列表。联网后会自动出现'
-      : '暂时读不到目录列表，恢复后会自动出现');
+    showSourcesNotice(t(e.message === 'network' ? 'home.noListOffline' : 'home.noList'));
   }
 }
 
@@ -63,12 +71,12 @@ async function pollStatus() {
 $('refresh-sources').addEventListener('click', async () => {
   const button = $('refresh-sources');
   button.disabled = true;
-  button.textContent = '刷新中';
+  button.textContent = t('home.refreshing');
   try {
     await home({ force: true });
   } finally {
     button.disabled = false;
-    button.textContent = '刷新';
+    button.textContent = t('home.refresh');
   }
 });
 
@@ -76,7 +84,10 @@ $('refresh-sources').addEventListener('click', async () => {
 navigator.serviceWorker?.register('/sw.js').catch(() => {});
 
 initSources();
-initSettings(() => home({ restoreScroll: true }));
+initSettings(() => home({ restoreScroll: true }), () => {
+  applyStatic();
+  renderStatus();
+});
 function openSettings() {
   homeScroll = $('home-list').scrollTop;
   show('settings');

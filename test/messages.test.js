@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { messageFor, statusLine } from '../web/js/messages.js';
+import { setLang } from '../web/js/i18n.js';
+
+// These tests pin the original Simplified Chinese wording.
+setLang('zh-CN');
 
 test('statusLine is empty while everything is reachable, even with marks in flight', () => {
   assert.equal(statusLine('', 0), '');

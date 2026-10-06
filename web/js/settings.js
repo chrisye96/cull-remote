@@ -5,8 +5,9 @@ import { clearCopies } from './store.js';
 import { cachedUrls, clearPreviews } from './cacher.js';
 import { estimateCached, formatBytes } from './cacheplan.js';
 import { pendingCount } from './sync.js';
+import { t, useStoredLang, LANGUAGES, LANGUAGE_CHOICES } from './i18n.js';
 
-const HOME_TEXT = { true: '家里的网络（直连）', false: '不在家，或经过中继', null: '无法判断' };
+const HOME_KEY = { true: 'net.home', false: 'net.away', null: 'net.unknown' };
 
 // A <select> that mirrors one stored choice.
 export function bindSelect(id, name, allowed, fallback, onChange = () => {}) {
@@ -37,7 +38,7 @@ let usageSeq = 0; // Counting a large cache is slow; only the newest count may b
 async function renderUsage() {
   usageSeq += 1;
   const mine = usageSeq;
-  $('cache-usage').textContent = '正在统计';
+  $('cache-usage').textContent = t('settings.counting');
   let urls = [];
   try {
     urls = [...(await cachedUrls())];
@@ -45,8 +46,8 @@ async function renderUsage() {
     // Cache Storage is unavailable; nothing is cached.
   }
   if (mine !== usageSeq) return; // A newer count is on its way.
-  const size = urls.length ? `，约 ${formatBytes(estimateCached(urls))}` : '';
-  $('cache-usage').textContent = `已缓存预览 ${urls.length} 张${size}`;
+  const previews = t('count.previews', { n: urls.length });
+  $('cache-usage').textContent = urls.length ? t('common.withSize', { what: previews, size: formatBytes(estimateCached(urls)) }) : previews;
 }
 
 function infoRow(list, term, text) {
@@ -65,19 +66,26 @@ async function renderInfo() {
   list.textContent = '';
   // The address other devices use; on the computer itself that differs from this page's own.
   const address = info.status === 'fulfilled' ? info.value.address : null;
-  infoRow(list, '地址', address ?? location.origin);
+  infoRow(list, t('info.address'), address ?? location.origin);
   $('conn-pair').hidden = !address;
   if (address) $('conn-qr').src = '/api/qr.svg';
-  infoRow(list, 'Lightroom', status.status === 'fulfilled' ? (status.value.lrOnline ? '已连接' : '未运行') : '连不上电脑');
-  infoRow(list, '网络位置', info.status === 'fulfilled' ? HOME_TEXT[String(info.value.atHome)] : '未知');
-  infoRow(list, '待同步标记', `${pendingCount()} 条`);
-  infoRow(list, '打开方式', standalone ? '主屏幕应用' : '浏览器');
-  infoRow(list, '版本', info.status === 'fulfilled' ? info.value.version : '未知');
+  infoRow(list, 'Lightroom', status.status === 'fulfilled' ? t(status.value.lrOnline ? 'info.lrConnected' : 'info.lrOff') : t('info.unreachable'));
+  infoRow(list, t('info.network'), info.status === 'fulfilled' ? t(HOME_KEY[String(info.value.atHome)]) : t('info.unknown'));
+  infoRow(list, t('info.pending'), t('info.pendingCount', { n: pendingCount() }));
+  infoRow(list, t('info.openedAs'), t(standalone ? 'info.standalone' : 'info.browser'));
+  infoRow(list, t('info.version'), info.status === 'fulfilled' ? info.value.version : t('info.unknown'));
 }
 
-// Bind every control. Call once at page load.
-export function initSettings(onBack) {
+// Bind every control. Call once at page load. `onLanguage` runs after the language changed,
+// for the text this module does not own.
+export function initSettings(onBack, onLanguage) {
   $('settings-back').addEventListener('click', onBack);
+  for (const [code, name] of Object.entries(LANGUAGES)) $('set-language').add(new Option(name, code));
+  bindSelect('set-language', 'lang', LANGUAGE_CHOICES, 'auto', () => {
+    useStoredLang();
+    onLanguage();
+    showSettings();
+  });
   bindSelect('set-quality', 'quality', QUALITIES, 'auto');
   bindSelect('set-advance', 'advance', ADVANCE_RULES, 'flag');
   bindSelect('set-filter', 'defaultFilter', FILTERS, 'unmarked');
@@ -86,7 +94,7 @@ export function initSettings(onBack) {
   bindCheckbox('set-auto-cache', 'autoCache', true);
   bindSelect('set-auto-limit', 'autoCacheLimit', AUTO_CACHE_LIMITS, '500');
   $('clear-cache').addEventListener('click', async () => {
-    if (!confirm('清除这台设备上缓存的预览图和照片列表？还没同步的标记不受影响。')) return;
+    if (!confirm(t('settings.clearConfirm'))) return;
     await clearPreviews().catch(() => {});
     await clearCopies().catch(() => {});
     writePref('cached', {});

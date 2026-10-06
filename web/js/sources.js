@@ -4,6 +4,7 @@ import { initCacheDialog, openCacheDialog } from './cachedialog.js';
 import { bindSelect } from './settings.js';
 import { readObject, writePref, readChoice, FOLDER_SORTS, PHOTO_SORTS } from './prefs.js';
 import { buildTree, sortTree, filterTree, folderHint, recentSources } from './tree.js';
+import { t } from './i18n.js';
 
 let cached = null;
 let cachedStale = false; // True when `cached` came from the offline copy.
@@ -48,7 +49,7 @@ function sourceButton(source, hint, onActivate, markCached = false) {
     const mark = icon('circle-check');
     mark.setAttribute('class', 'icon source-cached');
     mark.setAttribute('role', 'img');
-    mark.setAttribute('aria-label', '已缓存');
+    mark.setAttribute('aria-label', t('source.cached'));
     mark.removeAttribute('aria-hidden');
     main.append(mark);
   }
@@ -57,13 +58,13 @@ function sourceButton(source, hint, onActivate, markCached = false) {
   return main;
 }
 
-// The label reflects the current state: "缓存" until this folder has previews on the device.
+// The label reflects the current state: an offer to cache until this folder has previews on the device.
 function cacheButton(source) {
   const info = readObject('cached')[source.id];
   const button = document.createElement('button');
   button.type = 'button';
   button.className = info ? 'source-cache done' : 'source-cache';
-  button.textContent = info ? `已缓存 ${info.count}` : '缓存';
+  button.textContent = info ? t('source.cachedCount', { n: info.count }) : t('source.cache');
   button.addEventListener('click', () => openCacheDialog(source));
   return button;
 }
@@ -89,7 +90,7 @@ function row(node, siblings) {
     twisty.className = 'twisty';
     twisty.disabled = searching();
     twisty.setAttribute('aria-expanded', String(open));
-    twisty.setAttribute('aria-label', open ? `折叠 ${source.name}` : `展开 ${source.name}`);
+    twisty.setAttribute('aria-label', t(open ? 'source.collapse' : 'source.expand', { name: source.name }));
     twisty.append(icon(open ? 'chevron-down' : 'chevron-right'));
     twisty.addEventListener('click', () => toggle(node));
     line.append(twisty);
@@ -139,15 +140,15 @@ function renderList() {
   if (!searching()) {
     const recent = recentSources(cached, readObject('lastPhoto'), RECENT_LIMIT);
     if (recent.length) {
-      list.append(groupHeading('最近打开'));
+      list.append(groupHeading(t('home.recent')));
       const rows = recent.map(recentRow);
       list.append(...rows);
       markGroup(rows);
     }
   }
   const groups = [
-    ['文件夹', tree.filter((node) => node.source.kind === 'folder')],
-    ['收藏夹', tree.filter((node) => node.source.kind !== 'folder')],
+    [t('home.folders'), tree.filter((node) => node.source.kind === 'folder')],
+    [t('home.collections'), tree.filter((node) => node.source.kind !== 'folder')],
   ];
   for (const [title, nodes] of groups) {
     if (!nodes.length) continue;
@@ -159,7 +160,7 @@ function renderList() {
   if (!list.children.length) {
     const empty = document.createElement('li');
     empty.className = 'source-empty';
-    empty.textContent = searching() ? '没有匹配的文件夹或收藏夹' : '这个目录里还没有文件夹或收藏夹';
+    empty.textContent = t(searching() ? 'home.noMatch' : 'home.emptyCatalog');
     list.append(empty);
   }
 }
@@ -194,7 +195,8 @@ export function initSources() {
   search.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.isComposing) search.blur(); // Closes the iOS keyboard.
   });
-  $('to-top').addEventListener('click', () => $('home-list').scrollTo({ top: 0, behavior: 'smooth' }));
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  $('to-top').addEventListener('click', () => $('home-list').scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' }));
   bindSelect('folder-sort', 'folderSort', FOLDER_SORTS, 'name-desc', renderList);
   bindSelect('photo-sort', 'photoSort', PHOTO_SORTS, 'time-asc');
 }
