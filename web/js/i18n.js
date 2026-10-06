@@ -2,7 +2,7 @@ import { readChoice } from './prefs.js';
 import { STRINGS } from './strings.js';
 
 // Offered in settings, each under its own name.
-export const LANGUAGES = { en: 'English', 'zh-CN': '简体中文', ja: '日本語', de: 'Deutsch' };
+export const LANGUAGES = { en: 'English', 'zh-CN': '简体中文', ja: '日本語', de: 'Deutsch', fr: 'Français', es: 'Español' };
 export const LANGUAGE_CHOICES = ['auto', ...Object.keys(LANGUAGES)];
 
 const base = (tag) => tag.toLowerCase().split('-')[0];

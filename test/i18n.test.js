@@ -46,12 +46,31 @@ test('t fills placeholders, picks the plural form and falls back to the key', ()
   setLang('de');
   assert.equal(t('mark.stars', { n: 1 }), '1 Stern');
   assert.equal(t('mark.stars', { n: 3 }), '3 Sterne');
+  // French counts zero as singular; the browser's plural rules know that, the table does not.
+  setLang('fr');
+  assert.equal(t('count.photos', { n: 0 }), '0 photo');
+  assert.equal(t('count.photos', { n: 2 }), '2 photos');
+});
+
+// The flag words are Lightroom's own, so a photo reads the same on the phone and on the computer.
+test('pick and reject use the wording of Lightroom in every language', async () => {
+  const terms = JSON.parse(await readFile('tools/lightroom-terms.json', 'utf8'));
+  const lightroom = { 'zh-CN': 'zh-CN', ja: 'ja-JP', de: 'de-DE' };
+  for (const [lang, tag] of Object.entries(lightroom)) {
+    setLang(lang);
+    assert.equal(t('mark.reject'), terms['flag.rejected'][tag], lang);
+  }
+  setLang('zh-CN');
+  assert.equal(t('mark.pick'), terms['flag.flagged']['zh-CN']);
+  setLang('de');
+  assert.equal(t('mark.pick'), terms['flag.flagged']['de-DE']);
 });
 
 test('the device language picks the closest table, and English when there is none', () => {
   assert.equal(matchLanguage(['ja-JP', 'en-US']), 'ja');
   assert.equal(matchLanguage(['zh-TW']), 'zh-CN');
-  assert.equal(matchLanguage(['fr-FR', 'de-AT']), 'de');
-  assert.equal(matchLanguage(['fr-FR']), 'en');
+  assert.equal(matchLanguage(['pt-BR', 'de-AT']), 'de');
+  assert.equal(matchLanguage(['es-MX']), 'es');
+  assert.equal(matchLanguage(['pt-BR']), 'en');
   assert.equal(matchLanguage([]), 'en');
 });

@@ -299,9 +299,10 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
 }
 
-/* German labels run a third longer; in the narrow phone rail they need smaller type to stay inside their buttons. */
+/* German and Spanish flag words run a third longer; in the narrow phone rail they need smaller type to stay inside their buttons. */
 @media (orientation: landscape) and (max-height: 599px) {
-  :lang(de) #actions .flag, :lang(de) #filter button { font-size: 11px; letter-spacing: -.02em; }
+  :lang(de) #actions .flag, :lang(es) #actions .flag { font-size: 11px; letter-spacing: -.02em; }
+  :lang(de) #actions .flag { letter-spacing: -.04em; }
 }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */

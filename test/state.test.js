@@ -107,7 +107,7 @@ test('indexAfterFilter stays on the same photo when it is still listed', () => {
 
 test('markSummary describes every kind of mark for the confirmation flash', () => {
   assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用' });
-  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '弃用' });
+  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '排除' });
   assert.deepEqual(markSummary('pickStatus', 0), { icon: 'flag-off', text: '取消旗标' });
   assert.deepEqual(markSummary('rating', 3), { icon: 'star', text: '3 星' });
   assert.deepEqual(markSummary('rating', 0), { icon: 'star-off', text: '清除星级' });
