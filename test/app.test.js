@@ -106,6 +106,23 @@ test('a photo list is handed to the plugin before previews that were queued earl
   }
 });
 
+test('a photo list is gzipped for a client that accepts it and plain otherwise', async () => {
+  const s = await start();
+  const photos = [{ id: PHOTO, name: 'a.NEF', lens: 'NIKKOR Z 50mm f/1.8 S' }];
+  try {
+    await fetch(`${s.plug}/next`, { headers: PLUGIN_HEADER }); // Online, with no poll parked.
+    for (const [accept, encoding] of [['gzip, deflate, br', 'gzip'], ['identity', null]]) {
+      const list = fetch(`${s.pub}/api/photos?source=${encodeURIComponent('f:F:/x')}`, { headers: { 'accept-encoding': accept } });
+      await answerOne(s.plug, () => json(photos));
+      const res = await list;
+      assert.equal(res.headers.get('content-encoding'), encoding);
+      assert.deepEqual(await res.json(), photos);
+    }
+  } finally {
+    s.close();
+  }
+});
+
 test('photos rejects a malformed source id without asking the plugin', async () => {
   const s = await start();
   try {
