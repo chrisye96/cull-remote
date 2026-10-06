@@ -49,7 +49,11 @@ async function answer({ type, params }) {
   }
   const entry = byId.get(params.photoId);
   if (!entry) return fail('photo_not_found');
-  if (type === 'getPreview') return { type: 'image/jpeg', body: await readFile(path.join(previewDir, entry.sample)) };
+  if (type === 'getPreview') {
+    // STANDIN_PREVIEW_MS=4000 imitates a folder Lightroom has no previews for yet.
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.STANDIN_PREVIEW_MS ?? 0)));
+    return { type: 'image/jpeg', body: await readFile(path.join(previewDir, entry.sample)) };
+  }
   if (type === 'setMeta') {
     entry.photo[KEY[params.field]] = params.value;
     console.log(`setMeta ${entry.photo.name} ${params.field}=${params.value}`);

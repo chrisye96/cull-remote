@@ -139,7 +139,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 #photo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #photo-pos { flex: none; margin-left: .6em; }
 #back { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-#stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
+/* The photo and the thumbnail grid take turns in this box; the switch between them floats over its corner. */
+#view { position: relative; flex: 1; min-height: 0; display: flex; }
+#stage { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
 /* The photo follows the finger through transforms. Its own compositor layer moves as a
    texture; without it WebKit repaints the stage in place and can leave rows of the photo's
    edge behind at fractional offsets. */
@@ -156,8 +158,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 /* Flags: icon and text side by side in portrait, stacked in landscape. */
 .flag { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .flag .icon { width: 20px; height: 20px; }
-.row .flag { color: var(--text); }
-.row .flag[data-value="1"].on { color: var(--accent); background: var(--accent-tint); }
+/* Each flag always wears its own colour; the tint behind it says the photo has that flag. */
+.row .flag[data-value="1"] { color: var(--accent); }
+.row .flag[data-value="1"].on { background: var(--accent-tint); }
 .row .flag[data-value="-1"] { color: var(--reject); }
 .row .flag[data-value="-1"].on { background: var(--reject-tint); }
 
@@ -193,8 +196,8 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 /* Live hint while pulling up or down: dim until the pull is far enough, then armed. */
 #pull { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 14px; background: rgba(0, 0, 0, .55); font-size: 18px; opacity: 0; transform: translate(-50%, -50%) scale(.9); pointer-events: none; transition: transform .12s ease, background-color .12s ease, opacity .18s ease; }
 #pull .icon { width: 24px; height: 24px; }
-#pull.pick { color: var(--accent); }
-#pull.reject { color: var(--reject); }
+#pull.pick, #flash[data-tone="pick"] { color: var(--accent); }
+#pull.reject, #flash[data-tone="reject"] { color: var(--reject); }
 #pull.armed { transform: translate(-50%, -50%) scale(1.1); background: rgba(0, 0, 0, .8); }
 
 /* Brief chevron where an edge tap landed, pinned inside the photo. */
@@ -263,6 +266,32 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 /* Hidden with the other overlays, it must not swallow taps meant for the photo. */
 #stage.overlays-off #info { pointer-events: none; }
 
+/* Switch between the photo and the grid. It stays put, so the way back is where the way in was. */
+#grid-toggle { position: absolute; right: 10px; bottom: 10px; width: 40px; height: 40px; min-height: 0; padding: 0; border: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .55); color: rgba(255, 255, 255, .85); transition: opacity .2s ease, transform .12s ease, filter .12s ease; }
+#grid-toggle .icon { width: 20px; height: 20px; }
+#grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
+#stage.overlays-off:not([hidden]) ~ #grid-toggle { opacity: 0; pointer-events: none; }
+
+/* Thumbnail grid: whole photos in square cells, as many columns as fit. The bottom padding lets the last row scroll clear of the switch. */
+#grid { flex: 1; min-width: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 3px; padding: 3px 3px 64px; }
+.cell { position: relative; aspect-ratio: 1; min-height: 0; padding: 0; border: 0; border-radius: 4px; overflow: hidden; background: var(--panel); color: var(--muted); font-size: 11px; }
+.cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .2s ease; }
+.cell.loaded img { opacity: 1; }
+.cell.loaded.reject img { opacity: .35; }
+.cell-name { display: block; padding: 0 6px; overflow-wrap: anywhere; }
+.cell.loaded .cell-name { display: none; }
+.cell.current { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cell-marks { position: absolute; top: 3px; left: 3px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; line-height: 1; }
+.cell-marks:empty { display: none; }
+.cell-marks .icon { width: 10px; height: 10px; stroke-width: 2.5; }
+.cell-marks .pick { color: var(--accent); }
+.cell-marks .reject { color: rgba(255, 107, 107, .9); }
+.cell-stars { display: inline-flex; align-items: center; gap: 2px; color: rgba(245, 197, 24, .9); }
+.cell-stars .icon { fill: currentColor; }
+.cell-label { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+/* The grid only shows; the marking controls and the photo's own panel belong to the single photo. */
+#viewer.grid-open #actions, #viewer.grid-open #side #info { display: none; }
+
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
   #viewer::before { content: ''; grid-area: 1 / 2 / 4 / 3; background: var(--bg); border-left: 1px solid var(--line); }
@@ -276,7 +305,10 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #filter button { flex: 1; min-height: 0; padding: 4px 0; font-size: 12px; line-height: 1.25; white-space: normal; }
   #filter .count { display: block; margin: 0; }
 
-  #stage { grid-area: 1 / 1 / 4 / 2; padding-left: env(safe-area-inset-left); }
+  #view { grid-area: 1 / 1 / 4 / 2; }
+  #stage { padding-left: env(safe-area-inset-left); }
+  #grid { padding: calc(env(safe-area-inset-top) + 3px) 3px calc(env(safe-area-inset-bottom) + 64px) calc(env(safe-area-inset-left) + 3px); }
+  #grid-toggle { bottom: calc(env(safe-area-inset-bottom) + 10px); }
   #caption { display: block; bottom: calc(max(var(--img-bottom, 0px), env(safe-area-inset-bottom)) + 10px); }
   /* The photo can touch the top of a landscape screen; keep the pill below the safe area. */
   #badges { top: calc(max(var(--img-top, 0px), env(safe-area-inset-top)) + 10px); }
@@ -314,7 +346,10 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   .left-hand #back { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #filter { grid-area: 2 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #side { grid-area: 3 / 1; }
-  .left-hand #stage { grid-area: 1 / 2 / 4 / 3; padding-left: 0; padding-right: env(safe-area-inset-right); }
+  .left-hand #view { grid-area: 1 / 2 / 4 / 3; }
+  .left-hand #stage { padding-left: 0; padding-right: env(safe-area-inset-right); }
+  .left-hand #grid { padding-left: 3px; padding-right: calc(env(safe-area-inset-right) + 3px); }
+  .left-hand #stage #info, .left-hand #grid-toggle { right: calc(env(safe-area-inset-right) + 10px); }
   .left-hand #error { padding: 6px 8px 6px calc(env(safe-area-inset-left) + 8px); }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: 8px; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
