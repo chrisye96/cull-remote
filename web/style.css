@@ -124,6 +124,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 .setting select:focus { outline: none; border-color: var(--accent); }
 .setting input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
 .settings-group .note { margin: 8px 4px 0; }
+/* Several on/off choices of one kind share a row and wrap when a language needs more room. */
+.check-list { flex-wrap: wrap; justify-content: flex-start; gap: 0 22px; }
+.check-list label { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
 .pair { display: grid; justify-items: center; gap: 4px; margin: 12px 0 0; }
 .pair img { border-radius: 10px; }
 #conn-info { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--panel); font-size: 14px; }
@@ -240,8 +243,25 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #badges .mark-rating .icon { fill: currentColor; }
 #badges .dot { width: 12px; height: 12px; border-radius: 50%; opacity: .85; }
 #caption { display: none; position: absolute; left: calc(var(--img-left, 0px) + 10px); bottom: calc(var(--img-bottom, 0px) + 10px); padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; max-width: calc(var(--img-width, 100%) - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-#badges, #caption { transition: opacity .2s ease; }
-#stage.overlays-off #badges, #stage.overlays-off #caption { opacity: 0; }
+/* Histogram, exposure and lens. It sits in the corner of the stage, not of the photo, so
+   a photo that leaves a margin there is not covered at all. */
+#info { position: absolute; top: 10px; right: 10px; width: clamp(116px, 20vmin, 180px); min-height: 0; display: grid; gap: 2px; padding: 5px 7px; border: 0; border-radius: 10px; background: rgba(0, 0, 0, .55); color: rgba(255, 255, 255, .85); font-size: clamp(10px, 1.45vmin, 12px); line-height: 1.3; text-align: left; }
+#histogram { width: 100%; height: auto; }
+/* A tap folds the panel down to this icon; another tap opens it again. */
+#info .icon { display: none; width: 16px; height: 16px; }
+#info.collapsed { width: auto; padding: 6px; }
+#info.collapsed .icon { display: block; }
+#info.collapsed #histogram, #info.collapsed #exposure, #info.collapsed #lens { display: none; }
+/* Tall landscape screens: viewer.js moves the panel into the rail, under the filter. */
+#side #info { position: static; width: auto; margin: 10px calc(env(safe-area-inset-right) + 10px) 0 10px; padding: 0; background: none; }
+#side #info.collapsed { align-self: flex-start; padding: 6px; background: var(--panel); }
+.left-hand #side #info { margin: 10px 10px 0 calc(env(safe-area-inset-left) + 10px); }
+#lens { overflow-wrap: anywhere; color: rgba(255, 255, 255, .65); }
+#exposure:empty, #lens:empty { display: none; }
+#badges, #caption, #info { transition: opacity .2s ease; }
+#stage.overlays-off #badges, #stage.overlays-off #caption, #stage.overlays-off #info { opacity: 0; }
+/* Hidden with the other overlays, it must not swallow taps meant for the photo. */
+#stage.overlays-off #info { pointer-events: none; }
 
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
@@ -260,6 +280,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #caption { display: block; bottom: calc(max(var(--img-bottom, 0px), env(safe-area-inset-bottom)) + 10px); }
   /* The photo can touch the top of a landscape screen; keep the pill below the safe area. */
   #badges { top: calc(max(var(--img-top, 0px), env(safe-area-inset-top)) + 10px); }
+  #info { top: calc(env(safe-area-inset-top) + 10px); }
   #flash, #pull { left: calc(50% + env(safe-area-inset-left) / 2); }
 
   #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
@@ -330,6 +351,11 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #photo.bump-prev, #photo.bump-next { animation: none; }
   #pull { transition: opacity .18s ease; }
   #pull.armed { transform: translate(-50%, -50%); }
+}
+
+/* Phone portrait: a lower top bar leaves more of the screen to the photo. */
+@media (orientation: portrait) and (max-width: 599px) {
+  #back, #filter button { min-height: 34px; }
 }
 
 /* iPad portrait keeps the larger check; phones use the smaller base size. */

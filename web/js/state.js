@@ -81,6 +81,52 @@ export function badgeParts(photo) {
   return parts;
 }
 
+// Shutter time in seconds as a camera shows it: 1/1250s, 1/3s, 0.4s, 2s.
+export function formatShutter(seconds) {
+  return seconds < 0.35 ? `1/${Math.round(1 / seconds)}s` : `${+seconds.toFixed(1)}s`;
+}
+
+// The two text lines of the info panel. A value the list does not carry (a scan, an
+// offline copy saved by an older version) is left out.
+export function exposureText(photo) {
+  const parts = [];
+  if (photo.shutter > 0) parts.push(formatShutter(photo.shutter));
+  if (photo.aperture > 0) parts.push(`f/${+photo.aperture.toFixed(1)}`);
+  if (photo.iso > 0) parts.push(`ISO ${photo.iso}`);
+  return parts.join(' · ');
+}
+
+export function lensText(photo) {
+  const parts = [];
+  if (photo.focal > 0) parts.push(`${Math.round(photo.focal)}mm`);
+  if (photo.lens) parts.push(photo.lens);
+  return parts.join(' · ');
+}
+
+// Red, green and blue counts of an RGBA pixel buffer, 256 bins each.
+export function histogram(rgba) {
+  const bins = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  for (let i = 0; i < rgba.length; i += 4) {
+    for (let channel = 0; channel < 3; channel += 1) bins[channel][rgba[i + channel]] += 1;
+  }
+  return bins;
+}
+
+// Average each level with the `radius` levels on either side, so the graph reads as a
+// shape and not as a comb. Pure black and pure white hold the clipped pixels: they stay
+// as counted and do not leak into their neighbours.
+export function smoothBins(bins, radius) {
+  const out = Float64Array.from(bins);
+  for (let level = 1; level < 255; level += 1) {
+    const from = Math.max(1, level - radius);
+    const to = Math.min(254, level + radius);
+    let sum = 0;
+    for (let at = from; at <= to; at += 1) sum += bins[at];
+    out[level] = sum / (to - from + 1);
+  }
+  return out;
+}
+
 // Wait at least five times as long as the last refresh took, and never less than the base interval.
 export const nextRefreshDelay = (lastDurationMs, baseMs = 5000) => Math.max(baseMs, Math.round(lastDurationMs * 5));
 

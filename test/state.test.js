@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -231,4 +231,48 @@ test('rememberCapped keeps the most recent entries and drops the oldest', () => 
   assert.equal(map['f:1'], 'p9');
   rememberCapped(map, 'f:3', 'p3', 2);
   assert.deepEqual(Object.keys(map), ['f:1', 'f:3']);
+});
+
+test('formatShutter writes fast speeds as a fraction and slow ones in seconds', () => {
+  assert.equal(formatShutter(1 / 1250), '1/1250s');
+  assert.equal(formatShutter(1 / 60), '1/60s');
+  assert.equal(formatShutter(1 / 3), '1/3s');
+  assert.equal(formatShutter(0.4), '0.4s');
+  assert.equal(formatShutter(2), '2s');
+  assert.equal(formatShutter(2.5), '2.5s');
+  assert.equal(formatShutter(30), '30s');
+});
+
+test('exposureText and lensText leave out what the photo does not carry', () => {
+  const photo = { ...blank(), shutter: 0.0008, aperture: 2.8, iso: 100, focal: 50, lens: 'NIKKOR Z 50mm f/1.8 S' };
+  assert.equal(exposureText(photo), '1/1250s · f/2.8 · ISO 100');
+  assert.equal(lensText(photo), '50mm · NIKKOR Z 50mm f/1.8 S');
+  assert.equal(exposureText({ ...photo, aperture: 8 }), '1/1250s · f/8 · ISO 100');
+  assert.equal(exposureText({ ...blank(), iso: 400 }), 'ISO 400');
+  assert.equal(lensText({ ...blank(), focal: 61.7, lens: '' }), '62mm');
+  assert.equal(exposureText(blank()), '');
+  assert.equal(lensText(blank()), '');
+});
+
+test('histogram counts each colour channel of an RGBA buffer and ignores alpha', () => {
+  const [r, g, b] = histogram(Uint8ClampedArray.from([255, 0, 10, 255, 255, 128, 10, 0]));
+  assert.equal(r[255], 2);
+  assert.equal(g[0], 1);
+  assert.equal(g[128], 1);
+  assert.equal(b[10], 2);
+  assert.equal(r.length, 256);
+  assert.equal(b.reduce((sum, n) => sum + n, 0), 2);
+});
+
+test('smoothBins spreads a spike over its neighbours and leaves the clipping ends alone', () => {
+  const bins = new Uint32Array(256);
+  bins[0] = 90;
+  bins[100] = 5;
+  bins[255] = 70;
+  const out = smoothBins(bins, 2);
+  assert.deepEqual(Array.from(out.subarray(97, 104)), [0, 1, 1, 1, 1, 1, 0]);
+  assert.equal(out[0], 90);
+  assert.equal(out[255], 70);
+  assert.equal(out[1], 0);
+  assert.equal(out[254], 0);
 });
