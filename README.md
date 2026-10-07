@@ -47,7 +47,9 @@ The same address works at home and away. At home Tailscale connects directly ove
 | Swipe up | Pick |
 | Swipe down | Reject |
 | Tap a flag, a star or a colour | Set it; tap an active one again to clear it |
-| Tap the middle of the photo (the central half) | Hide or show the mark pill and the filename tag |
+| Tap the middle of the photo (the central half) | Hide or show everything laid over the photo: the mark pill, the filename tag, the photo info and the grid button |
+| Tap the photo info panel | Fold it down to an icon; tap the icon to open it again |
+| Tap the round button at the bottom right of the photo | Open the thumbnail grid |
 | Tap "Unmarked" or "All" | Switch the filter; both show live counts |
 
 - While you drag up or down, the photo follows your finger and a hint shows what releasing will do. Let go early and nothing happens
@@ -57,6 +59,17 @@ The same address works at home and away. At home Tailscale connects directly ove
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels. Left-hand mode in settings puts the rail on the left
 - Each folder or collection remembers the photo you were on, per device, so going back and reopening it resumes there
+- The photo info panel shows a histogram of the preview, then shutter speed, aperture and ISO, then focal length and lens. It lies over the top right corner of the photo area; on a tablet in landscape it sits in the rail instead and covers nothing. Settings choose which of the three parts appear
+
+### Thumbnail grid
+
+The grid gives an overview of a folder and a way to jump to a photo. It only shows: marking is done on the single photo.
+
+- It lists the same photos as the viewer and follows the "Unmarked" or "All" filter
+- Each thumbnail carries the photo's marks: a flag or a reject sign, a star with its count, and the colour label as a strip along the bottom edge. Rejected photos are dimmed
+- Tap a thumbnail to open that photo. Back in the grid, the photo you came from is outlined and scrolled into view
+- The round button stays in the same corner and takes you back to the single photo
+- Thumbnails load as they scroll into view. In a folder Lightroom has no previews for yet, each one takes a few seconds, and the file name stands in until it arrives
 
 ### With a keyboard
 
@@ -71,6 +84,10 @@ The viewer takes the keys Lightroom uses.
 | `1` to `5` | Set the star rating |
 | `0` | Clear the rating |
 | `6` to `9` | Red, yellow, green and blue label |
+| `G` | Open or close the thumbnail grid |
+| `Esc` | Leave the grid |
+
+While the grid is open the marking keys do nothing.
 
 ### On the home page
 
@@ -82,7 +99,7 @@ The viewer takes the keys Lightroom uses.
 
 ### Settings
 
-Settings is at the top right of the home page: language, preview quality, whether a mark advances to the next photo, whether a folder opens on unmarked or all photos, left-hand mode, automatic caching, cache usage and clearing, and connection details.
+Settings is at the top right of the home page: language, preview quality, whether a mark advances to the next photo, whether a folder opens on unmarked or all photos, left-hand mode, which parts of the photo info to show, automatic caching, cache usage and clearing, and connection details.
 
 ## Languages
 
@@ -155,12 +172,16 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - Previews cached on the device do not follow later edits in Lightroom either. Clear the cache in settings and cache again
 - Only Lightroom's five default colour labels are recognised. Photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
 - When Lightroom is busy a mark stays queued and is retried. This path is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
+- The histogram is counted from the preview on screen, not from the raw file, and from a reduced copy of it, so a handful of clipped pixels may not show
+- A folder cached for offline use by an earlier version shows no exposure or lens details until it has been opened once with a connection
+- Grid thumbnails come from Lightroom larger than asked for, about 60 KB each, which adds up on mobile data
 
 **Offline**
 
 - Offline data lives in the browser: Safari, Chrome and the Home Screen app each keep their own copy. Only the Home Screen app is exempt from iOS clearing that data after 7 days without a visit
 - Offline use was verified item by item in Chrome on iOS (iPhone and iPad, 2026-10-04). Safari and the Home Screen app run on the same browser engine and are expected to behave the same, but have not been verified item by item
 - With no network at all, a cold start takes a few seconds, because the page shell and the connection probe each wait for a timeout
+- Thumbnails are not cached themselves. Offline, the grid is meant to draw from the cached previews; this has not been verified on a device yet
 
 **Platforms and languages**
 
