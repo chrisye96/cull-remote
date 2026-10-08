@@ -143,6 +143,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 #tools { display: flex; flex: none; }
 #tools > * { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--text); }
 #tools .icon { width: 20px; height: 20px; }
+/* The arrow is drawn in half the height of its box, the grid in three quarters. One and a half
+   times as large, with the stroke thinned by the same factor, it is as tall and as heavy. */
+#back .icon { width: 30px; height: 30px; stroke-width: 1.33; }
 /* Back is an arrow; the word stays for screen readers. */
 #back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* The photo and the thumbnail grid take turns in this box. */

@@ -35,6 +35,9 @@ let settledOps = 0; // Bumped when marks are confirmed; a fetch that overlapped 
 let savedAtSettled = -1; // Value of settledOps when this folder's offline copy was last written.
 // sourceId -> id of the photo last shown there, so reopening a folder resumes in place.
 const lastPhoto = readObject('lastPhoto');
+// Where the photo last on screen sat in the stage. Tap zones are measured against it, and it
+// is kept while the next photo loads so that quick taps keep meaning the same thing.
+let photoBox = { left: 0, width: 0 };
 
 // Pull Lightroom's current marks for the open source and merge them into the snapshot.
 // The timer is throttled by nextRefreshAt so a slow Lightroom is not kept busy; force skips that.
@@ -281,6 +284,7 @@ function placeOverlays() {
   const img = $('photo');
   const stage = $('stage');
   const visible = !img.hidden && img.offsetWidth > 0;
+  if (visible) photoBox = { left: img.offsetLeft, width: img.offsetWidth };
   const padLeft = parseFloat(getComputedStyle(stage).paddingLeft) || 0; // Landscape safe-area inset.
   stage.style.setProperty('--img-left', `${visible ? img.offsetLeft : padLeft}px`);
   stage.style.setProperty('--img-top', `${visible ? img.offsetTop : 0}px`);
@@ -623,7 +627,8 @@ export function initViewer(onBack) {
   // or otherwise to hide or show the mark pill and the filename tag.
   stage.addEventListener('click', (event) => {
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return; // synthetic click after a swipe
-    const zone = tapZone(event.clientX - stage.getBoundingClientRect().left, stage.clientWidth);
+    const box = photoBox.width ? photoBox : { left: 0, width: stage.clientWidth }; // No photo shown yet in this folder.
+    const zone = tapZone(event.clientX - stage.getBoundingClientRect().left, box.left, box.width);
     if (zone === 'prev') step(-1);
     else if (zone === 'next') step(1);
     else if (!retryPreview() && list[index]) toggleOverlays();
@@ -665,6 +670,7 @@ export async function openViewer(nextSource) {
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
   gridOpen = false;
+  photoBox = { left: 0, width: 0 };
   $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
