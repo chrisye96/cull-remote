@@ -95,18 +95,18 @@ function renderFilter() {
     if (countEl.textContent !== count) countEl.textContent = count;
     button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
   }
-  // The menu of mark filters doubles as a tally of the folder's marks. A filter that would
-  // show nothing cannot be chosen.
-  const counts = tallyMarks(all);
+  // The menu lists every filter with its count, so it doubles as a tally of the folder's
+  // marks, and the filter in use is always one of its rows: a menu with a blank row for "none
+  // of these" lets that row be picked. A mark filter that would show nothing cannot be chosen.
+  const counts = { unmarked, all: all.length, ...tallyMarks(all) };
   const select = $('mark-select');
   for (const option of select.options) {
-    if (!option.value) continue;
     const text = `${filterLabel(option.value)}  ${counts[option.value]}`;
     if (option.textContent !== text) option.textContent = text;
-    option.disabled = counts[option.value] === 0;
+    option.disabled = MARK_FILTERS.includes(option.value) && counts[option.value] === 0;
   }
   const marked = MARK_FILTERS.includes(filter);
-  select.value = marked ? filter : '';
+  select.value = filter;
   const box = $('mark-filter');
   box.hidden = all.length === 0;
   if (box.dataset.shows !== filter) {
@@ -434,7 +434,7 @@ export function initViewer(onBack) {
     if (button) setFilter(button.dataset.filter);
   });
   $('mark-select').addEventListener('change', (event) => {
-    if (event.target.value) setFilter(event.target.value);
+    setFilter(event.target.value);
   });
   $('actions').addEventListener('click', (event) => {
     const button = event.target.closest('button');

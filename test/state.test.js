@@ -350,6 +350,8 @@ test('tallyMarks counts what every mark filter would show, in one pass', () => {
 });
 
 test('filterLabel names flags and colours in words and ratings in stars', () => {
+  assert.equal(filterLabel('unmarked'), '未标记');
+  assert.equal(filterLabel('all'), '全部');
   assert.equal(filterLabel('pick'), '留用');
   assert.equal(filterLabel('reject'), '排除');
   assert.equal(filterLabel('star3'), '\u2605\u2605\u2605+');

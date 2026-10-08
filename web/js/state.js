@@ -31,8 +31,9 @@ export function tallyMarks(photos) {
   return counts;
 }
 
-// What a mark filter is called in the menu. A rating needs no words: stars, and a plus for "or more".
+// What a filter is called in the menu. A rating needs no words: stars, and a plus for "or more".
 export function filterLabel(filter) {
+  if (filter === 'unmarked' || filter === 'all') return t(`filter.${filter}`);
   if (filter === 'pick' || filter === 'reject') return t(`mark.${filter}`);
   if (filter.startsWith('star')) {
     const stars = Number(filter.slice(4));
