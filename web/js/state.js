@@ -233,11 +233,14 @@ export const pullProgress = (dy) => Math.min(1, Math.abs(dy) / FLAG_SWIPE_MIN_DY
 export const pullOpacity = (progress, armed) => (armed ? 1 : Math.min(0.6, 0.35 + 0.65 * progress));
 
 // Which part of the photo a tap landed in. The middle is wide on purpose, so a tap that
-// is slightly off-centre does not change photo.
+// is slightly off-centre does not change photo. The zones follow the photo's own box, given
+// by `left` and `width` in the coordinates of `x`: beside a narrow photo, or on its outer
+// part, a tap turns the page. A photo centred in the stage never makes the outer part of the
+// stage do anything else, so tapping one spot near the edge keeps paging through any mix.
 export const EDGE_TAP_RATIO = 0.22;
-export function tapZone(x, width) {
-  if (x < width * EDGE_TAP_RATIO) return 'prev';
-  if (x > width * (1 - EDGE_TAP_RATIO)) return 'next';
+export function tapZone(x, left, width) {
+  if (x < left + width * EDGE_TAP_RATIO) return 'prev';
+  if (x > left + width * (1 - EDGE_TAP_RATIO)) return 'next';
   return 'middle';
 }
 

@@ -199,15 +199,33 @@ test('pullOpacity is full only when armed and stays calmer while unarmed', () =>
 });
 
 test('tapZone keeps a wide middle so a slightly off-centre tap does not change photo', () => {
-  assert.equal(tapZone(10, 400), 'prev');
-  assert.equal(tapZone(87, 400), 'prev');
-  assert.equal(tapZone(88, 400), 'middle');
-  assert.equal(tapZone(89, 400), 'middle');
-  assert.equal(tapZone(200, 400), 'middle');
-  assert.equal(tapZone(311, 400), 'middle');
-  assert.equal(tapZone(312, 400), 'middle');
-  assert.equal(tapZone(313, 400), 'next');
-  assert.equal(tapZone(399, 400), 'next');
+  assert.equal(tapZone(10, 0, 400), 'prev');
+  assert.equal(tapZone(87, 0, 400), 'prev');
+  assert.equal(tapZone(88, 0, 400), 'middle');
+  assert.equal(tapZone(89, 0, 400), 'middle');
+  assert.equal(tapZone(200, 0, 400), 'middle');
+  assert.equal(tapZone(311, 0, 400), 'middle');
+  assert.equal(tapZone(312, 0, 400), 'middle');
+  assert.equal(tapZone(313, 0, 400), 'next');
+  assert.equal(tapZone(399, 0, 400), 'next');
+});
+
+test('tapZone follows the photo: beside a narrow photo, or on its outer part, a tap turns the page', () => {
+  // A portrait photo 500 wide, centred in a stage 1000 wide: it spans 250 to 750.
+  assert.equal(tapZone(100, 250, 500), 'prev'); // In the margin beside it.
+  assert.equal(tapZone(300, 250, 500), 'prev'); // On its left part.
+  assert.equal(tapZone(359, 250, 500), 'prev');
+  assert.equal(tapZone(361, 250, 500), 'middle');
+  assert.equal(tapZone(500, 250, 500), 'middle');
+  assert.equal(tapZone(639, 250, 500), 'middle');
+  assert.equal(tapZone(641, 250, 500), 'next');
+  assert.equal(tapZone(900, 250, 500), 'next');
+  // Whatever the photo's width, the outer part of the stage still turns the page.
+  for (const width of [200, 500, 1000]) {
+    const left = (1000 - width) / 2;
+    assert.equal(tapZone(219, left, width), 'prev', `width ${width}`);
+    assert.equal(tapZone(781, left, width), 'next', `width ${width}`);
+  }
 });
 
 test('resumeIndex returns to the remembered photo or the next listed one after it', () => {
