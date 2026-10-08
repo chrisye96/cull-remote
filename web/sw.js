@@ -6,7 +6,6 @@ const PREVIEW_WAIT_MS = 15000;
 const SHELL = [
   '/',
   '/style.css',
-  '/vendor/lucide.svg',
   '/js/api.js',
   '/js/autocache.js',
   '/js/cachedialog.js',

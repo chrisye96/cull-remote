@@ -15,6 +15,34 @@
   <script type="module" src="/js/main.js"></script>
 </head>
 <body>
+  <!-- icons:start (written by tools/icons.mjs from lucide-static; do not edit by hand) -->
+  <svg id="icons" aria-hidden="true" hidden>
+    <symbol id="i-arrow-up-to-line" viewBox="0 0 24 24"><path d="M5 3h14"/><path d="m18 13-6-6-6 6"/><path d="M12 7v14"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></symbol>
+    <symbol id="i-chart-no-axes-column" viewBox="0 0 24 24"><path d="M5 21v-6"/><path d="M12 21V3"/><path d="M19 21V9"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></symbol>
+    <symbol id="i-circle-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M8.35 2.69A10 10 0 0 1 21.3 15.65"/><path d="M19.08 19.08A10 10 0 1 1 4.92 4.92"/></symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057"/><path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78"/><path d="m2 2 20 20"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></symbol>
+    <symbol id="i-flag-off" viewBox="0 0 24 24"><path d="M16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/><path d="m2 2 20 20"/><path d="M4 22V4"/><path d="M7.656 2H8c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10.347"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-funnel" viewBox="0 0 24 24"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+    <symbol id="i-images" viewBox="0 0 24 24"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16"/><path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2"/><circle cx="13" cy="7" r="1" fill="currentColor"/><rect x="8" y="2" width="14" height="14" rx="2"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+    <symbol id="i-layout-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></symbol>
+    <symbol id="i-star-off" viewBox="0 0 24 24"><path d="m10.344 4.688 1.181-2.393a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.237 3.152"/><path d="m17.945 17.945.43 2.505a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a8 8 0 0 0 .4-.099"/><path d="m2 2 20 20"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  </svg>
+  <!-- icons:end -->
   <!-- All text comes from js/strings.js: data-i18n names the key, see js/i18n.js. -->
   <div id="status" role="status" hidden></div>
   <div id="live" class="sr-only" aria-live="polite"></div>
@@ -29,9 +57,9 @@
         </div>
       </header>
       <div class="search-box">
-        <svg class="icon search-icon" aria-hidden="true"><use href="/vendor/lucide.svg#search"></use></svg>
+        <svg class="icon search-icon" aria-hidden="true"><use href="#i-search"></use></svg>
         <input id="source-search" type="search" data-i18n-placeholder="home.search" data-i18n-aria-label="home.search" autocomplete="off" enterkeyhint="search">
-        <button id="search-clear" type="button" data-i18n-aria-label="home.searchClear" hidden><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
+        <button id="search-clear" type="button" data-i18n-aria-label="home.searchClear" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg></button>
       </div>
       <div class="home-sorts">
         <label><span data-i18n="sort.folders"></span>
@@ -48,7 +76,7 @@
             <option value="name" data-i18n="sort.fileName"></option>
           </select>
         </label>
-        <button id="to-top" type="button" data-i18n-aria-label="home.toTop"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#arrow-up-to-line"></use></svg><span data-i18n="home.toTop"></span></button>
+        <button id="to-top" type="button" data-i18n-aria-label="home.toTop"><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-to-line"></use></svg><span data-i18n="home.toTop"></span></button>
       </div>
     </div>
     <div id="home-list" class="home-list">
@@ -58,7 +86,7 @@
 
   <main id="settings" tabindex="-1" aria-labelledby="settings-title" hidden>
     <header class="settings-header">
-      <button id="settings-back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span data-i18n="common.back"></span></button>
+      <button id="settings-back" type="button"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg><span data-i18n="common.back"></span></button>
       <h1 id="settings-title" data-i18n="settings.title"></h1>
     </header>
     <div class="settings-body">
@@ -136,8 +164,8 @@
   <main id="viewer" tabindex="-1" aria-labelledby="title" hidden>
     <header>
       <div id="tools">
-      <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span data-i18n="common.back"></span></button>
-      <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="/vendor/lucide.svg#layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="/vendor/lucide.svg#image"></use></svg></button>
+      <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg><span data-i18n="common.back"></span></button>
+      <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="#i-layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="#i-image"></use></svg></button>
       <label id="mark-filter" hidden><span id="mark-sign" aria-hidden="true"></span><select id="mark-select" data-i18n-aria-label="filter.label"><option value="unmarked"></option><option value="all"></option><hr><option value="pick"></option><option value="reject"></option><hr><option value="star1"></option><option value="star2"></option><option value="star3"></option><option value="star4"></option><option value="star5"></option><hr><option value="red"></option><option value="yellow"></option><option value="green"></option><option value="blue"></option><option value="purple"></option></select></label>
       </div>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
@@ -153,22 +181,22 @@
     <div id="stage">
       <img id="photo" alt="">
       <div id="badges" aria-hidden="true" hidden>
-        <span class="part mark-flag"><svg class="icon pick-icon"><use href="/vendor/lucide.svg#flag"></use></svg><svg class="icon reject-icon"><use href="/vendor/lucide.svg#ban"></use></svg></span>
-        <span class="part mark-rating"><svg class="icon"><use href="/vendor/lucide.svg#star"></use></svg><span class="value"></span></span>
+        <span class="part mark-flag"><svg class="icon pick-icon"><use href="#i-flag"></use></svg><svg class="icon reject-icon"><use href="#i-ban"></use></svg></span>
+        <span class="part mark-rating"><svg class="icon"><use href="#i-star"></use></svg><span class="value"></span></span>
         <span class="part mark-label"><span class="dot"></span></span>
-        <span class="part mark-unsynced"><svg class="icon"><use href="/vendor/lucide.svg#cloud-off"></use></svg></span>
+        <span class="part mark-unsynced"><svg class="icon"><use href="#i-cloud-off"></use></svg></span>
       </div>
       <button id="info" type="button" aria-expanded="true" hidden>
         <span class="sr-only" data-i18n="exif.title"></span>
-        <svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chart-no-axes-column"></use></svg>
+        <svg class="icon" aria-hidden="true"><use href="#i-chart-no-axes-column"></use></svg>
         <canvas id="histogram" width="512" height="192" aria-hidden="true"></canvas>
         <span id="exposure"></span>
         <span id="lens"></span>
       </button>
       <div id="flash" aria-hidden="true"></div>
       <div id="pull" aria-hidden="true"></div>
-      <span id="tap-prev" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="/vendor/lucide.svg#chevron-left"></use></svg></span>
-      <span id="tap-next" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="/vendor/lucide.svg#chevron-right"></use></svg></span>
+      <span id="tap-prev" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="#i-chevron-left"></use></svg></span>
+      <span id="tap-next" class="tap-hint" aria-hidden="true"><svg class="icon"><use href="#i-chevron-right"></use></svg></span>
       <span id="caption" aria-hidden="true" hidden></span>
       <p id="empty" role="status" hidden></p>
     </div>
@@ -178,22 +206,22 @@
       <p id="error" role="alert" hidden></p>
       <footer id="actions">
         <div class="row flags">
-          <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#flag"></use></svg><span data-i18n="mark.pick"></span></button>
-          <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#ban"></use></svg><span data-i18n="mark.reject"></span></button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="1"><svg class="icon" aria-hidden="true"><use href="#i-flag"></use></svg><span data-i18n="mark.pick"></span></button>
+          <button type="button" class="flag" data-field="pickStatus" data-value="-1"><svg class="icon" aria-hidden="true"><use href="#i-ban"></use></svg><span data-i18n="mark.reject"></span></button>
         </div>
         <div class="row stars">
-          <button type="button" data-field="rating" data-value="1" data-i18n-aria-label="mark.stars" data-n="1"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="2" data-i18n-aria-label="mark.stars" data-n="2"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="3" data-i18n-aria-label="mark.stars" data-n="3"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="4" data-i18n-aria-label="mark.stars" data-n="4"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
-          <button type="button" data-field="rating" data-value="5" data-i18n-aria-label="mark.stars" data-n="5"><svg aria-hidden="true"><use href="/vendor/lucide.svg#star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="1" data-i18n-aria-label="mark.stars" data-n="1"><svg aria-hidden="true"><use href="#i-star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="2" data-i18n-aria-label="mark.stars" data-n="2"><svg aria-hidden="true"><use href="#i-star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="3" data-i18n-aria-label="mark.stars" data-n="3"><svg aria-hidden="true"><use href="#i-star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="4" data-i18n-aria-label="mark.stars" data-n="4"><svg aria-hidden="true"><use href="#i-star"></use></svg></button>
+          <button type="button" data-field="rating" data-value="5" data-i18n-aria-label="mark.stars" data-n="5"><svg aria-hidden="true"><use href="#i-star"></use></svg></button>
         </div>
         <div class="row swatches">
-          <button type="button" class="red" data-field="label" data-value="red" data-i18n-aria-label="label.red"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>
-          <button type="button" class="yellow" data-field="label" data-value="yellow" data-i18n-aria-label="label.yellow"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>
-          <button type="button" class="green" data-field="label" data-value="green" data-i18n-aria-label="label.green"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>
-          <button type="button" class="blue" data-field="label" data-value="blue" data-i18n-aria-label="label.blue"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>
-          <button type="button" class="purple" data-field="label" data-value="purple" data-i18n-aria-label="label.purple"><svg class="icon check" aria-hidden="true"><use href="/vendor/lucide.svg#check"></use></svg></button>
+          <button type="button" class="red" data-field="label" data-value="red" data-i18n-aria-label="label.red"><svg class="icon check" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="yellow" data-field="label" data-value="yellow" data-i18n-aria-label="label.yellow"><svg class="icon check" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="green" data-field="label" data-value="green" data-i18n-aria-label="label.green"><svg class="icon check" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="blue" data-field="label" data-value="blue" data-i18n-aria-label="label.blue"><svg class="icon check" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="purple" data-field="label" data-value="purple" data-i18n-aria-label="label.purple"><svg class="icon check" aria-hidden="true"><use href="#i-check"></use></svg></button>
         </div>
       </footer>
     </aside>
@@ -203,7 +231,7 @@
     <div class="dialog-body">
       <div class="dialog-head">
         <h2 id="cache-title" tabindex="-1"></h2>
-        <button id="cache-close" type="button" data-i18n-aria-label="cache.close"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#x"></use></svg></button>
+        <button id="cache-close" type="button" data-i18n-aria-label="cache.close"><svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg></button>
       </div>
       <p id="cache-note"></p>
       <button id="cache-unmarked" type="button" class="choice" disabled><span data-i18n="cache.unmarked"></span><span class="choice-detail"></span></button>
