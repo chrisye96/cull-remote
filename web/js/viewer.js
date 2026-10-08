@@ -15,6 +15,7 @@ const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
 const PULL_FOLLOW = 0.35; // The photo moves this fraction of the finger's vertical travel.
+const SWAP_GRACE_MS = 150; // How long the photo on screen may stay while the next one loads.
 const PULL_MAX_PX = 200; // Far enough that a pull across a phone screen never reaches it.
 const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on this device.
 
@@ -137,15 +138,60 @@ function setFilter(next) {
   if (gridOpen) revealInGrid();
 }
 
-// Point the image at the current photo only when the URL changed, and keep the old
-// bitmap hidden until the new one has loaded so it never shows under new metadata.
+let shown = null; // The decoded image now on screen; the histogram is counted from it.
+let hideTimer = null; // Runs while a photo that was asked for is not on screen yet.
+
+function settleSwap() {
+  clearTimeout(hideTimer);
+  hideTimer = null;
+}
+
+// Load `src` off screen and put it on screen once it can be painted. Until then the photo
+// already there stays, so two cached photos follow each other with no blank between them,
+// which is what flipping back and forth to compare needs. The old photo would otherwise sit
+// under the next one's name and marks, so it is hidden once the wait passes SWAP_GRACE_MS.
+// The wait is counted from the first photo asked for, not restarted by each quick step.
+function loadPhoto(url, src = url) {
+  const img = $('photo');
+  hideTimer ??= setTimeout(() => {
+    img.classList.add('loading');
+    render();
+  }, SWAP_GRACE_MS);
+  const next = new Image();
+  next.src = src;
+  next.decode().then(() => {
+    if (img.dataset.url !== url) return; // Another photo was asked for meanwhile.
+    settleSwap();
+    img.src = src;
+    img.classList.remove('loading');
+    failedUrl = null;
+    shown = next;
+    render();
+    warmNeighbours();
+  }, () => {
+    if (img.dataset.url !== url) return;
+    settleSwap();
+    failedUrl = url;
+    render();
+  });
+}
+
+// Fetch the previews on either side once a photo is on screen, so a step forward or back is
+// ready within the grace. Not on every step: skipping quickly through a folder would queue
+// three previews behind each photo passed, and Lightroom renders them one at a time.
+function warmNeighbours() {
+  for (const near of [list[index + 1], list[index + 2], list[index - 1]]) {
+    if (near) new Image().src = previewUrl(near.id, previewSize());
+  }
+}
+
+// Point the image at the current photo only when the URL changed.
 function syncImage(url) {
   const img = $('photo');
   if (img.dataset.url === url) return;
   img.dataset.url = url;
   failedUrl = null;
-  img.classList.add('loading');
-  img.src = url;
+  loadPhoto(url);
 }
 
 // All of the photo's marks in one pill. The parts are static; only classes and text
@@ -193,7 +239,7 @@ function renderBadges(photo) {
 const HIST_SAMPLE_PX = 320; // Longest side of the downscaled copy the histogram is counted from.
 const HIST_SMOOTH = 2; // Levels averaged on either side; 0 draws the raw counts.
 const HIST_COLORS =['#ff4d4d', '#3ddc5a', '#4d7dff']; // Together they add up to white.
-let histSrc = ''; // Address of the bitmap the histogram shows; '' while it is blank.
+let histFrom = null; // The image the histogram was counted from; null while it is blank.
 let sampler = null;
 
 // Exposure, lens and a histogram of the preview on screen. render() runs on every sync
@@ -211,23 +257,25 @@ function renderInfo(photo) {
   $('histogram').hidden = !wantHistogram;
   if ($('exposure').textContent !== exposure) $('exposure').textContent = exposure;
   if ($('lens').textContent !== lens) $('lens').textContent = lens;
+  // It follows the photo: it changes in the same step as the photo does, and is blank only
+  // while the photo is hidden.
   const img = $('photo');
-  const shown = Boolean(photo) && wantHistogram && !collapsed && !img.hidden && !img.classList.contains('loading') && img.naturalWidth > 0;
-  const src = shown ? img.currentSrc : '';
-  if (src === histSrc) return;
-  histSrc = src;
+  const onScreen = Boolean(photo) && wantHistogram && !collapsed && !img.hidden && !img.classList.contains('loading');
+  const source = onScreen ? shown : null;
+  if (source === histFrom) return;
+  histFrom = source;
   const canvas = $('histogram');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!shown) return;
+  if (!source) return;
   // ponytail: counted from a small copy, where a few clipped pixels average away. Count
   // the full preview if exact clipping ever matters.
-  const scale = HIST_SAMPLE_PX / Math.max(img.naturalWidth, img.naturalHeight);
+  const scale = HIST_SAMPLE_PX / Math.max(source.naturalWidth, source.naturalHeight);
   sampler ??= document.createElement('canvas');
-  sampler.width = Math.max(1, Math.round(img.naturalWidth * scale));
-  sampler.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  sampler.width = Math.max(1, Math.round(source.naturalWidth * scale));
+  sampler.height = Math.max(1, Math.round(source.naturalHeight * scale));
   const copy = sampler.getContext('2d', { willReadFrequently: true });
-  copy.drawImage(img, 0, 0, sampler.width, sampler.height);
+  copy.drawImage(source, 0, 0, sampler.width, sampler.height);
   const bins = histogram(copy.getImageData(0, 0, sampler.width, sampler.height).data).map((channel) => smoothBins(channel, HIST_SMOOTH));
   // Pure black and pure white hold the clipped pixels and can dwarf every other level,
   // so they do not set the scale; a clipped end shows as a full-height bar instead.
@@ -337,8 +385,6 @@ function render() {
     // Pulse only while a request is really in flight; offline, the pill shows the waiting state.
     button.classList.toggle('pending', getLink() === '' && hasPending(photo.id, field));
   }
-  // Warm the next two previews so swiping feels instant.
-  if (!showGrid) for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
   placeOverlays();
 }
 
@@ -363,10 +409,11 @@ function go(delta) {
 function retryPreview() {
   const photo = list[index];
   if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return false;
+  const url = previewUrl(photo.id, previewSize());
   failedUrl = null;
   $('photo').classList.add('loading');
   // Cache-busting param so the browser refetches instead of replaying the failure.
-  $('photo').src = `${previewUrl(photo.id, previewSize())}&retry=${Date.now()}`;
+  loadPhoto(url, `${url}&retry=${Date.now()}`);
   render();
   return true;
 }
@@ -440,11 +487,8 @@ export function initViewer(onBack) {
     const button = event.target.closest('button');
     if (button) mark(button.dataset.field, button.dataset.value);
   });
-  $('photo').addEventListener('load', () => {
-    $('photo').classList.remove('loading');
-    failedUrl = null;
-    render();
-  });
+  // loadPhoto has already shown the photo; this only moves the overlays to its new box.
+  $('photo').addEventListener('load', render);
   new ResizeObserver(placeOverlays).observe($('stage'));
   $('photo').addEventListener('error', () => {
     failedUrl = $('photo').dataset.url;
@@ -672,7 +716,11 @@ export async function openViewer(nextSource) {
   gridOpen = false;
   photoBox = { left: 0, width: 0 };
   $('stage').classList.remove('overlays-off');
+  // The last folder's photo must not stand in for this one while its list loads.
   delete $('photo').dataset.url;
+  $('photo').classList.add('loading');
+  shown = null;
+  settleSwap();
   sourceName = nextSource.name;
   filter = readChoice('defaultFilter', FILTERS, 'unmarked');
   notice = t('viewer.loading');

@@ -152,7 +152,7 @@ Deleting is out of scope on purpose. Mark photos as rejected on the phone, then 
 | `plugin/cull-remote.lrplugin` | Lightroom plug-in that long-polls the local companion server and runs its commands |
 | `server/` | Companion server (Node.js 24) on your computer, listening on `127.0.0.1` only |
 | `web/` | The page you open on the phone or tablet |
-| `tools/` | Scripts that generate the logo files and the Lightroom glossary; see `tools/README.md` |
+| `tools/` | Scripts that generate the logo files, the icon sprite in the page and the Lightroom glossary; see `tools/README.md` |
 | `spike/` | The preview performance experiment from development; results in `docs/spike-results.md` |
 
 The page is published to your own devices with `tailscale serve` over HTTPS. It is reachable only inside your tailnet, never on the public internet.
@@ -164,6 +164,7 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - All interface text is in `web/js/strings.js`, one table per language with English as the reference. To add a language, add a table there and its name to `LANGUAGES` in `web/js/i18n.js`. `npm test` fails while a key or a placeholder is missing
 - `tools/lightroom-terms.json` lists what Lightroom calls each thing in all of its languages
 - The logo and icons are generated: `docs/brand/` and `web/icons/` come from a script described in `tools/README.md`
+- The interface icons are Lucide icons copied into `web/index.html`, only the ones in use. After adding or removing one, run `node tools/icons.mjs` from the repository root; `npm test` fails until the page matches
 - Branches: `main` is stable, `dev` integrates, features go on `feat/*` and fixes on `fix/*`
 
 ## Known limitations

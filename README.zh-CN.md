@@ -152,7 +152,7 @@
 | `plugin/cull-remote.lrplugin` | Lightroom 增效工具，长轮询本机伴随服务并执行指令 |
 | `server/` | 电脑上运行的伴随服务（Node.js 24），只监听 `127.0.0.1` |
 | `web/` | 手机和平板上打开的网页 |
-| `tools/` | 生成 logo 文件和 Lightroom 术语表的脚本，见 `tools/README.md` |
+| `tools/` | 生成 logo 文件、页面里的图标和 Lightroom 术语表的脚本，见 `tools/README.md` |
 | `spike/` | 开发期的预览性能实验，结论见 `docs/spike-results.md` |
 
 网页通过 `tailscale serve` 以 HTTPS 发布给你自己的设备，只在你的 tailnet 内可达，不会暴露到公网。
@@ -164,6 +164,7 @@
 - 界面文字都在 `web/js/strings.js`，每种语言一张表，以英语为基准。新增语言时在那里加一张表，并把语言名加到 `web/js/i18n.js` 的 `LANGUAGES`。缺少键或占位符时 `npm test` 会失败
 - `tools/lightroom-terms.json` 列出了 Lightroom 在它支持的每种语言里对各个概念的叫法
 - logo 和图标是生成出来的：`docs/brand/` 和 `web/icons/` 由脚本产生，说明见 `tools/README.md`
+- 界面上的图标取自 Lucide，只把用到的那些复制进 `web/index.html`。新增或去掉图标后，在仓库根目录运行 `node tools/icons.mjs`；页面和实际用到的图标不一致时 `npm test` 会失败
 - 分支：`main` 稳定，`dev` 集成，功能在 `feat/*`，修复在 `fix/*`
 
 ## 已知限制

@@ -62,7 +62,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, address = async () => null, version = '' }) {
+export function createApp({ bridge, previews, webDir, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, address = async () => null, version = '' }) {
   // ponytail: in-memory, forgotten on restart, and only the newest DONE_OPS_CAP ids are
   // kept. Ops are "set field to value", so a replay is harmless; persist only if that
   // ever stops being true.
@@ -170,7 +170,6 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
   }
 
   async function serveStatic(res, pathname) {
-    if (Object.hasOwn(vendor, pathname)) return sendFile(res, vendor[pathname]);
     let rel;
     try {
       rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));

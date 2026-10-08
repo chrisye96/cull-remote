@@ -57,7 +57,6 @@ const app = createApp({
   bridge,
   previews: createPreviewStore(path.join(root, '.cache', dev ? 'dev-previews' : 'previews'), bridge),
   webDir: path.join(root, 'web'),
-  vendor: { '/vendor/lucide.svg': path.join(root, 'node_modules', 'lucide-static', 'sprite.svg') },
   publicPort: PUBLIC_PORT,
   atHome: async (req) => atHome(await tailscaleStatus(), clientIp(req), os.networkInterfaces()),
   address: tailnetUrl,
