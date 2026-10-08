@@ -135,8 +135,11 @@
 
   <main id="viewer" tabindex="-1" aria-labelledby="title" hidden>
     <header>
+      <div id="tools">
       <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span data-i18n="common.back"></span></button>
       <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="/vendor/lucide.svg#layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="/vendor/lucide.svg#image"></use></svg></button>
+      <label id="mark-filter" hidden><span id="mark-sign" aria-hidden="true"></span><select id="mark-select" data-i18n-aria-label="filter.label"><option value="" hidden></option><option value="pick"></option><option value="reject"></option><hr><option value="star1"></option><option value="star2"></option><option value="star3"></option><option value="star4"></option><option value="star5"></option><hr><option value="red"></option><option value="yellow"></option><option value="green"></option><option value="blue"></option><option value="purple"></option></select></label>
+      </div>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" data-i18n-aria-label="filter.label">
         <button type="button" data-filter="unmarked"><span data-i18n="filter.unmarked"></span><span class="count"></span></button>

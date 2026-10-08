@@ -30,6 +30,19 @@ const queue = createLoadQueue(LOADS_AT_ONCE, (cell, done) => {
   img.src = previewUrl(cell.photo.id, 'thumb');
 });
 
+// One mark drawn small: a flag, a reject sign, or a star with its count.
+export function markSign(part) {
+  if (part.kind === 'rating') {
+    const stars = document.createElement('span');
+    stars.className = 'cell-stars';
+    stars.append(icon('star'), String(part.value));
+    return stars;
+  }
+  const sign = icon(part.kind === 'pick' ? 'flag' : 'ban');
+  sign.classList.add(part.kind);
+  return sign;
+}
+
 // The same signs as the pill on the single photo: a flag or a ban, a star with its count,
 // and the colour label as a strip along the bottom edge. A rejected photo is dimmed.
 function drawMarks(cell) {
@@ -40,20 +53,12 @@ function drawMarks(cell) {
   const signs = [];
   const said = [photo.name];
   for (const part of badgeParts(photo)) {
-    if (part.kind === 'rating') {
-      const stars = document.createElement('span');
-      stars.className = 'cell-stars';
-      stars.append(icon('star'), String(part.value));
-      signs.push(stars);
-      said.push(markSummary('rating', part.value).text);
-    } else if (part.kind === 'label') {
+    if (part.kind === 'label') {
       said.push(markSummary('label', part.value).text);
-    } else {
-      const sign = icon(part.kind === 'pick' ? 'flag' : 'ban');
-      sign.classList.add(part.kind);
-      signs.push(sign);
-      said.push(markSummary('pickStatus', photo.pick).text);
+      continue;
     }
+    signs.push(markSign(part));
+    said.push(part.kind === 'rating' ? markSummary('rating', part.value).text : markSummary('pickStatus', photo.pick).text);
   }
   cell.querySelector('.cell-marks').replaceChildren(...signs);
   cell.querySelector('.cell-label').className = `cell-label dot ${photo.label}`;

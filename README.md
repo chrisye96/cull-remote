@@ -51,11 +51,13 @@ The same address works at home and away. At home Tailscale connects directly ove
 | Tap the photo info panel | Fold it down to an icon; tap the icon to open it again |
 | Tap the grid button beside Back | Open the thumbnail grid. The button then shows a single photo; tap it again to return |
 | Tap "Unmarked" or "All" | Switch the filter; both show live counts |
+| Tap the funnel beside the grid button | Choose a mark filter: picks, rejects, a minimum rating or one colour label |
 
 - While you drag up or down, the photo follows your finger and a hint shows what releasing will do. Let go early and nothing happens
 - A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
 - Pick and reject jump to the next photo; stars and labels stay on the current one. Settings can make every mark advance, or none
 - Switching the filter keeps you on the current photo when it is in the new list
+- A mark filter shows one kind of photo at a time, for a second or third pass. Its menu lists how many photos each choice would show. While one is on, the funnel turns into that mark; tap "Unmarked" or "All" to leave it
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels. Left-hand mode in settings puts the rail on the left
 - Each folder or collection remembers the photo you were on, per device, so going back and reopening it resumes there

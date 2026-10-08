@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, tallyMarks } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -298,4 +298,43 @@ test('createLoadQueue runs a limited number at once and skips what was dropped b
   finish.get('d')();
   finish.get('c')();
   assert.deepEqual(started, ['a', 'b', 'd', 'c']);
+});
+
+test('matchesFilter keeps one flag, a minimum rating or one colour label', () => {
+  const photo = { ...blank(), pick: 1, rating: 3, label: 'red' };
+  assert.equal(matchesFilter(photo, 'all'), true);
+  assert.equal(matchesFilter(photo, 'unmarked'), false);
+  assert.equal(matchesFilter(blank(), 'unmarked'), true);
+  assert.equal(matchesFilter(photo, 'pick'), true);
+  assert.equal(matchesFilter(photo, 'reject'), false);
+  assert.equal(matchesFilter({ ...blank(), pick: -1 }, 'reject'), true);
+  assert.equal(matchesFilter(photo, 'star3'), true);
+  assert.equal(matchesFilter(photo, 'star1'), true);
+  assert.equal(matchesFilter(photo, 'star4'), false);
+  assert.equal(matchesFilter(photo, 'red'), true);
+  assert.equal(matchesFilter(photo, 'blue'), false);
+  assert.equal(matchesFilter(blank(), 'star1'), false);
+});
+
+test('tallyMarks counts what every mark filter would show, in one pass', () => {
+  const photos = [
+    { ...blank(), pick: 1, rating: 3, label: 'red' },
+    { ...blank(), pick: 1, rating: 5 },
+    { ...blank(), pick: -1 },
+    blank(),
+  ];
+  const counts = tallyMarks(photos);
+  assert.deepEqual(Object.keys(counts), MARK_FILTERS);
+  for (const name of MARK_FILTERS) assert.equal(counts[name], photos.filter((photo) => matchesFilter(photo, name)).length, name);
+  assert.equal(counts.pick, 2);
+  assert.equal(counts.star3, 2);
+  assert.equal(counts.star5, 1);
+});
+
+test('filterLabel names flags and colours in words and ratings in stars', () => {
+  assert.equal(filterLabel('pick'), '留用');
+  assert.equal(filterLabel('reject'), '排除');
+  assert.equal(filterLabel('star3'), '\u2605\u2605\u2605+');
+  assert.equal(filterLabel('star5'), '\u2605\u2605\u2605\u2605\u2605');
+  assert.equal(filterLabel('purple'), '紫色');
 });
