@@ -5,11 +5,11 @@ import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
 import { t } from './i18n.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterLabel, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
-import { initGrid, renderGrid, revealInGrid } from './grid.js';
+import { initGrid, renderGrid, revealInGrid, markSign } from './grid.js';
 
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
@@ -21,7 +21,7 @@ const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on 
 let all = [];
 let list = [];
 let index = 0;
-let onlyUnmarked = true;
+let filter = 'unmarked'; // 'unmarked', 'all' or one of MARK_FILTERS.
 let sourceName = '';
 let notice = ''; // Shown in #empty when there is no photo (loading, open failure).
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
@@ -77,7 +77,7 @@ function showError(text) {
 }
 
 function applyFilter(keepPhotoId = null) {
-  list = onlyUnmarked ? all.filter(isUnmarked) : all.slice();
+  list = all.filter((photo) => matchesFilter(photo, filter));
   index = indexAfterFilter(list, keepPhotoId);
 }
 
@@ -90,8 +90,48 @@ function renderFilter() {
     const countEl = button.querySelector('.count');
     const count = String(isAll ? all.length : unmarked);
     if (countEl.textContent !== count) countEl.textContent = count;
-    button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
+    button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
   }
+  // The menu of mark filters doubles as a tally of the folder's marks. A filter that would
+  // show nothing cannot be chosen.
+  const counts = tallyMarks(all);
+  const select = $('mark-select');
+  for (const option of select.options) {
+    if (!option.value) continue;
+    const text = `${filterLabel(option.value)}  ${counts[option.value]}`;
+    if (option.textContent !== text) option.textContent = text;
+    option.disabled = counts[option.value] === 0;
+  }
+  const marked = MARK_FILTERS.includes(filter);
+  select.value = marked ? filter : '';
+  const box = $('mark-filter');
+  box.hidden = all.length === 0;
+  if (box.dataset.shows !== filter) {
+    box.dataset.shows = filter;
+    $('mark-sign').replaceChildren(marked ? filterSign(filter) : icon('funnel'));
+  }
+}
+
+// The icon in the tool row says which mark filter is on: its flag, its stars or its colour.
+function filterSign(name) {
+  if (name === 'pick' || name === 'reject') return markSign({ kind: name });
+  if (name.startsWith('star')) {
+    const stars = Number(name.slice(4));
+    return markSign({ kind: 'rating', value: stars < 5 ? `${stars}+` : '5' });
+  }
+  const dot = document.createElement('span');
+  dot.className = `dot ${name}`;
+  return dot;
+}
+
+function setFilter(next) {
+  if (next === filter) return;
+  const currentId = list[index]?.id ?? null;
+  filter = next;
+  applyFilter(currentId);
+  showError('');
+  render();
+  if (gridOpen) revealInGrid();
 }
 
 // Point the image at the current photo only when the URL changed, and keep the old
@@ -278,7 +318,7 @@ function render() {
     writePref('lastPhoto', lastPhoto);
   }
   if (!photo) {
-    $('empty').textContent = notice || t(onlyUnmarked ? 'viewer.noUnmarked' : 'viewer.noPhotos');
+    $('empty').textContent = notice || t(filter === 'unmarked' ? 'viewer.noUnmarked' : 'viewer.noPhotos');
     placeOverlays();
     return;
   }
@@ -387,15 +427,10 @@ export function initViewer(onBack) {
   });
   $('filter').addEventListener('click', (event) => {
     const button = event.target.closest('button');
-    if (!button) return;
-    const wantUnmarked = button.dataset.filter === 'unmarked';
-    if (wantUnmarked === onlyUnmarked) return;
-    const currentId = list[index]?.id ?? null;
-    onlyUnmarked = wantUnmarked;
-    applyFilter(currentId);
-    showError('');
-    render();
-    if (gridOpen) revealInGrid();
+    if (button) setFilter(button.dataset.filter);
+  });
+  $('mark-select').addEventListener('change', (event) => {
+    if (event.target.value) setFilter(event.target.value);
   });
   $('actions').addEventListener('click', (event) => {
     const button = event.target.closest('button');
@@ -633,7 +668,7 @@ export async function openViewer(nextSource) {
   $('stage').classList.remove('overlays-off');
   delete $('photo').dataset.url;
   sourceName = nextSource.name;
-  onlyUnmarked = readChoice('defaultFilter', FILTERS, 'unmarked') === 'unmarked';
+  filter = readChoice('defaultFilter', FILTERS, 'unmarked');
   notice = t('viewer.loading');
   loading = true;
   savedAtSettled = settledOps; // loadPhotos writes the offline copy itself.

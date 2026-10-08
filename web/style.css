@@ -138,9 +138,12 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 #title { flex: 1; min-width: 0; display: flex; justify-content: center; text-align: center; font-size: 14px; color: var(--muted); }
 #photo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #photo-pos { flex: none; margin-left: .6em; }
-/* Back is an arrow in every layout; the word stays for screen readers. */
-#back { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 0; }
-#back .icon { width: 18px; height: 18px; }
+/* Back, the grid switch and the mark filter: three plain icons side by side. A frame is kept
+   for the control that has a state to show, the filter. */
+#tools { display: flex; flex: none; }
+#tools > * { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--text); }
+#tools .icon { width: 20px; height: 20px; }
+/* Back is an arrow; the word stays for screen readers. */
 #back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* The photo and the thumbnail grid take turns in this box. */
 #view { flex: 1; min-height: 0; display: flex; }
@@ -269,10 +272,15 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 /* Hidden with the other overlays, it must not swallow taps meant for the photo. */
 #stage.overlays-off #info { pointer-events: none; }
 
-/* Switch between the photo and the grid: a square like Back and right beside it in every layout.
-   Its icon shows where a tap leads: the grid from the photo, a single photo from the grid. */
-#grid-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 0; }
-#grid-toggle .icon { width: 18px; height: 18px; }
+/* The grid switch shows where a tap leads: the grid from the photo, a single photo from the grid. */
+/* The mark filter is a native menu laid invisibly over its icon. While a filter is on, the
+   icon is that mark: its flag, its stars or its colour. */
+#mark-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
+#mark-filter:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+#mark-sign { display: inline-flex; }
+#mark-filter .dot { width: 14px; height: 14px; border-radius: 50%; }
+#mark-filter .cell-stars { font-size: 12px; }
+#mark-filter .cell-stars .icon { width: 14px; height: 14px; }
 #grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
 
 /* Thumbnail grid: whole photos in square cells, as many columns as fit. */
@@ -288,8 +296,8 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 .cell-marks { position: absolute; top: 3px; left: 3px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; line-height: 1; }
 .cell-marks:empty { display: none; }
 .cell-marks .icon { width: 10px; height: 10px; stroke-width: 2.5; }
-.cell-marks .pick { color: var(--accent); }
-.cell-marks .reject { color: rgba(255, 107, 107, .9); }
+.cell-marks .pick, #mark-filter .pick { color: var(--accent); }
+.cell-marks .reject, #mark-filter .reject { color: rgba(255, 107, 107, .9); }
 .cell-stars { display: inline-flex; align-items: center; gap: 2px; color: rgba(245, 197, 24, .9); }
 .cell-stars .icon { fill: currentColor; }
 .cell-label { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
@@ -302,13 +310,11 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
-  #back { grid-area: 1 / 2; justify-self: start; align-self: center; width: var(--half); min-height: 34px; padding: 0; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 8px; }
+  #tools { grid-area: 1 / 2; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 8px; }
+  #tools > * { flex: 1; width: auto; min-height: 30px; }
   #title { display: none; }
-  #status:not([hidden]) ~ #viewer #back, #status:not([hidden]) ~ #viewer #grid-toggle { margin-top: 8px; }
-  /* Back and the grid switch share the first row of the rail, half each. Back comes first in every layout. */
-  #viewer { --half: calc((var(--rail) - 22px) / 2); }
-  #grid-toggle { grid-area: 1 / 2; justify-self: start; align-self: center; width: var(--half); min-height: 34px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 calc(14px + var(--half)); }
-  #grid-toggle .icon { width: 16px; height: 16px; }
+  #status:not([hidden]) ~ #viewer #tools { margin-top: 8px; }
+  /* The three icons share the first row of the rail, a third each. */
   #filter { grid-area: 2 / 2; margin: 6px calc(env(safe-area-inset-right) + 8px) 0 8px; }
   #filter button { flex: 1; min-height: 0; padding: 4px 0; font-size: 12px; line-height: 1.25; white-space: normal; }
   #filter .count { display: block; margin: 0; }
@@ -350,14 +356,13 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   /* Left-hand mode: the rail moves to the left edge. */
   .left-hand #viewer { grid-template-columns: calc(var(--rail) + env(safe-area-inset-left)) minmax(0, 1fr); }
   .left-hand #viewer::before { grid-area: 1 / 1 / 4 / 2; border-left: 0; border-right: 1px solid var(--line); }
-  .left-hand #back { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); }
+  .left-hand #tools { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #filter { grid-area: 2 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #side { grid-area: 3 / 1; }
   .left-hand #view { grid-area: 1 / 2 / 4 / 3; }
   .left-hand #stage { padding-left: 0; padding-right: env(safe-area-inset-right); }
   .left-hand #grid { padding-left: 3px; padding-right: calc(env(safe-area-inset-right) + 3px); }
   .left-hand #stage #info { right: calc(env(safe-area-inset-right) + 10px); }
-  .left-hand #grid-toggle { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 14px + var(--half)); }
   .left-hand #error { padding: 6px 8px 6px calc(env(safe-area-inset-left) + 8px); }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: 8px; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
@@ -371,10 +376,9 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
 @media (orientation: landscape) and (min-height: 600px) {
-  #viewer { --rail: clamp(150px, 15vw, 200px); --half: calc((var(--rail) - 28px) / 2); }
-  #back { min-height: 44px; font-size: 16px; margin-left: 10px; }
-  #grid-toggle { min-height: 44px; margin-left: calc(18px + var(--half)); }
-  #back .icon, #grid-toggle .icon { width: 20px; height: 20px; }
+  #viewer { --rail: clamp(150px, 15vw, 200px); }
+  #tools { margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
+  #tools > * { min-height: 36px; }
   #filter { margin-top: 8px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
   #filter button { padding: 8px 0; font-size: 15px; }
   #actions { grid-template-rows: auto auto; align-content: center; gap: 8px; padding-left: 10px; padding-right: calc(env(safe-area-inset-right) + 10px); }
@@ -384,8 +388,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #actions .flag .icon { width: 26px; height: 26px; }
   #actions .stars svg { width: 28px; height: 28px; }
   .swatches .check { width: 26px; height: 26px; }
-  .left-hand #back, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
-  .left-hand #grid-toggle { margin-left: calc(env(safe-area-inset-left) + 18px + var(--half)); }
+  .left-hand #tools, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 10px); padding-right: 10px; }
 }
 
@@ -401,8 +404,8 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
 /* Phone portrait: a lower top bar leaves more of the screen to the photo. */
 @media (orientation: portrait) and (max-width: 599px) {
-  #back, #grid-toggle, #filter button { min-height: 34px; }
-  #back, #grid-toggle { width: 34px; }
+  #filter button { min-height: 34px; }
+  #tools > * { width: 30px; min-height: 34px; }
   /* The filter stacks each label over its count, as in the landscape rail, and leaves the width to the file name. */
   #filter button { padding: 2px 8px; font-size: 11px; line-height: 1.2; }
   #filter .count { display: block; margin: 0; }
