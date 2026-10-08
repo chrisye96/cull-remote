@@ -136,6 +136,7 @@
   <main id="viewer" tabindex="-1" aria-labelledby="title" hidden>
     <header>
       <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="/vendor/lucide.svg#chevron-left"></use></svg><span data-i18n="common.back"></span></button>
+      <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="/vendor/lucide.svg#layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="/vendor/lucide.svg#image"></use></svg></button>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" data-i18n-aria-label="filter.label">
         <button type="button" data-filter="unmarked"><span data-i18n="filter.unmarked"></span><span class="count"></span></button>
@@ -169,7 +170,6 @@
       <p id="empty" role="status" hidden></p>
     </div>
     <div id="grid" data-i18n-aria-label="viewer.grid" hidden></div>
-    <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="/vendor/lucide.svg#layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="/vendor/lucide.svg#image"></use></svg><span class="label" aria-hidden="true" data-i18n="viewer.grid"></span></button>
     </div>
     <aside id="side">
       <p id="error" role="alert" hidden></p>

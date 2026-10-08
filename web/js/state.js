@@ -93,7 +93,8 @@ export function exposureText(photo) {
   const parts = [];
   if (photo.shutter > 0) parts.push(formatShutter(photo.shutter));
   if (photo.aperture > 0) parts.push(`f/${+photo.aperture.toFixed(1)}`);
-  if (photo.iso > 0) parts.push(`ISO ${photo.iso}`);
+  // A no-break space: in a narrow panel the line wraps before ISO, never between it and its number.
+  if (photo.iso > 0) parts.push(`ISO\u00a0${photo.iso}`);
   return parts.join(' · ');
 }
 

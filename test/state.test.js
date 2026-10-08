@@ -245,10 +245,10 @@ test('formatShutter writes fast speeds as a fraction and slow ones in seconds', 
 
 test('exposureText and lensText leave out what the photo does not carry', () => {
   const photo = { ...blank(), shutter: 0.0008, aperture: 2.8, iso: 100, focal: 50, lens: 'NIKKOR Z 50mm f/1.8 S' };
-  assert.equal(exposureText(photo), '1/1250s · f/2.8 · ISO 100');
+  assert.equal(exposureText(photo), '1/1250s · f/2.8 · ISO\u00a0100');
   assert.equal(lensText(photo), '50mm · NIKKOR Z 50mm f/1.8 S');
-  assert.equal(exposureText({ ...photo, aperture: 8 }), '1/1250s · f/8 · ISO 100');
-  assert.equal(exposureText({ ...blank(), iso: 400 }), 'ISO 400');
+  assert.equal(exposureText({ ...photo, aperture: 8 }), '1/1250s · f/8 · ISO\u00a0100');
+  assert.equal(exposureText({ ...blank(), iso: 400 }), 'ISO\u00a0400');
   assert.equal(lensText({ ...blank(), focal: 61.7, lens: '' }), '62mm');
   assert.equal(exposureText(blank()), '');
   assert.equal(lensText(blank()), '');

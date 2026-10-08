@@ -138,9 +138,12 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 #title { flex: 1; min-width: 0; display: flex; justify-content: center; text-align: center; font-size: 14px; color: var(--muted); }
 #photo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #photo-pos { flex: none; margin-left: .6em; }
-#back { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-/* The photo and the thumbnail grid take turns in this box; the switch between them floats over its corner. */
-#view { position: relative; flex: 1; min-height: 0; display: flex; }
+/* Back is an arrow in every layout; the word stays for screen readers. */
+#back { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 0; }
+#back .icon { width: 18px; height: 18px; }
+#back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The photo and the thumbnail grid take turns in this box. */
+#view { flex: 1; min-height: 0; display: flex; }
 #stage { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
 /* The photo follows the finger through transforms. Its own compositor layer moves as a
    texture; without it WebKit repaints the stage in place and can leave rows of the photo's
@@ -266,15 +269,14 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 /* Hidden with the other overlays, it must not swallow taps meant for the photo. */
 #stage.overlays-off #info { pointer-events: none; }
 
-/* Switch between the photo and the grid. It stays put, so the way back is where the way in was. */
-#grid-toggle { position: absolute; right: 10px; bottom: 10px; width: 40px; height: 40px; min-height: 0; padding: 0; border: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .55); color: rgba(255, 255, 255, .85); transition: opacity .2s ease, transform .12s ease, filter .12s ease; }
-#grid-toggle .icon { width: 20px; height: 20px; }
-#grid-toggle .label { display: none; }
+/* Switch between the photo and the grid: a square like Back and right beside it in every layout.
+   Its icon shows where a tap leads: the grid from the photo, a single photo from the grid. */
+#grid-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 0; }
+#grid-toggle .icon { width: 18px; height: 18px; }
 #grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
-#stage.overlays-off:not([hidden]) ~ #grid-toggle { opacity: 0; pointer-events: none; }
 
-/* Thumbnail grid: whole photos in square cells, as many columns as fit. The bottom padding lets the last row scroll clear of the switch. */
-#grid { flex: 1; min-width: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 3px; padding: 3px 3px 64px; }
+/* Thumbnail grid: whole photos in square cells, as many columns as fit. */
+#grid { flex: 1; min-width: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 3px; padding: 3px 3px calc(env(safe-area-inset-bottom) + 3px); }
 .cell { position: relative; aspect-ratio: 1; min-height: 0; padding: 0; border: 0; border-radius: 4px; overflow: hidden; background: var(--panel); color: var(--muted); font-size: 11px; }
 .cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .2s ease; }
 .cell.loaded img { opacity: 1; }
@@ -300,27 +302,18 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
-  #back { grid-area: 1 / 2; justify-self: start; align-self: center; width: 34px; min-height: 34px; padding: 0; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 8px; }
+  #back { grid-area: 1 / 2; justify-self: start; align-self: center; width: var(--half); min-height: 34px; padding: 0; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 8px; }
   #title { display: none; }
-  #status:not([hidden]) ~ #viewer #back { margin-top: 8px; }
-  /* Back is reduced to its arrow to make room beside it; the word stays for screen readers. */
-  #back .icon { width: 18px; height: 18px; }
-  #back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  /* The grid switch leaves the photo's corner for the top of the rail, beside Back, where the
-     thumb already rests. Lit while the grid is open. It is placed against the viewer, not the photo area. */
-  #viewer { position: relative; }
-  #grid-toggle { top: calc(env(safe-area-inset-top) + 8px); right: calc(env(safe-area-inset-right) + 8px); bottom: auto; width: calc(var(--rail) - 56px); height: 34px; gap: 6px; border: 1px solid #333; border-radius: 10px; background: var(--panel); color: var(--text); font-size: 13px; }
-  #status:not([hidden]) ~ #viewer #grid-toggle { top: 8px; }
+  #status:not([hidden]) ~ #viewer #back, #status:not([hidden]) ~ #viewer #grid-toggle { margin-top: 8px; }
+  /* Back and the grid switch share the first row of the rail, half each. Back comes first in every layout. */
+  #viewer { --half: calc((var(--rail) - 22px) / 2); }
+  #grid-toggle { grid-area: 1 / 2; justify-self: start; align-self: center; width: var(--half); min-height: 34px; margin: calc(env(safe-area-inset-top) + 8px) 0 0 calc(14px + var(--half)); }
   #grid-toggle .icon { width: 16px; height: 16px; }
-  #grid-toggle[aria-pressed="true"] { border-color: transparent; background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  #grid-toggle[aria-pressed="true"] .to-grid { display: inline; }
-  #grid-toggle .to-photo { display: none; }
-  #stage.overlays-off:not([hidden]) ~ #grid-toggle { opacity: 1; pointer-events: auto; }
   #filter { grid-area: 2 / 2; margin: 6px calc(env(safe-area-inset-right) + 8px) 0 8px; }
   #filter button { flex: 1; min-height: 0; padding: 4px 0; font-size: 12px; line-height: 1.25; white-space: normal; }
   #filter .count { display: block; margin: 0; }
 
-  #view { grid-area: 1 / 1 / 4 / 2; position: static; }
+  #view { grid-area: 1 / 1 / 4 / 2; }
   #stage { padding-left: env(safe-area-inset-left); }
   #grid { padding: calc(env(safe-area-inset-top) + 3px) 3px calc(env(safe-area-inset-bottom) + 3px) calc(env(safe-area-inset-left) + 3px); }
   #caption { display: block; bottom: calc(max(var(--img-bottom, 0px), env(safe-area-inset-bottom)) + 10px); }
@@ -357,14 +350,14 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   /* Left-hand mode: the rail moves to the left edge. */
   .left-hand #viewer { grid-template-columns: calc(var(--rail) + env(safe-area-inset-left)) minmax(0, 1fr); }
   .left-hand #viewer::before { grid-area: 1 / 1 / 4 / 2; border-left: 0; border-right: 1px solid var(--line); }
-  .left-hand #back { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
+  .left-hand #back { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); }
   .left-hand #filter { grid-area: 2 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #side { grid-area: 3 / 1; }
   .left-hand #view { grid-area: 1 / 2 / 4 / 3; }
   .left-hand #stage { padding-left: 0; padding-right: env(safe-area-inset-right); }
   .left-hand #grid { padding-left: 3px; padding-right: calc(env(safe-area-inset-right) + 3px); }
   .left-hand #stage #info { right: calc(env(safe-area-inset-right) + 10px); }
-  .left-hand #grid-toggle { right: auto; left: calc(env(safe-area-inset-left) + 48px); }
+  .left-hand #grid-toggle { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 14px + var(--half)); }
   .left-hand #error { padding: 6px 8px 6px calc(env(safe-area-inset-left) + 8px); }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: 8px; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
@@ -378,12 +371,10 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
 @media (orientation: landscape) and (min-height: 600px) {
-  #viewer { --rail: clamp(150px, 15vw, 200px); }
-  #back { width: 44px; min-height: 44px; font-size: 16px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
-  #grid-toggle { right: calc(env(safe-area-inset-right) + 10px); width: calc(var(--rail) - 72px); height: 44px; padding: 0 6px; gap: 5px; font-size: 14px; }
-  /* The Japanese and Spanish words for the grid are long; without the icon they fit the narrowest rail. */
-  :lang(ja) #grid-toggle .icon, :lang(es) #grid-toggle .icon { display: none; }
-  #grid-toggle .label { display: inline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #viewer { --rail: clamp(150px, 15vw, 200px); --half: calc((var(--rail) - 28px) / 2); }
+  #back { min-height: 44px; font-size: 16px; margin-left: 10px; }
+  #grid-toggle { min-height: 44px; margin-left: calc(18px + var(--half)); }
+  #back .icon, #grid-toggle .icon { width: 20px; height: 20px; }
   #filter { margin-top: 8px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
   #filter button { padding: 8px 0; font-size: 15px; }
   #actions { grid-template-rows: auto auto; align-content: center; gap: 8px; padding-left: 10px; padding-right: calc(env(safe-area-inset-right) + 10px); }
@@ -394,7 +385,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #actions .stars svg { width: 28px; height: 28px; }
   .swatches .check { width: 26px; height: 26px; }
   .left-hand #back, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
-  .left-hand #grid-toggle { left: calc(env(safe-area-inset-left) + 62px); }
+  .left-hand #grid-toggle { margin-left: calc(env(safe-area-inset-left) + 18px + var(--half)); }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 10px); padding-right: 10px; }
 }
 
@@ -410,7 +401,11 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
 /* Phone portrait: a lower top bar leaves more of the screen to the photo. */
 @media (orientation: portrait) and (max-width: 599px) {
-  #back, #filter button { min-height: 34px; }
+  #back, #grid-toggle, #filter button { min-height: 34px; }
+  #back, #grid-toggle { width: 34px; }
+  /* The filter stacks each label over its count, as in the landscape rail, and leaves the width to the file name. */
+  #filter button { padding: 2px 8px; font-size: 11px; line-height: 1.2; }
+  #filter .count { display: block; margin: 0; }
 }
 
 /* iPad portrait keeps the larger check; phones use the smaller base size. */

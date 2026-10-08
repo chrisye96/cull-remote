@@ -47,9 +47,9 @@ The same address works at home and away. At home Tailscale connects directly ove
 | Swipe up | Pick |
 | Swipe down | Reject |
 | Tap a flag, a star or a colour | Set it; tap an active one again to clear it |
-| Tap the middle of the photo (the central half) | Hide or show everything laid over the photo: the mark pill, the filename tag, the photo info and the grid button |
+| Tap the middle of the photo (the central half) | Hide or show everything laid over the photo: the mark pill, the filename tag and the photo info |
 | Tap the photo info panel | Fold it down to an icon; tap the icon to open it again |
-| Tap the grid button: round, at the bottom right of the photo in portrait; beside Back at the top of the rail in landscape | Open the thumbnail grid |
+| Tap the grid button beside Back | Open the thumbnail grid. The button then shows a single photo; tap it again to return |
 | Tap "Unmarked" or "All" | Switch the filter; both show live counts |
 
 - While you drag up or down, the photo follows your finger and a hint shows what releasing will do. Let go early and nothing happens
@@ -68,7 +68,7 @@ The grid gives an overview of a folder and a way to jump to a photo. It only sho
 - It lists the same photos as the viewer and follows the "Unmarked" or "All" filter
 - Each thumbnail carries the photo's marks: a flag or a reject sign, a star with its count, and the colour label as a strip along the bottom edge. Rejected photos are dimmed
 - Tap a thumbnail to open that photo. Back in the grid, the photo you came from is outlined and scrolled into view
-- The same button takes you back to the single photo. In landscape it is lit while the grid is open
+- The grid button takes you back to the single photo
 - Thumbnails load as they scroll into view. In a folder Lightroom has no previews for yet, each one takes a few seconds, and the file name stands in until it arrives
 
 ### With a keyboard
