@@ -276,14 +276,32 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #stage.overlays-off #info { pointer-events: none; }
 
 /* The grid switch shows where a tap leads: the grid from the photo, a single photo from the grid. */
-/* The mark filter is a native menu laid invisibly over its icon. While a filter is on, the
-   icon is that mark: its flag, its stars or its colour. */
-#mark-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
-#mark-filter:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The funnel opens the mark filters. While one is on, the icon is that mark: its flag, its
+   stars or its colour. */
 #mark-sign { display: inline-flex; }
 #mark-filter .dot { width: 14px; height: 14px; border-radius: 50%; }
 #mark-filter .cell-stars { font-size: 12px; }
 #mark-filter .cell-stars .icon { width: 14px; height: 14px; }
+/* The menu is as wide as its rows need and is placed beside the funnel by viewer.js. */
+#mark-menu { inset: auto; box-sizing: border-box; width: max-content; max-width: calc(100vw - 12px); margin: 0; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+/* Nothing dims: it is a menu, and the photo behind it stays as it was. */
+#mark-menu::backdrop { background: transparent; }
+#mark-menu .mark-menu { padding: 6px; outline: none; }
+/* The mark filters, two to a row; the colours share one row. Also used outside the menu.
+   A count sits right after its mark, and the rest of the button is room to tap. */
+.mark-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; }
+.mark-menu button { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px; padding: 0 12px 0 10px; border: 0; background: transparent; font-size: 15px; text-align: left; outline-offset: -2px; }
+.mark-menu button[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.mark-menu .colours, .mark-menu hr { grid-column: 1 / -1; }
+.mark-menu hr { width: 100%; margin: 3px 0; border: 0; border-top: 1px solid #333; }
+.mark-menu .icon { flex: none; width: 16px; height: 16px; }
+/* "3" takes the room of "3+", so the counts of a column line up. */
+.mark-menu .cell-stars { gap: 4px; min-width: 2.5em; font-size: 15px; }
+.mark-menu .dot { width: 18px; height: 18px; border-radius: 50%; }
+.mark-menu .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark-menu .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mark-menu .colours { display: grid; grid-template-columns: repeat(5, 44px); justify-content: start; }
+.mark-menu .colours button { flex-direction: column; justify-content: center; gap: 5px; padding: 8px 0; }
 #grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
 
 /* Thumbnail grid: whole photos in square cells, as many columns as fit. */
@@ -299,8 +317,8 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 .cell-marks { position: absolute; top: 3px; left: 3px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; line-height: 1; }
 .cell-marks:empty { display: none; }
 .cell-marks .icon { width: 10px; height: 10px; stroke-width: 2.5; }
-.cell-marks .pick, #mark-filter .pick { color: var(--accent); }
-.cell-marks .reject, #mark-filter .reject { color: rgba(255, 107, 107, .9); }
+.cell-marks .pick, #mark-filter .pick, .mark-menu .pick { color: var(--accent); }
+.cell-marks .reject, #mark-filter .reject, .mark-menu .reject { color: rgba(255, 107, 107, .9); }
 .cell-stars { display: inline-flex; align-items: center; gap: 2px; color: rgba(245, 197, 24, .9); }
 .cell-stars .icon { fill: currentColor; }
 .cell-label { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
@@ -375,6 +393,9 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 @media (orientation: landscape) and (max-height: 599px) {
   :lang(de) #actions .flag, :lang(es) #actions .flag { font-size: 11px; letter-spacing: -.02em; }
   :lang(de) #actions .flag { letter-spacing: -.04em; }
+  /* A phone on its side is too short for full rows: lower ones let the whole menu show. */
+  .mark-menu button { min-height: 36px; }
+  .mark-menu .colours button { padding: 5px 0; }
 }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */

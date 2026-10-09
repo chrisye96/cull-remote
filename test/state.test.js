@@ -318,7 +318,7 @@ test('createLoadQueue runs a limited number at once and skips what was dropped b
   assert.deepEqual(started, ['a', 'b', 'd', 'c']);
 });
 
-test('matchesFilter keeps one flag, a minimum rating or one colour label', () => {
+test('matchesFilter keeps one flag, one rating, a minimum rating or one colour label', () => {
   const photo = { ...blank(), pick: 1, rating: 3, label: 'red' };
   assert.equal(matchesFilter(photo, 'all'), true);
   assert.equal(matchesFilter(photo, 'unmarked'), false);
@@ -326,12 +326,25 @@ test('matchesFilter keeps one flag, a minimum rating or one colour label', () =>
   assert.equal(matchesFilter(photo, 'pick'), true);
   assert.equal(matchesFilter(photo, 'reject'), false);
   assert.equal(matchesFilter({ ...blank(), pick: -1 }, 'reject'), true);
-  assert.equal(matchesFilter(photo, 'star3'), true);
-  assert.equal(matchesFilter(photo, 'star1'), true);
-  assert.equal(matchesFilter(photo, 'star4'), false);
+  assert.equal(matchesFilter(photo, 'star3+'), true);
+  assert.equal(matchesFilter(photo, 'star1+'), true);
+  assert.equal(matchesFilter(photo, 'star4+'), false);
   assert.equal(matchesFilter(photo, 'red'), true);
   assert.equal(matchesFilter(photo, 'blue'), false);
+  assert.equal(matchesFilter(blank(), 'star1+'), false);
+});
+
+test('matchesFilter tells exactly N stars from N stars or more', () => {
+  const three = { ...blank(), rating: 3 };
+  assert.equal(matchesFilter(three, 'star3'), true);
+  assert.equal(matchesFilter(three, 'star2'), false);
+  assert.equal(matchesFilter(three, 'star4'), false);
+  assert.equal(matchesFilter(three, 'star2+'), true);
   assert.equal(matchesFilter(blank(), 'star1'), false);
+  assert.equal(matchesFilter({ ...blank(), rating: 5 }, 'star5'), true);
+  // Five stars or more is five stars: there is one filter for it, not two.
+  assert.equal(MARK_FILTERS.includes('star5+'), false);
+  assert.deepEqual(MARK_FILTERS.filter((name) => name.startsWith('star')), ['star1', 'star1+', 'star2', 'star2+', 'star3', 'star3+', 'star4', 'star4+', 'star5']);
 });
 
 test('tallyMarks counts what every mark filter would show, in one pass', () => {
@@ -345,16 +358,18 @@ test('tallyMarks counts what every mark filter would show, in one pass', () => {
   assert.deepEqual(Object.keys(counts), MARK_FILTERS);
   for (const name of MARK_FILTERS) assert.equal(counts[name], photos.filter((photo) => matchesFilter(photo, name)).length, name);
   assert.equal(counts.pick, 2);
-  assert.equal(counts.star3, 2);
+  assert.equal(counts.star3, 1);
+  assert.equal(counts['star3+'], 2);
   assert.equal(counts.star5, 1);
 });
 
-test('filterLabel names flags and colours in words and ratings in stars', () => {
+test('filterLabel names flags and colours in words and ratings as a star and a number', () => {
   assert.equal(filterLabel('unmarked'), '未标记');
   assert.equal(filterLabel('all'), '全部');
   assert.equal(filterLabel('pick'), '留用');
   assert.equal(filterLabel('reject'), '排除');
-  assert.equal(filterLabel('star3'), '\u2605\u2605\u2605+');
-  assert.equal(filterLabel('star5'), '\u2605\u2605\u2605\u2605\u2605');
+  assert.equal(filterLabel('star3'), '\u26053');
+  assert.equal(filterLabel('star3+'), '\u26053+');
+  assert.equal(filterLabel('star5'), '\u26055');
   assert.equal(filterLabel('purple'), '紫色');
 });

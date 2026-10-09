@@ -9,7 +9,8 @@ import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mer
 import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
-import { initGrid, renderGrid, revealInGrid, markSign } from './grid.js';
+import { initGrid, renderGrid, revealInGrid } from './grid.js';
+import { buildMarkMenu, filterSign } from './markmenu.js';
 
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
@@ -96,36 +97,49 @@ function renderFilter() {
     if (countEl.textContent !== count) countEl.textContent = count;
     button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
   }
-  // The menu lists every filter with its count, so it doubles as a tally of the folder's
-  // marks, and the filter in use is always one of its rows: a menu with a blank row for "none
-  // of these" lets that row be picked. A mark filter that would show nothing cannot be chosen.
-  const counts = { unmarked, all: all.length, ...tallyMarks(all) };
-  const select = $('mark-select');
-  for (const option of select.options) {
-    const text = `${filterLabel(option.value)}  ${counts[option.value]}`;
-    if (option.textContent !== text) option.textContent = text;
-    option.disabled = MARK_FILTERS.includes(option.value) && counts[option.value] === 0;
-  }
+  drawMarkMenu(tallyMarks(all), filter);
+  // The icon in the tool row says which mark filter is on: its flag, its stars or its colour.
   const marked = MARK_FILTERS.includes(filter);
-  select.value = filter;
-  const box = $('mark-filter');
-  box.hidden = all.length === 0;
-  if (box.dataset.shows !== filter) {
-    box.dataset.shows = filter;
+  const button = $('mark-filter');
+  button.hidden = all.length === 0;
+  if (button.dataset.shows !== filter) {
+    button.dataset.shows = filter;
     $('mark-sign').replaceChildren(marked ? filterSign(filter) : icon('funnel'));
+    $('mark-name').textContent = marked ? `${t('filter.label')} ${filterLabel(filter)}` : t('filter.label');
   }
 }
 
-// The icon in the tool row says which mark filter is on: its flag, its stars or its colour.
-function filterSign(name) {
-  if (name === 'pick' || name === 'reject') return markSign({ kind: name });
-  if (name.startsWith('star')) {
-    const stars = Number(name.slice(4));
-    return markSign({ kind: 'rating', value: stars < 5 ? `${stars}+` : '5' });
-  }
-  const dot = document.createElement('span');
-  dot.className = `dot ${name}`;
-  return dot;
+let drawMarkMenu = () => {}; // Set by initMarkMenu.
+const MENU_GAP_PX = 6; // Between the funnel and its menu, and between the menu and the screen edge.
+
+// The mark filters open from the funnel as a menu. Tapping the one in use switches it off,
+// as tapping a mark that is already set clears it. The menu is modal: a tap outside only
+// closes it, and cannot also land on a mark button or step to another photo.
+function initMarkMenu() {
+  const menu = $('mark-menu');
+  const button = $('mark-filter');
+  button.addEventListener('click', () => {
+    // Beside its button: below it, or above when the button sits in the lower half of the
+    // screen. It is never taller than the room on that side; on a short screen it scrolls.
+    const at = button.getBoundingClientRect();
+    const below = at.top < window.innerHeight / 2;
+    menu.style.top = below ? `${at.bottom + MENU_GAP_PX}px` : 'auto';
+    menu.style.bottom = below ? 'auto' : `${window.innerHeight - at.top + MENU_GAP_PX}px`;
+    menu.style.maxHeight = `${(below ? window.innerHeight - at.bottom : at.top) - 2 * MENU_GAP_PX}px`;
+    menu.showModal();
+    // Its width is known only now, and nothing has been drawn yet: start at the funnel's
+    // left edge, pulled back as far as it takes to stay on screen.
+    menu.style.left = `${Math.max(MENU_GAP_PX, Math.min(at.left, window.innerWidth - menu.offsetWidth - MENU_GAP_PX))}px`;
+    menu.firstElementChild.focus(); // Not the first button: it would open with a focus ring.
+  });
+  // The panel fills the menu, so a tap whose target is the menu itself fell outside it.
+  menu.addEventListener('click', (event) => {
+    if (event.target === menu) menu.close();
+  });
+  drawMarkMenu = buildMarkMenu(menu.firstElementChild, (name) => {
+    menu.close();
+    setFilter(name === filter ? 'all' : name);
+  });
 }
 
 function setFilter(next) {
@@ -480,9 +494,7 @@ export function initViewer(onBack) {
     const button = event.target.closest('button');
     if (button) setFilter(button.dataset.filter);
   });
-  $('mark-select').addEventListener('change', (event) => {
-    setFilter(event.target.value);
-  });
+  initMarkMenu();
   $('actions').addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (button) mark(button.dataset.field, button.dataset.value);
@@ -572,7 +584,7 @@ export function initViewer(onBack) {
   // 6 to 9 for the first four colour labels.
   const LABEL_KEYS = { 6: 'red', 7: 'yellow', 8: 'green', 9: 'blue' };
   document.addEventListener('keydown', (event) => {
-    if ($('viewer').hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+    if ($('viewer').hidden || $('mark-menu').open || event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key.toLowerCase();
     // G as in Lightroom. The grid only shows, so the marking keys rest while it is open.
     if (key === 'g' && list.length) return setGrid(!gridOpen);
