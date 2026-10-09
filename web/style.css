@@ -76,8 +76,12 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .source-count { flex: none; margin-left: auto; font-size: 13px; color: var(--muted); }
-.source-cached { flex: none; margin-left: auto; width: 15px; height: 15px; color: var(--muted); }
-.source-cached + .source-count { margin-left: 6px; }
+/* In the tree the offer is only a sign, fainter until the folder is on this device. */
+.source-cache.sign { display: grid; place-items: center; width: 44px; padding: 0; color: var(--muted); opacity: .55; }
+.source-cache.sign.done { opacity: 1; }
+.source-cache.sign .icon { display: block; width: 16px; height: 16px; }
+/* The count sits right before the sign, so the row needs no padding between them. */
+.source-main:has(+ .source-cache.sign) { padding-right: 0; }
 .source-cache { flex: none; min-height: 44px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; font-size: 13px; color: var(--accent); white-space: nowrap; }
 .source-cache.done { color: var(--muted); }
 .source-cache:active { transform: none; }
@@ -97,6 +101,16 @@ dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font
 .choice span { display: block; }
 .choice-detail { margin-top: 3px; font-size: 13px; color: var(--muted); }
 .choice .choice-detail:empty { display: none; }
+/* Caching the photos of one mark: the panel of the viewer's filter menu, closed until wanted. */
+#cache-marks summary { padding: 8px 2px; font-size: 14px; color: var(--accent); }
+#cache-marks .mark-menu { margin-top: 4px; }
+/* Deleting the previews of the folder is said in words and in the colour of a reject. Tapped
+   once, it becomes the question and gets a frame. */
+#cache-delete { justify-self: start; min-height: 40px; padding: 6px 2px; border: 0; background: transparent; font-size: 14px; color: #ff6b6b; text-align: left; }
+#cache-delete.confirm { justify-self: stretch; padding: 10px 14px; border: 1px solid currentColor; font-weight: 600; }
+/* Lower rows than in the menu: the dialog has two choices above the panel and one below. */
+#cache-marks .mark-menu button { min-height: 36px; }
+#cache-marks .mark-menu .colours button { padding: 5px 0; }
 .dialog-head { display: flex; align-items: center; gap: 12px; }
 .dialog-head h2 { flex: 1; min-width: 0; outline: none; }
 /* Close is a round × in the corner: the icon is centred by the grid, and the fill makes the circle deliberate. */
