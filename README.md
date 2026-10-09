@@ -114,10 +114,10 @@ Flags, ratings, labels, folders and collections are named as Lightroom names the
 
 **Caching a folder**
 
-- Every folder and collection on the home page ends with a small arrow, and each row under "Recently opened" with a `Cache` button. Either opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
-- To take along only one kind of marked photo, for a second pass away from home, open "Choose by mark" in that dialog and tap a mark (the same panel as the viewer's filter menu). A third button appears with that mark's count and size. When a folder has no unmarked photos left, the panel is open from the start
+- Every folder and collection on the home page, under "Recently opened" too, ends with a small arrow. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
+- To take along only one kind of marked photo, for a second pass away from home, open "Choose by mark" in that dialog and tap a mark (the same panel as the viewer's filter menu). A third button appears with that mark's count and size
 - Keep the page in the foreground while it runs. If it is interrupted, tap again and it continues where it stopped
-- When the run completes the dialog closes, the button reads `Cached N`, and in the list the folder's arrow turns into a check
+- When the run completes the dialog closes and the folder's arrow turns into a check
 - Opening the dialog again shows how many photos are still missing and disables a choice that is fully cached
 - To free the space one folder takes, tap "Delete cached previews" in its dialog and tap again to confirm; the second tap names the number of photos and their size. A photo that is also in another folder or collection loses its preview there too. "Clear cache" in settings removes everything
 - If caching is too slow, cancel, lower the preview quality in settings and continue. High-quality previews already downloaded stay in use and only the missing ones are fetched
