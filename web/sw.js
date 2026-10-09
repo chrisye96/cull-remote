@@ -16,6 +16,7 @@ const SHELL = [
   '/js/grid.js',
   '/js/i18n.js',
   '/js/main.js',
+  '/js/markmenu.js',
   '/js/messages.js',
   '/js/prefs.js',
   '/js/quality.js',

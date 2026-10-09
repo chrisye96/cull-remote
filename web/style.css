@@ -76,8 +76,12 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .source-count { flex: none; margin-left: auto; font-size: 13px; color: var(--muted); }
-.source-cached { flex: none; margin-left: auto; width: 15px; height: 15px; color: var(--muted); }
-.source-cached + .source-count { margin-left: 6px; }
+/* In the tree the offer is only a sign, fainter until the folder is on this device. */
+.source-cache.sign { display: grid; place-items: center; width: 44px; padding: 0; color: var(--muted); opacity: .55; }
+.source-cache.sign.done { opacity: 1; }
+.source-cache.sign .icon { display: block; width: 16px; height: 16px; }
+/* The count sits right before the sign, so the row needs no padding between them. */
+.source-main:has(+ .source-cache.sign) { padding-right: 0; }
 .source-cache { flex: none; min-height: 44px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; font-size: 13px; color: var(--accent); white-space: nowrap; }
 .source-cache.done { color: var(--muted); }
 .source-cache:active { transform: none; }
@@ -97,6 +101,16 @@ dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font
 .choice span { display: block; }
 .choice-detail { margin-top: 3px; font-size: 13px; color: var(--muted); }
 .choice .choice-detail:empty { display: none; }
+/* Caching the photos of one mark: the panel of the viewer's filter menu, closed until wanted. */
+#cache-marks summary { padding: 8px 2px; font-size: 14px; color: var(--accent); }
+#cache-marks .mark-menu { margin-top: 4px; }
+/* Deleting the previews of the folder is said in words and in the colour of a reject. Tapped
+   once, it becomes the question and gets a frame. */
+#cache-delete { justify-self: start; min-height: 40px; padding: 6px 2px; border: 0; background: transparent; font-size: 14px; color: #ff6b6b; text-align: left; }
+#cache-delete.confirm { justify-self: stretch; padding: 10px 14px; border: 1px solid currentColor; font-weight: 600; }
+/* Lower rows than in the menu: the dialog has two choices above the panel and one below. */
+#cache-marks .mark-menu button { min-height: 36px; }
+#cache-marks .mark-menu .colours button { padding: 5px 0; }
 .dialog-head { display: flex; align-items: center; gap: 12px; }
 .dialog-head h2 { flex: 1; min-width: 0; outline: none; }
 /* Close is a round × in the corner: the icon is centred by the grid, and the fill makes the circle deliberate. */
@@ -276,14 +290,32 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #stage.overlays-off #info { pointer-events: none; }
 
 /* The grid switch shows where a tap leads: the grid from the photo, a single photo from the grid. */
-/* The mark filter is a native menu laid invisibly over its icon. While a filter is on, the
-   icon is that mark: its flag, its stars or its colour. */
-#mark-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
-#mark-filter:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The funnel opens the mark filters. While one is on, the icon is that mark: its flag, its
+   stars or its colour. */
 #mark-sign { display: inline-flex; }
 #mark-filter .dot { width: 14px; height: 14px; border-radius: 50%; }
 #mark-filter .cell-stars { font-size: 12px; }
 #mark-filter .cell-stars .icon { width: 14px; height: 14px; }
+/* The menu is as wide as its rows need and is placed beside the funnel by viewer.js. */
+#mark-menu { inset: auto; box-sizing: border-box; width: max-content; max-width: calc(100vw - 12px); margin: 0; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+/* Nothing dims: it is a menu, and the photo behind it stays as it was. */
+#mark-menu::backdrop { background: transparent; }
+#mark-menu .mark-menu { padding: 6px; outline: none; }
+/* The mark filters, two to a row; the colours share one row. Also used outside the menu.
+   A count sits right after its mark, and the rest of the button is room to tap. */
+.mark-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; }
+.mark-menu button { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px; padding: 0 12px 0 10px; border: 0; background: transparent; font-size: 15px; text-align: left; outline-offset: -2px; }
+.mark-menu button[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.mark-menu .colours, .mark-menu hr { grid-column: 1 / -1; }
+.mark-menu hr { width: 100%; margin: 3px 0; border: 0; border-top: 1px solid #333; }
+.mark-menu .icon { flex: none; width: 16px; height: 16px; }
+/* "3" takes the room of "3+", so the counts of a column line up. */
+.mark-menu .cell-stars { gap: 4px; min-width: 2.5em; font-size: 15px; }
+.mark-menu .dot { width: 18px; height: 18px; border-radius: 50%; }
+.mark-menu .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark-menu .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mark-menu .colours { display: grid; grid-template-columns: repeat(5, 44px); justify-content: start; }
+.mark-menu .colours button { flex-direction: column; justify-content: center; gap: 5px; padding: 8px 0; }
 #grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
 
 /* Thumbnail grid: whole photos in square cells, as many columns as fit. */
@@ -299,8 +331,8 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 .cell-marks { position: absolute; top: 3px; left: 3px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; line-height: 1; }
 .cell-marks:empty { display: none; }
 .cell-marks .icon { width: 10px; height: 10px; stroke-width: 2.5; }
-.cell-marks .pick, #mark-filter .pick { color: var(--accent); }
-.cell-marks .reject, #mark-filter .reject { color: rgba(255, 107, 107, .9); }
+.cell-marks .pick, #mark-filter .pick, .mark-menu .pick { color: var(--accent); }
+.cell-marks .reject, #mark-filter .reject, .mark-menu .reject { color: rgba(255, 107, 107, .9); }
 .cell-stars { display: inline-flex; align-items: center; gap: 2px; color: rgba(245, 197, 24, .9); }
 .cell-stars .icon { fill: currentColor; }
 .cell-label { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
@@ -375,6 +407,9 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 @media (orientation: landscape) and (max-height: 599px) {
   :lang(de) #actions .flag, :lang(es) #actions .flag { font-size: 11px; letter-spacing: -.02em; }
   :lang(de) #actions .flag { letter-spacing: -.04em; }
+  /* A phone on its side is too short for full rows: lower ones let the whole menu show. */
+  .mark-menu button { min-height: 36px; }
+  .mark-menu .colours button { padding: 5px 0; }
 }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */

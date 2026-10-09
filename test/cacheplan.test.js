@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, estimateCached, runPool } from '../web/js/cacheplan.js';
+import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, cachedOf, estimateCached, runPool } from '../web/js/cacheplan.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -15,6 +15,15 @@ test('pickForCache takes unmarked photos or all of them, in order, up to the lim
   assert.deepEqual(pickForCache(photos, 'all').map((p) => p.id), ['a', 'b', 'c', 'd', 'e']);
   assert.deepEqual(pickForCache(photos, 'unmarked', 2).map((p) => p.id), ['a', 'c']);
   assert.equal(pickForCache(photos, 'all', 0).length, 5);
+});
+
+test('pickForCache takes the photos of one mark filter, as the viewer would list them', () => {
+  const photos = [photo('a'), photo('b', { rating: 2 }), photo('c', { rating: 4, label: 'red' }), photo('d', { pick: -1 }), photo('e', { rating: 2, pick: 1 })];
+  assert.deepEqual(pickForCache(photos, 'star2').map((p) => p.id), ['b', 'e']);
+  assert.deepEqual(pickForCache(photos, 'star2+').map((p) => p.id), ['b', 'c', 'e']);
+  assert.deepEqual(pickForCache(photos, 'reject').map((p) => p.id), ['d']);
+  assert.deepEqual(pickForCache(photos, 'red').map((p) => p.id), ['c']);
+  assert.deepEqual(pickForCache(photos, 'star2+', 2).map((p) => p.id), ['b', 'c']);
 });
 
 test('estimateBytes uses the measured average per size', () => {
@@ -37,6 +46,15 @@ test('uncached treats a larger cached preview as covering a smaller one, not the
   assert.deepEqual(uncached(photos, 'std', have, urlFor).map((p) => p.id), ['c']);
   assert.deepEqual(uncached(photos, 'hd', have, urlFor).map((p) => p.id), ['a', 'c']);
   assert.deepEqual(uncached(photos, 'hd', new Set(), urlFor).length, 3);
+});
+
+test('cachedOf lists the cached previews of a folder, every size, and counts its photos that have one', () => {
+  const urlFor = (id, size) => `/${id}?${size}`;
+  const photos = [photo('a'), photo('b'), photo('c')];
+  // The preview of "z" belongs to another folder and is left alone.
+  const have = new Set(['/a?std', '/a?hd', '/b?hd', '/z?std']);
+  assert.deepEqual(cachedOf(photos, have, urlFor), { urls: ['/a?std', '/a?hd', '/b?hd'], count: 2 });
+  assert.deepEqual(cachedOf(photos, new Set(), urlFor), { urls: [], count: 0 });
 });
 
 test('estimateCached adds up the average size of each cached preview by its quality', () => {

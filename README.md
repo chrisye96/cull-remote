@@ -51,14 +51,14 @@ The same address works at home and away. At home Tailscale connects directly ove
 | Tap the photo info panel | Fold it down to an icon; tap the icon to open it again |
 | Tap the grid button beside Back | Open the thumbnail grid. The button then shows a single photo; tap it again to return |
 | Tap "Unmarked" or "All" | Switch the filter; both show live counts |
-| Tap the funnel beside the grid button | Choose a mark filter: picks, rejects, a minimum rating or one colour label |
+| Tap the funnel beside the grid button | Choose a mark filter: picks, rejects, one rating, a minimum rating or one colour label |
 
 - The tap areas follow the photo. Beside a narrow photo, or on its outer part, a tap turns the page; the central half of the photo itself hides or shows the overlays
 - While you drag up or down, the photo follows your finger and a hint shows what releasing will do. Let go early and nothing happens
 - A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
 - Pick and reject jump to the next photo; stars and labels stay on the current one. Settings can make every mark advance, or none
 - Switching the filter keeps you on the current photo when it is in the new list
-- A mark filter shows one kind of photo at a time, for a second or third pass. Its menu lists every filter, "Unmarked" and "All" included, with the number of photos each would show. While one is on, the funnel turns into that mark; tap "Unmarked" or "All" to leave it
+- A mark filter shows one kind of photo at a time, for a second or third pass. Its menu shows each mark with the number of photos it would show: the two flags, the ratings two to a row ("★3" is exactly three stars, "★3+" is three or more) and the five colours. While one is on, the funnel turns into that mark; tap it again in the menu, or tap "Unmarked" or "All", to leave it
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels. Left-hand mode in settings puts the rail on the left
 - Each folder or collection remembers the photo you were on, per device, so going back and reopening it resumes there
@@ -114,12 +114,13 @@ Flags, ratings, labels, folders and collections are named as Lightroom names the
 
 **Caching a folder**
 
-- Each row under "Recently opened" on the home page ends with a `Cache` button. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
+- Every folder and collection on the home page ends with a small arrow, and each row under "Recently opened" with a `Cache` button. Either opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
+- To take along only one kind of marked photo, for a second pass away from home, open "Choose by mark" in that dialog and tap a mark (the same panel as the viewer's filter menu). A third button appears with that mark's count and size. When a folder has no unmarked photos left, the panel is open from the start
 - Keep the page in the foreground while it runs. If it is interrupted, tap again and it continues where it stopped
-- When the run completes the dialog closes, the button reads `Cached N`, and cached folders in the list get a small check next to their count
+- When the run completes the dialog closes, the button reads `Cached N`, and in the list the folder's arrow turns into a check
 - Opening the dialog again shows how many photos are still missing and disables a choice that is fully cached
+- To free the space one folder takes, tap "Delete cached previews" in its dialog and tap again to confirm; the second tap names the number of photos and their size. A photo that is also in another folder or collection loses its preview there too. "Clear cache" in settings removes everything
 - If caching is too slow, cancel, lower the preview quality in settings and continue. High-quality previews already downloaded stay in use and only the missing ones are fetched
-- To cache a folder you have not opened yet, open it once and it appears under "Recently opened"
 
 **Automatic caching**
 

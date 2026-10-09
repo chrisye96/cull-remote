@@ -24,6 +24,7 @@
     <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
     <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-circle-arrow-down" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="m8 12 4 4 4-4"/></symbol>
     <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></symbol>
     <symbol id="i-circle-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M8.35 2.69A10 10 0 0 1 21.3 15.65"/><path d="M19.08 19.08A10 10 0 1 1 4.92 4.92"/></symbol>
     <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057"/><path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78"/><path d="m2 2 20 20"/></symbol>
@@ -166,8 +167,9 @@
       <div id="tools">
       <button id="back" type="button"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg><span data-i18n="common.back"></span></button>
       <button id="grid-toggle" type="button" aria-pressed="false" data-i18n-aria-label="viewer.grid" hidden><svg class="icon to-grid" aria-hidden="true"><use href="#i-layout-grid"></use></svg><svg class="icon to-photo" aria-hidden="true"><use href="#i-image"></use></svg></button>
-      <label id="mark-filter" hidden><span id="mark-sign" aria-hidden="true"></span><select id="mark-select" data-i18n-aria-label="filter.label"><option value="unmarked"></option><option value="all"></option><hr><option value="pick"></option><option value="reject"></option><hr><option value="star1"></option><option value="star2"></option><option value="star3"></option><option value="star4"></option><option value="star5"></option><hr><option value="red"></option><option value="yellow"></option><option value="green"></option><option value="blue"></option><option value="purple"></option></select></label>
+      <button id="mark-filter" type="button" hidden><span id="mark-sign" aria-hidden="true"></span><span id="mark-name" class="sr-only"></span></button>
       </div>
+      <dialog id="mark-menu" data-i18n-aria-label="filter.label"><div class="mark-menu" tabindex="-1"></div></dialog>
       <span id="title"><span id="photo-name"></span><span id="photo-pos"></span></span>
       <div id="filter" class="segmented" role="group" data-i18n-aria-label="filter.label">
         <button type="button" data-filter="unmarked"><span data-i18n="filter.unmarked"></span><span class="count"></span></button>
@@ -236,6 +238,9 @@
       <p id="cache-note"></p>
       <button id="cache-unmarked" type="button" class="choice" disabled><span data-i18n="cache.unmarked"></span><span class="choice-detail"></span></button>
       <button id="cache-all" type="button" class="choice" disabled><span data-i18n="cache.all"></span><span class="choice-detail"></span></button>
+      <details id="cache-marks" hidden><summary data-i18n="cache.byMark"></summary><div class="mark-menu"></div></details>
+      <button id="cache-marked" type="button" class="choice" hidden><span class="choice-title"></span><span class="choice-detail"></span></button>
+      <button id="cache-delete" type="button" hidden></button>
       <p class="note" data-i18n="cache.keepOpen"></p>
       <progress id="cache-progress" aria-labelledby="cache-title" hidden></progress>
       <p id="cache-state" role="status"></p>

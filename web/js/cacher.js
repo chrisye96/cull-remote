@@ -92,6 +92,15 @@ export async function clearPreviews() {
   await Promise.all((await cache.keys()).map((request) => cache.delete(request)));
 }
 
+// Remove the given previews of one folder, and forget that it had any.
+export async function deletePreviews(sourceId, urls) {
+  const cache = await caches.open(PREVIEW_CACHE);
+  await Promise.all(urls.map((url) => cache.delete(url)));
+  const cached = readObject('cached');
+  delete cached[sourceId];
+  writePref('cached', cached);
+}
+
 // Remember how many previews of a folder are on this device, for the home page.
 export function recordCached(sourceId, count) {
   const cached = readObject('cached');

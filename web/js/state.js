@@ -6,16 +6,20 @@ const CLEARED = { rating: 0, label: 'none', pickStatus: 0 };
 
 export const isUnmarked = (photo) => photo.pick === 0 && photo.rating === 0 && photo.label === 'none';
 
-// Filters for a second and a third pass: one flag, a minimum rating, or one colour label.
-// One at a time, beside "unmarked" and "all".
-export const MARK_FILTERS = ['pick', 'reject', 'star1', 'star2', 'star3', 'star4', 'star5', 'red', 'yellow', 'green', 'blue', 'purple'];
+// Filters for a second and a third pass: one flag, one rating, a minimum rating, or one colour
+// label. One at a time, beside "unmarked" and "all". "star3" is exactly three stars and "star3+"
+// is three or more; five or more is five, so that one has no plus.
+export const MARK_FILTERS = ['pick', 'reject', 'star1', 'star1+', 'star2', 'star2+', 'star3', 'star3+', 'star4', 'star4+', 'star5', 'red', 'yellow', 'green', 'blue', 'purple'];
 
 export function matchesFilter(photo, filter) {
   if (filter === 'all') return true;
   if (filter === 'unmarked') return isUnmarked(photo);
   if (filter === 'pick') return photo.pick === 1;
   if (filter === 'reject') return photo.pick === -1;
-  if (filter.startsWith('star')) return photo.rating >= Number(filter.slice(4));
+  if (filter.startsWith('star')) {
+    const stars = Number.parseInt(filter.slice(4), 10);
+    return filter.endsWith('+') ? photo.rating >= stars : photo.rating === stars;
+  }
   return photo.label === filter;
 }
 
@@ -25,20 +29,19 @@ export function tallyMarks(photos) {
   for (const photo of photos) {
     if (photo.pick === 1) counts.pick += 1;
     else if (photo.pick === -1) counts.reject += 1;
-    for (let stars = 1; stars <= photo.rating; stars += 1) counts[`star${stars}`] += 1;
+    if (photo.rating > 0) counts[`star${photo.rating}`] += 1;
+    for (let stars = 1; stars <= Math.min(photo.rating, 4); stars += 1) counts[`star${stars}+`] += 1;
     if (photo.label !== 'none') counts[photo.label] += 1;
   }
   return counts;
 }
 
-// What a filter is called in the menu. A rating needs no words: stars, and a plus for "or more".
+// What a filter is called in the menu. A rating needs no words: a star and the number, as on
+// a thumbnail, and a plus for "or more".
 export function filterLabel(filter) {
   if (filter === 'unmarked' || filter === 'all') return t(`filter.${filter}`);
   if (filter === 'pick' || filter === 'reject') return t(`mark.${filter}`);
-  if (filter.startsWith('star')) {
-    const stars = Number(filter.slice(4));
-    return '\u2605'.repeat(stars) + (stars < 5 ? '+' : '');
-  }
+  if (filter.startsWith('star')) return `\u2605${filter.slice(4)}`;
   return t(`label.${filter}`);
 }
 
