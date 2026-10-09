@@ -76,15 +76,13 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .source-count { flex: none; margin-left: auto; font-size: 13px; color: var(--muted); }
-/* In the tree the offer is only a sign, fainter until the folder is on this device. */
-.source-cache.sign { display: grid; place-items: center; width: 44px; padding: 0; color: var(--muted); opacity: .55; }
-.source-cache.sign.done { opacity: 1; }
-.source-cache.sign .icon { display: block; width: 16px; height: 16px; }
-/* The count sits right before the sign, so the row needs no padding between them. */
-.source-main:has(+ .source-cache.sign) { padding-right: 0; }
-.source-cache { flex: none; min-height: 44px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; font-size: 13px; color: var(--accent); white-space: nowrap; }
-.source-cache.done { color: var(--muted); }
+/* The offer to cache is only a sign at the end of the row, fainter until the folder is on
+   this device. The count sits right before it, so the row needs no padding between them. */
+.source-cache { flex: none; display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); opacity: .55; }
+.source-cache.done { opacity: 1; }
+.source-cache .icon { display: block; width: 16px; height: 16px; }
 .source-cache:active { transform: none; }
+.source-main:has(+ .source-cache) { padding-right: 0; }
 
 /* The dialog element keeps its own display and sizing; the layout lives in .dialog-body, so no
    engine can stretch the rows when it sizes the dialog box differently. */

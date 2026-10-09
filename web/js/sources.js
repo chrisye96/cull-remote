@@ -49,24 +49,13 @@ function sourceButton(source, hint, onActivate) {
   return main;
 }
 
-// The label reflects the current state: an offer to cache until this folder has previews on the device.
-function cacheButton(source) {
-  const info = readObject('cached')[source.id];
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = info ? 'source-cache done' : 'source-cache';
-  button.textContent = info ? t('source.cachedCount', { n: info.count }) : t('source.cache');
-  button.addEventListener('click', () => openCacheDialog(source));
-  return button;
-}
-
-// The same offer at the end of every row of the tree, as a quiet sign so that a long list
-// stays calm: an arrow until the folder has previews on this device, then a check.
+// The offer to cache at the end of every row, recent or in the tree, as a quiet sign so that a
+// long list stays calm: an arrow until the folder has previews on this device, then a check.
 function cacheSign(source) {
   const cached = Boolean(readObject('cached')[source.id]);
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = cached ? 'source-cache sign done' : 'source-cache sign';
+  button.className = cached ? 'source-cache done' : 'source-cache';
   button.setAttribute('aria-label', t(cached ? 'source.cached' : 'source.cache'));
   button.append(icon(cached ? 'circle-check' : 'circle-arrow-down'));
   button.addEventListener('click', () => openCacheDialog(source));
@@ -111,7 +100,7 @@ function row(node, siblings) {
 // A flat row in the recently opened group: no indentation and no twisty.
 function recentRow(source) {
   const { item, line } = rowShell(0);
-  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)), cacheButton(source));
+  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)), cacheSign(source));
   return item;
 }
 

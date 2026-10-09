@@ -239,8 +239,6 @@ export async function openCacheDialog(source) {
   );
   diagShow();
   current = { source, photos, size, have: new Set() };
-  // With nothing unmarked the first choice is of no use, so the marks are shown at once.
-  $('cache-marks').open = pickForCache(photos, 'unmarked').length === 0;
   const summary = t('cache.summary', { photos: t('count.photos', { n: photos.length }), quality: t(`quality.${size}`) });
   $('cache-note').textContent = info.atHome === true ? summary : t('common.twoSentences', { first: summary, second: t('cache.away') });
   describe();
