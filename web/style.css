@@ -103,11 +103,16 @@ dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font
 .choice .choice-detail:empty { display: none; }
 /* Caching the photos of one mark: the panel of the viewer's filter menu, closed until wanted. */
 #cache-marks summary { padding: 8px 2px; font-size: 14px; color: var(--accent); }
-#cache-marks .mark-menu { margin-top: 4px; }
-/* Deleting the previews of the folder is said in words and in the colour of a reject. Tapped
-   once, it becomes the question and gets a frame. */
-#cache-delete { justify-self: start; min-height: 40px; padding: 6px 2px; border: 0; background: transparent; font-size: 14px; color: #ff6b6b; text-align: left; }
-#cache-delete.confirm { justify-self: stretch; padding: 10px 14px; border: 1px solid currentColor; font-weight: 600; }
+/* The dialog is wider than the panel needs. Its columns keep their own width and stand in the
+   middle as one block, in a frame like the choices around it, so no half is left empty. The
+   columns stand apart on a tablet and close up on a phone, where the longer flag words need
+   the room. */
+#cache-marks .mark-menu { grid-template-columns: repeat(2, minmax(0, max-content)); justify-content: center; column-gap: clamp(4px, (100vw - 340px) / 5, 28px); margin-top: 4px; padding: 8px; border: 1px solid #333; border-radius: 10px; background: var(--bg); }
+/* Deleting the previews of the folder is said in words and in the colour of a reject, centred
+   under the choices. Tapped once, it becomes the question and gets a frame; its box is the
+   same before and after, so nothing moves. */
+#cache-delete { min-height: 40px; padding: 6px 12px; border: 1px solid transparent; background: transparent; font-size: 14px; color: #ff6b6b; text-align: center; }
+#cache-delete.confirm { border-color: currentColor; font-weight: 600; }
 /* Lower rows than in the menu: the dialog has two choices above the panel and one below. */
 #cache-marks .mark-menu button { min-height: 36px; }
 #cache-marks .mark-menu .colours button { padding: 5px 0; }
