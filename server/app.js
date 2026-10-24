@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { BridgeError } from './bridge.js';
 import { PHOTO_ID, validateOp } from './validate.js';
 import { SIZES } from './previews.js';
@@ -37,9 +38,17 @@ function parseUrl(req) {
 const NOSNIFF = { 'x-content-type-options': 'nosniff' };
 const DONE_OPS_CAP = 5000;
 
-function sendJson(res, status, body) {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...NOSNIFF });
-  res.end(JSON.stringify(body));
+// `gzip` is for the photo list: it repeats the same keys and lens names for every photo
+// and the viewer polls it, so it shrinks to about a quarter.
+function sendJson(res, status, body, { gzip = false } = {}) {
+  const headers = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...NOSNIFF };
+  let payload = JSON.stringify(body);
+  if (gzip && /\bgzip\b/.test(res.req.headers['accept-encoding'] ?? '')) {
+    payload = gzipSync(payload);
+    headers['content-encoding'] = 'gzip';
+  }
+  res.writeHead(status, headers);
+  res.end(payload);
 }
 
 async function readBody(req, limit) {
@@ -53,7 +62,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, address = async () => null, version = '' }) {
+export function createApp({ bridge, previews, webDir, pollMs = 25000, publicPort = 47800, allowedHost = localOrTailnet(publicPort), atHome = async () => null, address = async () => null, version = '' }) {
   // ponytail: in-memory, forgotten on restart, and only the newest DONE_OPS_CAP ids are
   // kept. Ops are "set field to value", so a replay is harmless; persist only if that
   // ever stops being true.
@@ -125,7 +134,7 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
       const timing = {};
       const photos = await bridge.send('listPhotos', { sourceId }, { urgent: true, timing });
       res.setHeader('server-timing', `queue;dur=${timing.wait}, lr;dur=${timing.run}`);
-      return sendJson(res, 200, photos);
+      return sendJson(res, 200, photos, { gzip: true });
     }
     const preview = pathname.match(/^\/api\/preview\/([^/]+)$/);
     if (req.method === 'GET' && preview) {
@@ -161,7 +170,6 @@ export function createApp({ bridge, previews, webDir, vendor = {}, pollMs = 2500
   }
 
   async function serveStatic(res, pathname) {
-    if (Object.hasOwn(vendor, pathname)) return sendFile(res, vendor[pathname]);
     let rel;
     try {
       rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));

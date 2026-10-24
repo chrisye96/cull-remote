@@ -66,8 +66,9 @@ function Commands.listPhotos(params)
   local photos = photosOf(catalog, params.sourceId or '')
   if not photos then error('source_not_found', 0) end
   local raw = catalog:batchGetRawMetadata(photos,
-    { 'uuid', 'rating', 'colorNameForLabel', 'pickStatus', 'dateTimeOriginal', 'fileFormat' })
-  local formatted = catalog:batchGetFormattedMetadata(photos, { 'fileName' })
+    { 'uuid', 'rating', 'colorNameForLabel', 'pickStatus', 'dateTimeOriginal', 'fileFormat',
+      'shutterSpeed', 'aperture', 'isoSpeedRating', 'focalLength' })
+  local formatted = catalog:batchGetFormattedMetadata(photos, { 'fileName', 'lens' })
   local out = {}
   for _, photo in ipairs(photos) do
     local r = raw[photo]
@@ -79,6 +80,13 @@ function Commands.listPhotos(params)
         rating = r.rating or 0,
         label = LABELS[r.colorNameForLabel] and r.colorNameForLabel or 'none',
         pick = r.pickStatus or 0,
+        -- Exposure and lens, shown beside the photo. A value the file lacks stays nil
+        -- and is left out of the reply.
+        shutter = r.shutterSpeed, -- seconds
+        aperture = r.aperture, -- f-number
+        iso = r.isoSpeedRating,
+        focal = r.focalLength, -- mm
+        lens = formatted[photo].lens,
       }
     end
   end

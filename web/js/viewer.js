@@ -4,28 +4,32 @@ import { loadPhotos, savePhotos } from './data.js';
 import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js';
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
-import { t } from './i18n.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, FLAG_SWIPE_EDGE_PX } from './state.js';
-import { readChoice, readObject, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
+import { t, getLang } from './i18n.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterName, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
+import { initGrid, renderGrid, revealInGrid } from './grid.js';
+import { buildMarkMenu, filterSign } from './markmenu.js';
 
 const SWIPE_MIN_DX = 50;
 const SWIPE_CLICK_GUARD_MS = 400;
 const REFRESH_MS = 5000;
 const PULL_FOLLOW = 0.35; // The photo moves this fraction of the finger's vertical travel.
-const PULL_MAX_PX = 70;
+const SWAP_GRACE_MS = 150; // How long the photo on screen may stay while the next one loads.
+const PULL_MAX_PX = 200; // Far enough that a pull across a phone screen never reaches it.
 const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on this device.
 
 let all = [];
 let list = [];
 let index = 0;
-let onlyUnmarked = true;
+let filter = 'unmarked'; // 'unmarked', 'unrejected', 'all' or one of MARK_FILTERS.
 let sourceName = '';
 let notice = ''; // Shown in #empty when there is no photo (loading, open failure).
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
 let failedUrl = null; // URL of the preview that failed to load, if it is still the shown one.
 let source = null; // The open folder or collection; null on the home page.
+let gridOpen = false; // The thumbnail grid is asked for in place of the single photo.
 let refreshing = false;
 let loading = false; // True while the initial getPhotos of an open is in flight.
 let nextRefreshAt = 0; // Earliest time the next timer-driven refresh may run.
@@ -33,6 +37,9 @@ let settledOps = 0; // Bumped when marks are confirmed; a fetch that overlapped 
 let savedAtSettled = -1; // Value of settledOps when this folder's offline copy was last written.
 // sourceId -> id of the photo last shown there, so reopening a folder resumes in place.
 const lastPhoto = readObject('lastPhoto');
+// Where the photo last on screen sat in the stage. Tap zones are measured against it, and it
+// is kept while the next photo loads so that quick taps keep meaning the same thing.
+let photoBox = { left: 0, width: 0 };
 
 // Pull Lightroom's current marks for the open source and merge them into the snapshot.
 // The timer is throttled by nextRefreshAt so a slow Lightroom is not kept busy; force skips that.
@@ -75,32 +82,145 @@ function showError(text) {
 }
 
 function applyFilter(keepPhotoId = null) {
-  list = onlyUnmarked ? all.filter(isUnmarked) : all.slice();
+  list = all.filter((photo) => matchesFilter(photo, filter));
   index = indexAfterFilter(list, keepPhotoId);
 }
 
-// Both options stay visible with live counts; the active one is highlighted.
-// The buttons are static markup: only the count text and aria-pressed change.
+// The scope buttons, beside the photo and at the top of the menu, stay visible with live
+// counts; the active one is highlighted. They are static markup: only the count text and
+// aria-pressed change.
 function renderFilter() {
-  const unmarked = all.filter(isUnmarked).length;
-  for (const button of $('filter').querySelectorAll('button')) {
-    const isAll = button.dataset.filter === 'all';
+  const tally = tallyMarks(all);
+  const counts = { unmarked: all.filter(isUnmarked).length, unrejected: all.length - tally.reject, all: all.length };
+  for (const button of document.querySelectorAll('#filter button, #mark-scope button')) {
     const countEl = button.querySelector('.count');
-    const count = String(isAll ? all.length : unmarked);
+    const count = String(counts[button.dataset.filter]);
     if (countEl.textContent !== count) countEl.textContent = count;
-    button.setAttribute('aria-pressed', String(isAll !== onlyUnmarked));
+    button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
+  }
+  drawMarkMenu(tally, filter);
+  // The icon in the tool row says which mark filter is on: its flag, its stars or its colour.
+  // "Not rejected" has no mark of its own, so the funnel takes the accent colour instead.
+  const marked = MARK_FILTERS.includes(filter);
+  const button = $('mark-filter');
+  button.hidden = all.length === 0;
+  button.classList.toggle('scoped', filter === 'unrejected');
+  // Redrawn when the filter or the language changed since the last time.
+  const shows = `${filter}|${getLang()}`;
+  if (button.dataset.shows !== shows) {
+    button.dataset.shows = shows;
+    $('mark-sign').replaceChildren(marked ? filterSign(filter) : icon('funnel'));
+    $('mark-name').textContent = marked || filter === 'unrejected' ? `${t('filter.label')} ${filterName(filter)}` : t('filter.label');
   }
 }
 
-// Point the image at the current photo only when the URL changed, and keep the old
-// bitmap hidden until the new one has loaded so it never shows under new metadata.
+let drawMarkMenu = () => {}; // Set by initMarkMenu.
+const MENU_GAP_PX = 6; // Between the funnel and its menu, and between the menu and the screen edge.
+
+// The mark filters open from the funnel as a menu. Tapping the one in use switches it off,
+// as tapping a mark that is already set clears it. The menu is modal: a tap outside only
+// closes it, and cannot also land on a mark button or step to another photo.
+function initMarkMenu() {
+  const menu = $('mark-menu');
+  const panel = $('mark-panel');
+  const button = $('mark-filter');
+  button.addEventListener('click', () => {
+    // Beside its button: below it, or above when the button sits in the lower half of the
+    // screen. It is never taller than the room on that side; on a short screen it scrolls.
+    const at = button.getBoundingClientRect();
+    const below = at.top < window.innerHeight / 2;
+    menu.style.top = below ? `${at.bottom + MENU_GAP_PX}px` : 'auto';
+    menu.style.bottom = below ? 'auto' : `${window.innerHeight - at.top + MENU_GAP_PX}px`;
+    menu.style.maxHeight = `${(below ? window.innerHeight - at.bottom : at.top) - 2 * MENU_GAP_PX}px`;
+    menu.showModal();
+    // Its width is known only now, and nothing has been drawn yet: start at the funnel's
+    // left edge, pulled back as far as it takes to stay on screen.
+    menu.style.left = `${Math.max(MENU_GAP_PX, Math.min(at.left, window.innerWidth - menu.offsetWidth - MENU_GAP_PX))}px`;
+    // Not the first button: it would open with a focus ring. Without moving: on a short screen
+    // the menu scrolls, and it must open at its top.
+    panel.focus({ preventScroll: true });
+  });
+  // The panel fills the menu, so a tap whose target is the menu itself fell outside it.
+  menu.addEventListener('click', (event) => {
+    if (event.target === menu) menu.close();
+  });
+  // The rows at the top pick unmarked, not rejected or all, like the buttons beside the photo.
+  $('mark-scope').addEventListener('click', (event) => {
+    const choice = event.target.closest('button');
+    if (!choice) return;
+    menu.close();
+    setFilter(choice.dataset.filter);
+  });
+  drawMarkMenu = buildMarkMenu(panel, (name) => {
+    menu.close();
+    setFilter(name === filter ? 'all' : name);
+  });
+}
+
+function setFilter(next) {
+  if (next === filter) return;
+  const currentId = list[index]?.id ?? null;
+  filter = next;
+  applyFilter(currentId);
+  showError('');
+  render();
+  if (gridOpen) revealInGrid();
+}
+
+let shown = null; // The decoded image now on screen; the histogram is counted from it.
+let hideTimer = null; // Runs while a photo that was asked for is not on screen yet.
+
+function settleSwap() {
+  clearTimeout(hideTimer);
+  hideTimer = null;
+}
+
+// Load `src` off screen and put it on screen once it can be painted. Until then the photo
+// already there stays, so two cached photos follow each other with no blank between them,
+// which is what flipping back and forth to compare needs. The old photo would otherwise sit
+// under the next one's name and marks, so it is hidden once the wait passes SWAP_GRACE_MS.
+// The wait is counted from the first photo asked for, not restarted by each quick step.
+function loadPhoto(url, src = url) {
+  const img = $('photo');
+  hideTimer ??= setTimeout(() => {
+    img.classList.add('loading');
+    render();
+  }, SWAP_GRACE_MS);
+  const next = new Image();
+  next.src = src;
+  next.decode().then(() => {
+    if (img.dataset.url !== url) return; // Another photo was asked for meanwhile.
+    settleSwap();
+    img.src = src;
+    img.classList.remove('loading');
+    failedUrl = null;
+    shown = next;
+    render();
+    warmNeighbours();
+  }, () => {
+    if (img.dataset.url !== url) return;
+    settleSwap();
+    failedUrl = url;
+    render();
+  });
+}
+
+// Fetch the previews on either side once a photo is on screen, so a step forward or back is
+// ready within the grace. Not on every step: skipping quickly through a folder would queue
+// three previews behind each photo passed, and Lightroom renders them one at a time.
+function warmNeighbours() {
+  for (const near of [list[index + 1], list[index + 2], list[index - 1]]) {
+    if (near) new Image().src = previewUrl(near.id, previewSize());
+  }
+}
+
+// Point the image at the current photo only when the URL changed.
 function syncImage(url) {
   const img = $('photo');
   if (img.dataset.url === url) return;
   img.dataset.url = url;
   failedUrl = null;
-  img.classList.add('loading');
-  img.src = url;
+  loadPhoto(url);
 }
 
 // All of the photo's marks in one pill. The parts are static; only classes and text
@@ -145,10 +265,79 @@ function renderBadges(photo) {
   }
 }
 
+const HIST_SAMPLE_PX = 320; // Longest side of the downscaled copy the histogram is counted from.
+const HIST_SMOOTH = 2; // Levels averaged on either side; 0 draws the raw counts.
+const HIST_COLORS =['#ff4d4d', '#3ddc5a', '#4d7dff']; // Together they add up to white.
+let histFrom = null; // The image the histogram was counted from; null while it is blank.
+let sampler = null;
+
+// Exposure, lens and a histogram of the preview on screen. render() runs on every sync
+// and refresh, so the histogram is counted again only when a different bitmap is shown.
+function renderInfo(photo) {
+  // Settings choose the parts; a tap on the panel folds all of it down to an icon.
+  const wantHistogram = readPref('showHistogram', true) === true;
+  const exposure = photo && readPref('showExposure', true) === true ? exposureText(photo) : '';
+  const lens = photo && readPref('showLens', true) === true ? lensText(photo) : '';
+  const collapsed = readPref('infoCollapsed', false) === true;
+  const info = $('info');
+  info.hidden = !photo || !(wantHistogram || exposure || lens);
+  info.classList.toggle('collapsed', collapsed);
+  info.setAttribute('aria-expanded', String(!collapsed));
+  $('histogram').hidden = !wantHistogram;
+  if ($('exposure').textContent !== exposure) $('exposure').textContent = exposure;
+  if ($('lens').textContent !== lens) $('lens').textContent = lens;
+  // It follows the photo: it changes in the same step as the photo does, and is blank only
+  // while the photo is hidden.
+  const img = $('photo');
+  const onScreen = Boolean(photo) && wantHistogram && !collapsed && !img.hidden && !img.classList.contains('loading');
+  const source = onScreen ? shown : null;
+  if (source === histFrom) return;
+  histFrom = source;
+  const canvas = $('histogram');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!source) return;
+  // ponytail: counted from a small copy, where a few clipped pixels average away. Count
+  // the full preview if exact clipping ever matters.
+  const scale = HIST_SAMPLE_PX / Math.max(source.naturalWidth, source.naturalHeight);
+  sampler ??= document.createElement('canvas');
+  sampler.width = Math.max(1, Math.round(source.naturalWidth * scale));
+  sampler.height = Math.max(1, Math.round(source.naturalHeight * scale));
+  const copy = sampler.getContext('2d', { willReadFrequently: true });
+  copy.drawImage(source, 0, 0, sampler.width, sampler.height);
+  const bins = histogram(copy.getImageData(0, 0, sampler.width, sampler.height).data).map((channel) => smoothBins(channel, HIST_SMOOTH));
+  // Pure black and pure white hold the clipped pixels and can dwarf every other level,
+  // so they do not set the scale; a clipped end shows as a full-height bar instead.
+  const peak = Math.max(1, ...bins.map((channel) => Math.max(...channel.subarray(1, 255))));
+  const step = canvas.width / 256;
+  const top = (count) => canvas.height * (1 - Math.min(1, count / peak));
+  ctx.globalCompositeOperation = 'lighter';
+  bins.forEach((channel, at) => {
+    ctx.fillStyle = HIST_COLORS[at];
+    ctx.beginPath();
+    ctx.moveTo(step, canvas.height);
+    for (let level = 1; level < 255; level += 1) ctx.lineTo((level + 0.5) * step, top(channel[level]));
+    ctx.lineTo(255 * step, canvas.height);
+    ctx.fill();
+    ctx.fillRect(0, top(channel[0]), step, canvas.height);
+    ctx.fillRect(255 * step, top(channel[255]), step, canvas.height);
+  });
+}
+
+// On a tall landscape screen the rail has room to spare under the filter, so the panel
+// sits there and covers nothing. Everywhere else it lies over the corner of the stage.
+const RAIL_INFO_QUERY = matchMedia('(orientation: landscape) and (min-height: 700px)');
+
+function placeInfo() {
+  if (RAIL_INFO_QUERY.matches) $('side').prepend($('info'));
+  else $('stage').insertBefore($('info'), $('flash'));
+}
+
 // Short message in the middle of the photo: an icon or a colour dot, then text.
 function showFlash(summary) {
   const box = $('flash');
   box.textContent = '';
+  box.dataset.tone = summary.tone ?? '';
   if (summary.icon) box.append(icon(summary.icon));
   if (summary.swatch) {
     const dot = document.createElement('span');
@@ -172,6 +361,7 @@ function placeOverlays() {
   const img = $('photo');
   const stage = $('stage');
   const visible = !img.hidden && img.offsetWidth > 0;
+  if (visible) photoBox = { left: img.offsetLeft, width: img.offsetWidth };
   const padLeft = parseFloat(getComputedStyle(stage).paddingLeft) || 0; // Landscape safe-area inset.
   stage.style.setProperty('--img-left', `${visible ? img.offsetLeft : padLeft}px`);
   stage.style.setProperty('--img-top', `${visible ? img.offsetTop : 0}px`);
@@ -182,8 +372,10 @@ function placeOverlays() {
 function render() {
   renderFilter();
   const photo = list[index];
+  const showGrid = gridOpen && Boolean(photo);
   const url = photo ? previewUrl(photo.id, previewSize()) : null;
-  if (photo) syncImage(url);
+  // Behind the grid the large preview would only take Lightroom's time from the thumbnails.
+  if (photo && !showGrid) syncImage(url);
   const previewFailed = Boolean(photo) && failedUrl === url;
   $('photo').hidden = !photo || previewFailed;
   $('photo').alt = photo ? photo.name : '';
@@ -195,12 +387,19 @@ function render() {
   $('caption').textContent = photo ? `${photo.name} · ${position}` : '';
   $('caption').hidden = !photo;
   renderBadges(photo);
+  renderInfo(photo);
+  $('viewer').classList.toggle('grid-open', showGrid);
+  $('stage').hidden = showGrid;
+  $('grid').hidden = !showGrid;
+  $('grid-toggle').hidden = !photo;
+  $('grid-toggle').setAttribute('aria-pressed', String(showGrid));
+  if (showGrid) renderGrid(list, photo.id);
   if (photo && source && lastPhoto[source.id] !== photo.id) {
     rememberCapped(lastPhoto, source.id, photo.id, LAST_PHOTO_CAP);
     writePref('lastPhoto', lastPhoto);
   }
   if (!photo) {
-    $('empty').textContent = notice || t(onlyUnmarked ? 'viewer.noUnmarked' : 'viewer.noPhotos');
+    $('empty').textContent = notice || t(filter === 'unmarked' ? 'viewer.noUnmarked' : 'viewer.noPhotos');
     placeOverlays();
     return;
   }
@@ -215,9 +414,14 @@ function render() {
     // Pulse only while a request is really in flight; offline, the pill shows the waiting state.
     button.classList.toggle('pending', getLink() === '' && hasPending(photo.id, field));
   }
-  // Warm the next two previews so swiping feels instant.
-  for (const next of list.slice(index + 1, index + 3)) new Image().src = previewUrl(next.id, previewSize());
   placeOverlays();
+}
+
+function setGrid(open) {
+  gridOpen = open;
+  showError('');
+  render();
+  if (open) revealInGrid();
 }
 
 // Returns true when it moved (and rendered).
@@ -234,10 +438,11 @@ function go(delta) {
 function retryPreview() {
   const photo = list[index];
   if (!photo || failedUrl !== previewUrl(photo.id, previewSize())) return false;
+  const url = previewUrl(photo.id, previewSize());
   failedUrl = null;
   $('photo').classList.add('loading');
   // Cache-busting param so the browser refetches instead of replaying the failure.
-  $('photo').src = `${previewUrl(photo.id, previewSize())}&retry=${Date.now()}`;
+  loadPhoto(url, `${url}&retry=${Date.now()}`);
   render();
   return true;
 }
@@ -302,24 +507,15 @@ export function initViewer(onBack) {
   });
   $('filter').addEventListener('click', (event) => {
     const button = event.target.closest('button');
-    if (!button) return;
-    const wantUnmarked = button.dataset.filter === 'unmarked';
-    if (wantUnmarked === onlyUnmarked) return;
-    const currentId = list[index]?.id ?? null;
-    onlyUnmarked = wantUnmarked;
-    applyFilter(currentId);
-    showError('');
-    render();
+    if (button) setFilter(button.dataset.filter);
   });
+  initMarkMenu();
   $('actions').addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (button) mark(button.dataset.field, button.dataset.value);
   });
-  $('photo').addEventListener('load', () => {
-    $('photo').classList.remove('loading');
-    failedUrl = null;
-    render();
-  });
+  // loadPhoto has already shown the photo; this only moves the overlays to its new box.
+  $('photo').addEventListener('load', render);
   new ResizeObserver(placeOverlays).observe($('stage'));
   $('photo').addEventListener('error', () => {
     failedUrl = $('photo').dataset.url;
@@ -403,8 +599,14 @@ export function initViewer(onBack) {
   // 6 to 9 for the first four colour labels.
   const LABEL_KEYS = { 6: 'red', 7: 'yellow', 8: 'green', 9: 'blue' };
   document.addEventListener('keydown', (event) => {
-    if ($('viewer').hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+    if ($('viewer').hidden || $('mark-menu').open || event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key.toLowerCase();
+    // G as in Lightroom. The grid only shows, so the marking keys rest while it is open.
+    if (key === 'g' && list.length) return setGrid(!gridOpen);
+    if (gridOpen) {
+      if (key === 'escape') setGrid(false);
+      return;
+    }
     if (key === 'arrowleft') step(-1);
     else if (key === 'arrowright') step(1);
     else if (key === 'p') flagByGesture(1);
@@ -496,7 +698,8 @@ export function initViewer(onBack) {
   // or otherwise to hide or show the mark pill and the filename tag.
   stage.addEventListener('click', (event) => {
     if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return; // synthetic click after a swipe
-    const zone = tapZone(event.clientX - stage.getBoundingClientRect().left, stage.clientWidth);
+    const box = photoBox.width ? photoBox : { left: 0, width: stage.clientWidth }; // No photo shown yet in this folder.
+    const zone = tapZone(event.clientX - stage.getBoundingClientRect().left, box.left, box.width);
     if (zone === 'prev') step(-1);
     else if (zone === 'next') step(1);
     else if (!retryPreview() && list[index]) toggleOverlays();
@@ -508,6 +711,22 @@ export function initViewer(onBack) {
   });
   // Rotation or Split View can cross the tier boundary; show the matching preview.
   HD_QUERY.addEventListener('change', () => { if (!$('viewer').hidden) render(); });
+  placeInfo();
+  RAIL_INFO_QUERY.addEventListener('change', placeInfo);
+  initGrid($('grid'), (photoId) => {
+    const at = list.findIndex((photo) => photo.id === photoId);
+    if (at === -1) return;
+    index = at;
+    setGrid(false);
+    announce($('caption').textContent);
+  });
+  $('grid-toggle').addEventListener('click', () => setGrid(!gridOpen));
+  $('info').addEventListener('click', (event) => {
+    event.stopPropagation(); // Over the photo it lies on a tap zone; the tap is for the panel.
+    if (Date.now() - lastSwipeAt < SWIPE_CLICK_GUARD_MS) return;
+    writePref('infoCollapsed', readPref('infoCollapsed', false) !== true);
+    render();
+  });
 }
 
 // Never throws: failures are shown inside the viewer so Back always works and the
@@ -521,10 +740,16 @@ export async function openViewer(nextSource) {
   writePref('lastPhoto', lastPhoto);
   nextRefreshAt = Date.now() + REFRESH_MS;
   failedUrl = null;
+  gridOpen = false;
+  photoBox = { left: 0, width: 0 };
   $('stage').classList.remove('overlays-off');
+  // The last folder's photo must not stand in for this one while its list loads.
   delete $('photo').dataset.url;
+  $('photo').classList.add('loading');
+  shown = null;
+  settleSwap();
   sourceName = nextSource.name;
-  onlyUnmarked = readChoice('defaultFilter', FILTERS, 'unmarked') === 'unmarked';
+  filter = readChoice('defaultFilter', FILTERS, 'unmarked');
   notice = t('viewer.loading');
   loading = true;
   savedAtSettled = settledOps; // loadPhotos writes the offline copy itself.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, filterName, tallyMarks } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -106,8 +106,8 @@ test('indexAfterFilter stays on the same photo when it is still listed', () => {
 });
 
 test('markSummary describes every kind of mark for the confirmation flash', () => {
-  assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用' });
-  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '排除' });
+  assert.deepEqual(markSummary('pickStatus', 1), { icon: 'flag', text: '留用', tone: 'pick' });
+  assert.deepEqual(markSummary('pickStatus', -1), { icon: 'ban', text: '排除', tone: 'reject' });
   assert.deepEqual(markSummary('pickStatus', 0), { icon: 'flag-off', text: '取消旗标' });
   assert.deepEqual(markSummary('rating', 3), { icon: 'star', text: '3 星' });
   assert.deepEqual(markSummary('rating', 0), { icon: 'star-off', text: '清除星级' });
@@ -199,15 +199,33 @@ test('pullOpacity is full only when armed and stays calmer while unarmed', () =>
 });
 
 test('tapZone keeps a wide middle so a slightly off-centre tap does not change photo', () => {
-  assert.equal(tapZone(10, 400), 'prev');
-  assert.equal(tapZone(87, 400), 'prev');
-  assert.equal(tapZone(88, 400), 'middle');
-  assert.equal(tapZone(89, 400), 'middle');
-  assert.equal(tapZone(200, 400), 'middle');
-  assert.equal(tapZone(311, 400), 'middle');
-  assert.equal(tapZone(312, 400), 'middle');
-  assert.equal(tapZone(313, 400), 'next');
-  assert.equal(tapZone(399, 400), 'next');
+  assert.equal(tapZone(10, 0, 400), 'prev');
+  assert.equal(tapZone(87, 0, 400), 'prev');
+  assert.equal(tapZone(88, 0, 400), 'middle');
+  assert.equal(tapZone(89, 0, 400), 'middle');
+  assert.equal(tapZone(200, 0, 400), 'middle');
+  assert.equal(tapZone(311, 0, 400), 'middle');
+  assert.equal(tapZone(312, 0, 400), 'middle');
+  assert.equal(tapZone(313, 0, 400), 'next');
+  assert.equal(tapZone(399, 0, 400), 'next');
+});
+
+test('tapZone follows the photo: beside a narrow photo, or on its outer part, a tap turns the page', () => {
+  // A portrait photo 500 wide, centred in a stage 1000 wide: it spans 250 to 750.
+  assert.equal(tapZone(100, 250, 500), 'prev'); // In the margin beside it.
+  assert.equal(tapZone(300, 250, 500), 'prev'); // On its left part.
+  assert.equal(tapZone(359, 250, 500), 'prev');
+  assert.equal(tapZone(361, 250, 500), 'middle');
+  assert.equal(tapZone(500, 250, 500), 'middle');
+  assert.equal(tapZone(639, 250, 500), 'middle');
+  assert.equal(tapZone(641, 250, 500), 'next');
+  assert.equal(tapZone(900, 250, 500), 'next');
+  // Whatever the photo's width, the outer part of the stage still turns the page.
+  for (const width of [200, 500, 1000]) {
+    const left = (1000 - width) / 2;
+    assert.equal(tapZone(219, left, width), 'prev', `width ${width}`);
+    assert.equal(tapZone(781, left, width), 'next', `width ${width}`);
+  }
 });
 
 test('resumeIndex returns to the remembered photo or the next listed one after it', () => {
@@ -231,4 +249,145 @@ test('rememberCapped keeps the most recent entries and drops the oldest', () => 
   assert.equal(map['f:1'], 'p9');
   rememberCapped(map, 'f:3', 'p3', 2);
   assert.deepEqual(Object.keys(map), ['f:1', 'f:3']);
+});
+
+test('formatShutter writes fast speeds as a fraction and slow ones in seconds', () => {
+  assert.equal(formatShutter(1 / 1250), '1/1250s');
+  assert.equal(formatShutter(1 / 60), '1/60s');
+  assert.equal(formatShutter(1 / 3), '1/3s');
+  assert.equal(formatShutter(0.4), '0.4s');
+  assert.equal(formatShutter(2), '2s');
+  assert.equal(formatShutter(2.5), '2.5s');
+  assert.equal(formatShutter(30), '30s');
+});
+
+test('exposureText and lensText leave out what the photo does not carry', () => {
+  const photo = { ...blank(), shutter: 0.0008, aperture: 2.8, iso: 100, focal: 50, lens: 'NIKKOR Z 50mm f/1.8 S' };
+  assert.equal(exposureText(photo), '1/1250s · f/2.8 · ISO\u00a0100');
+  assert.equal(lensText(photo), '50mm · NIKKOR Z 50mm f/1.8 S');
+  assert.equal(exposureText({ ...photo, aperture: 8 }), '1/1250s · f/8 · ISO\u00a0100');
+  assert.equal(exposureText({ ...blank(), iso: 400 }), 'ISO\u00a0400');
+  assert.equal(lensText({ ...blank(), focal: 61.7, lens: '' }), '62mm');
+  assert.equal(exposureText(blank()), '');
+  assert.equal(lensText(blank()), '');
+});
+
+test('histogram counts each colour channel of an RGBA buffer and ignores alpha', () => {
+  const [r, g, b] = histogram(Uint8ClampedArray.from([255, 0, 10, 255, 255, 128, 10, 0]));
+  assert.equal(r[255], 2);
+  assert.equal(g[0], 1);
+  assert.equal(g[128], 1);
+  assert.equal(b[10], 2);
+  assert.equal(r.length, 256);
+  assert.equal(b.reduce((sum, n) => sum + n, 0), 2);
+});
+
+test('smoothBins spreads a spike over its neighbours and leaves the clipping ends alone', () => {
+  const bins = new Uint32Array(256);
+  bins[0] = 90;
+  bins[100] = 5;
+  bins[255] = 70;
+  const out = smoothBins(bins, 2);
+  assert.deepEqual(Array.from(out.subarray(97, 104)), [0, 1, 1, 1, 1, 1, 0]);
+  assert.equal(out[0], 90);
+  assert.equal(out[255], 70);
+  assert.equal(out[1], 0);
+  assert.equal(out[254], 0);
+});
+
+test('createLoadQueue runs a limited number at once and skips what was dropped before its turn', () => {
+  const started = [];
+  const finish = new Map();
+  const queue = createLoadQueue(2, (item, done) => {
+    started.push(item);
+    finish.set(item, done);
+  });
+  for (const item of ['a', 'b', 'c', 'd']) queue.want(item);
+  assert.deepEqual(started, ['a', 'b']);
+  queue.drop('c');
+  finish.get('a')();
+  assert.deepEqual(started, ['a', 'b', 'd']);
+  queue.want('c');
+  assert.deepEqual(started, ['a', 'b', 'd']);
+  finish.get('b')();
+  assert.deepEqual(started, ['a', 'b', 'd', 'c']);
+  queue.want('e');
+  queue.clear();
+  finish.get('d')();
+  finish.get('c')();
+  assert.deepEqual(started, ['a', 'b', 'd', 'c']);
+});
+
+test('matchesFilter keeps one flag, one rating, a minimum rating or one colour label', () => {
+  const photo = { ...blank(), pick: 1, rating: 3, label: 'red' };
+  assert.equal(matchesFilter(photo, 'all'), true);
+  assert.equal(matchesFilter(photo, 'unmarked'), false);
+  assert.equal(matchesFilter(blank(), 'unmarked'), true);
+  assert.equal(matchesFilter(photo, 'pick'), true);
+  assert.equal(matchesFilter(photo, 'reject'), false);
+  assert.equal(matchesFilter({ ...blank(), pick: -1 }, 'reject'), true);
+  assert.equal(matchesFilter(photo, 'star3+'), true);
+  assert.equal(matchesFilter(photo, 'star1+'), true);
+  assert.equal(matchesFilter(photo, 'star4+'), false);
+  assert.equal(matchesFilter(photo, 'red'), true);
+  assert.equal(matchesFilter(photo, 'blue'), false);
+  assert.equal(matchesFilter(blank(), 'star1+'), false);
+});
+
+test('matchesFilter "unrejected" keeps every photo that is not rejected, marked or not', () => {
+  assert.equal(matchesFilter(blank(), 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), rating: 3 }, 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), pick: 1, label: 'red' }, 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), pick: -1 }, 'unrejected'), false);
+  assert.equal(matchesFilter({ ...blank(), pick: -1, rating: 5 }, 'unrejected'), false);
+});
+
+test('matchesFilter tells exactly N stars from N stars or more', () => {
+  const three = { ...blank(), rating: 3 };
+  assert.equal(matchesFilter(three, 'star3'), true);
+  assert.equal(matchesFilter(three, 'star2'), false);
+  assert.equal(matchesFilter(three, 'star4'), false);
+  assert.equal(matchesFilter(three, 'star2+'), true);
+  assert.equal(matchesFilter(blank(), 'star1'), false);
+  assert.equal(matchesFilter({ ...blank(), rating: 5 }, 'star5'), true);
+  // Five stars or more is five stars: there is one filter for it, not two.
+  assert.equal(MARK_FILTERS.includes('star5+'), false);
+  assert.deepEqual(MARK_FILTERS.filter((name) => name.startsWith('star')), ['star1', 'star1+', 'star2', 'star2+', 'star3', 'star3+', 'star4', 'star4+', 'star5']);
+});
+
+test('tallyMarks counts what every mark filter would show, in one pass', () => {
+  const photos = [
+    { ...blank(), pick: 1, rating: 3, label: 'red' },
+    { ...blank(), pick: 1, rating: 5 },
+    { ...blank(), pick: -1 },
+    blank(),
+  ];
+  const counts = tallyMarks(photos);
+  assert.deepEqual(Object.keys(counts), MARK_FILTERS);
+  for (const name of MARK_FILTERS) assert.equal(counts[name], photos.filter((photo) => matchesFilter(photo, name)).length, name);
+  assert.equal(counts.pick, 2);
+  assert.equal(counts.star3, 1);
+  assert.equal(counts['star3+'], 2);
+  assert.equal(counts.star5, 1);
+});
+
+test('filterName says every filter in words, ratings included, for screen readers', () => {
+  assert.equal(filterName('star3'), '3 星');
+  assert.equal(filterName('star3+'), '3 星及以上');
+  assert.equal(filterName('star5'), '5 星');
+  assert.equal(filterName('pick'), '留用');
+  assert.equal(filterName('unrejected'), '未排除');
+  assert.equal(filterName('purple'), '紫色');
+});
+
+test('filterLabel names flags and colours in words and ratings as a star and a number', () => {
+  assert.equal(filterLabel('unmarked'), '未标记');
+  assert.equal(filterLabel('all'), '全部');
+  assert.equal(filterLabel('unrejected'), '未排除');
+  assert.equal(filterLabel('pick'), '留用');
+  assert.equal(filterLabel('reject'), '排除');
+  assert.equal(filterLabel('star3'), '\u26053');
+  assert.equal(filterLabel('star3+'), '\u26053+');
+  assert.equal(filterLabel('star5'), '\u26055');
+  assert.equal(filterLabel('purple'), '紫色');
 });

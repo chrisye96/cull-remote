@@ -47,16 +47,32 @@ The same address works at home and away. At home Tailscale connects directly ove
 | Swipe up | Pick |
 | Swipe down | Reject |
 | Tap a flag, a star or a colour | Set it; tap an active one again to clear it |
-| Tap the middle of the photo (the central half) | Hide or show the mark pill and the filename tag |
+| Tap the middle of the photo (the central half) | Hide or show everything laid over the photo: the mark pill, the filename tag and the photo info |
+| Tap the photo info panel | Fold it down to an icon; tap the icon to open it again |
+| Tap the grid button beside Back | Open the thumbnail grid. The button then shows a single photo; tap it again to return |
 | Tap "Unmarked" or "All" | Switch the filter; both show live counts |
+| Tap the funnel beside the grid button | Choose a filter: unmarked, not rejected or all, or one mark: picks, rejects, one rating, a minimum rating or one colour label |
 
+- The tap areas follow the photo. Beside a narrow photo, or on its outer part, a tap turns the page; the central half of the photo itself hides or shows the overlays
 - While you drag up or down, the photo follows your finger and a hint shows what releasing will do. Let go early and nothing happens
 - A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
 - Pick and reject jump to the next photo; stars and labels stay on the current one. Settings can make every mark advance, or none
 - Switching the filter keeps you on the current photo when it is in the new list
+- A mark filter shows one kind of photo at a time, for a second or third pass. "Not rejected" shows every photo but the rejects, so a later pass still sees what an earlier one rated. The menu starts with "Unmarked", "Not rejected" and "All", then shows each mark with the number of photos it would show: the two flags, the ratings two to a row ("★3" is exactly three stars, "★3+" is three or more) and the five colours. While one is on, the funnel turns into that mark; tap it again in the menu, or tap "Unmarked" or "All", to leave it
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels. Left-hand mode in settings puts the rail on the left
 - Each folder or collection remembers the photo you were on, per device, so going back and reopening it resumes there
+- The photo info panel shows a histogram of the preview, then shutter speed, aperture and ISO, then focal length and lens. It lies over the top right corner of the photo area; on a tablet in landscape it sits in the rail instead and covers nothing. Settings choose which of the three parts appear
+
+### Thumbnail grid
+
+The grid gives an overview of a folder and a way to jump to a photo. It only shows: marking is done on the single photo.
+
+- It lists the same photos as the viewer and follows its filter
+- Each thumbnail carries the photo's marks: a flag or a reject sign, a star with its count, and the colour label as a strip along the bottom edge. Rejected photos are dimmed
+- Tap a thumbnail to open that photo. Back in the grid, the photo you came from is outlined and scrolled into view
+- The grid button takes you back to the single photo
+- Thumbnails load as they scroll into view. In a folder Lightroom has no previews for yet, each one takes a few seconds, and the file name stands in until it arrives
 
 ### With a keyboard
 
@@ -71,6 +87,10 @@ The viewer takes the keys Lightroom uses.
 | `1` to `5` | Set the star rating |
 | `0` | Clear the rating |
 | `6` to `9` | Red, yellow, green and blue label |
+| `G` | Open or close the thumbnail grid |
+| `Esc` | Leave the grid, or close the filter menu |
+
+While the grid is open the marking keys do nothing.
 
 ### On the home page
 
@@ -82,7 +102,7 @@ The viewer takes the keys Lightroom uses.
 
 ### Settings
 
-Settings is at the top right of the home page: language, preview quality, whether a mark advances to the next photo, whether a folder opens on unmarked or all photos, left-hand mode, automatic caching, cache usage and clearing, and connection details.
+Settings is at the top right of the home page: language, preview quality, whether a mark advances to the next photo, whether a folder opens on unmarked or all photos, left-hand mode, which parts of the photo info to show, automatic caching, cache usage and clearing, and connection details.
 
 ## Languages
 
@@ -94,12 +114,13 @@ Flags, ratings, labels, folders and collections are named as Lightroom names the
 
 **Caching a folder**
 
-- Each row under "Recently opened" on the home page ends with a `Cache` button. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
+- Every folder and collection on the home page, under "Recently opened" too, ends with a small arrow. It opens a dialog where you choose unmarked photos or all of them; the buttons show the photo count and the estimated size
+- To take along only one kind of marked photo, for a second pass away from home, open "Choose by mark" in that dialog and tap a mark (the same panel as the viewer's filter menu). A third button appears with that mark's count and size
 - Keep the page in the foreground while it runs. If it is interrupted, tap again and it continues where it stopped
-- When the run completes the dialog closes, the button reads `Cached N`, and cached folders in the list get a small check next to their count
+- When the run completes the dialog closes and the folder's arrow turns into a check
 - Opening the dialog again shows how many photos are still missing and disables a choice that is fully cached
+- To free the space one folder takes, tap "Delete cached previews" in its dialog and tap again to confirm; the second tap names the number of photos and their size. A photo that is also in another folder or collection loses its preview there too. "Clear cache" in settings removes everything
 - If caching is too slow, cancel, lower the preview quality in settings and continue. High-quality previews already downloaded stay in use and only the missing ones are fetched
-- To cache a folder you have not opened yet, open it once and it appears under "Recently opened"
 
 **Automatic caching**
 
@@ -132,7 +153,7 @@ Deleting is out of scope on purpose. Mark photos as rejected on the phone, then 
 | `plugin/cull-remote.lrplugin` | Lightroom plug-in that long-polls the local companion server and runs its commands |
 | `server/` | Companion server (Node.js 24) on your computer, listening on `127.0.0.1` only |
 | `web/` | The page you open on the phone or tablet |
-| `tools/` | Scripts that generate the logo files and the Lightroom glossary; see `tools/README.md` |
+| `tools/` | Scripts that generate the logo files, the icon sprite in the page and the Lightroom glossary; see `tools/README.md` |
 | `spike/` | The preview performance experiment from development; results in `docs/spike-results.md` |
 
 The page is published to your own devices with `tailscale serve` over HTTPS. It is reachable only inside your tailnet, never on the public internet.
@@ -144,6 +165,7 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - All interface text is in `web/js/strings.js`, one table per language with English as the reference. To add a language, add a table there and its name to `LANGUAGES` in `web/js/i18n.js`. `npm test` fails while a key or a placeholder is missing
 - `tools/lightroom-terms.json` lists what Lightroom calls each thing in all of its languages
 - The logo and icons are generated: `docs/brand/` and `web/icons/` come from a script described in `tools/README.md`
+- The interface icons are Lucide icons copied into `web/index.html`, only the ones in use. After adding or removing one, run `node tools/icons.mjs` from the repository root; `npm test` fails until the page matches
 - Branches: `main` is stable, `dev` integrates, features go on `feat/*` and fixes on `fix/*`
 
 ## Known limitations
@@ -155,12 +177,16 @@ The page is published to your own devices with `tailscale serve` over HTTPS. It 
 - Previews cached on the device do not follow later edits in Lightroom either. Clear the cache in settings and cache again
 - Only Lightroom's five default colour labels are recognised. Photos labelled through a custom label set appear unmarked, and tapping a colour replaces that label
 - When Lightroom is busy a mark stays queued and is retried. This path is covered by automated tests only: in practice dialogs such as Preferences and Export did not block writes, so it could not be reproduced by hand
+- The histogram is counted from the preview on screen, not from the raw file, and from a reduced copy of it, so a handful of clipped pixels may not show
+- A folder cached for offline use by an earlier version shows no exposure or lens details until it has been opened once with a connection
+- Grid thumbnails come from Lightroom larger than asked for, about 60 KB each, which adds up on mobile data
 
 **Offline**
 
 - Offline data lives in the browser: Safari, Chrome and the Home Screen app each keep their own copy. Only the Home Screen app is exempt from iOS clearing that data after 7 days without a visit
 - Offline use was verified item by item in Chrome on iOS (iPhone and iPad, 2026-10-04). Safari and the Home Screen app run on the same browser engine and are expected to behave the same, but have not been verified item by item
 - With no network at all, a cold start takes a few seconds, because the page shell and the connection probe each wait for a timeout
+- Thumbnails are not cached themselves. Offline, the grid is meant to draw from the cached previews; this has not been verified on a device yet
 
 **Platforms and languages**
 

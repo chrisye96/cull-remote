@@ -36,8 +36,7 @@ function span(className, text) {
 const KIND_ICON = { folder: 'folder', set: 'layers' };
 
 // The tappable part of a row: kind icon, name, optional path hint and photo count.
-// With `markCached`, a folder that has previews on this device gets a quiet check.
-function sourceButton(source, hint, onActivate, markCached = false) {
+function sourceButton(source, hint, onActivate) {
   const main = document.createElement('button');
   main.type = 'button';
   main.className = 'source-main';
@@ -45,26 +44,20 @@ function sourceButton(source, hint, onActivate, markCached = false) {
   kind.setAttribute('class', 'icon source-kind');
   main.append(kind, span('source-name', source.name));
   if (hint) main.append(span('source-hint', hint));
-  if (markCached && source.id && readObject('cached')[source.id]) {
-    const mark = icon('circle-check');
-    mark.setAttribute('class', 'icon source-cached');
-    mark.setAttribute('role', 'img');
-    mark.setAttribute('aria-label', t('source.cached'));
-    mark.removeAttribute('aria-hidden');
-    main.append(mark);
-  }
   if (source.kind !== 'set') main.append(span('source-count', String(source.count)));
   main.addEventListener('click', onActivate);
   return main;
 }
 
-// The label reflects the current state: an offer to cache until this folder has previews on the device.
-function cacheButton(source) {
-  const info = readObject('cached')[source.id];
+// The offer to cache at the end of every row, recent or in the tree, as a quiet sign so that a
+// long list stays calm: an arrow until the folder has previews on this device, then a check.
+function cacheSign(source) {
+  const cached = Boolean(readObject('cached')[source.id]);
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = info ? 'source-cache done' : 'source-cache';
-  button.textContent = info ? t('source.cachedCount', { n: info.count }) : t('source.cache');
+  button.className = cached ? 'source-cache done' : 'source-cache';
+  button.setAttribute('aria-label', t(cached ? 'source.cached' : 'source.cache', { name: source.name }));
+  button.append(icon(cached ? 'circle-check' : 'circle-arrow-down'));
   button.addEventListener('click', () => openCacheDialog(source));
   return button;
 }
@@ -99,14 +92,15 @@ function row(node, siblings) {
   }
 
   // Collection sets cannot be opened; their row just expands or collapses.
-  line.append(sourceButton(source, folderHint(node, siblings), () => (source.id ? onPickSource(source) : toggle(node)), true));
+  line.append(sourceButton(source, folderHint(node, siblings), () => (source.id ? onPickSource(source) : toggle(node))));
+  if (source.id) line.append(cacheSign(source));
   return item;
 }
 
 // A flat row in the recently opened group: no indentation and no twisty.
 function recentRow(source) {
   const { item, line } = rowShell(0);
-  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)), cacheButton(source));
+  line.append(span('twisty-spacer', ''), sourceButton(source, '', () => onPickSource(source)), cacheSign(source));
   return item;
 }
 

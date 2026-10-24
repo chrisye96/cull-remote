@@ -6,7 +6,6 @@ const PREVIEW_WAIT_MS = 15000;
 const SHELL = [
   '/',
   '/style.css',
-  '/vendor/lucide.svg',
   '/js/api.js',
   '/js/autocache.js',
   '/js/cachedialog.js',
@@ -14,8 +13,10 @@ const SHELL = [
   '/js/cacher.js',
   '/js/data.js',
   '/js/dom.js',
+  '/js/grid.js',
   '/js/i18n.js',
   '/js/main.js',
+  '/js/markmenu.js',
   '/js/messages.js',
   '/js/prefs.js',
   '/js/quality.js',
@@ -66,8 +67,14 @@ async function preview(request) {
   try {
     return await fetch(request, { signal: AbortSignal.timeout(PREVIEW_WAIT_MS) });
   } catch {
-    // No connection: a smaller preview is better than nothing.
-    return (await cache.match(other.href)) ?? Response.error();
+    // No connection: another cached size of this photo is better than nothing. Thumbnails
+    // are never cached themselves, so offline the grid is drawn from these.
+    for (const size of ['std', 'hd']) {
+      other.searchParams.set('size', size);
+      const copy = await cache.match(other.href);
+      if (copy) return copy;
+    }
+    return Response.error();
   }
 }
 

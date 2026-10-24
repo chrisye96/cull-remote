@@ -76,11 +76,13 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 .source-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .source-hint { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
 .source-count { flex: none; margin-left: auto; font-size: 13px; color: var(--muted); }
-.source-cached { flex: none; margin-left: auto; width: 15px; height: 15px; color: var(--muted); }
-.source-cached + .source-count { margin-left: 6px; }
-.source-cache { flex: none; min-height: 44px; padding: 0 14px 0 0; border: 0; border-radius: 0; background: transparent; font-size: 13px; color: var(--accent); white-space: nowrap; }
-.source-cache.done { color: var(--muted); }
+/* The offer to cache is only a sign at the end of the row, fainter until the folder is on
+   this device. The count sits right before it, so the row needs no padding between them. */
+.source-cache { flex: none; display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); opacity: .55; }
+.source-cache.done { opacity: 1; }
+.source-cache .icon { display: block; width: 16px; height: 16px; }
 .source-cache:active { transform: none; }
+.source-main:has(+ .source-cache) { padding-right: 0; }
 
 /* The dialog element keeps its own display and sizing; the layout lives in .dialog-body, so no
    engine can stretch the rows when it sizes the dialog box differently. */
@@ -97,6 +99,21 @@ dialog button { background: var(--bg); min-height: 40px; padding: 6px 12px; font
 .choice span { display: block; }
 .choice-detail { margin-top: 3px; font-size: 13px; color: var(--muted); }
 .choice .choice-detail:empty { display: none; }
+/* Caching the photos of one mark: the panel of the viewer's filter menu, closed until wanted. */
+#cache-marks summary { padding: 8px 2px; font-size: 14px; color: var(--accent); }
+/* The dialog is wider than the panel needs. Its columns keep their own width and stand in the
+   middle as one block, in a frame like the choices around it, so no half is left empty. The
+   columns stand apart on a tablet and close up on a phone, where the longer flag words need
+   the room. */
+#cache-marks .mark-menu { grid-template-columns: repeat(2, minmax(0, max-content)); justify-content: center; column-gap: clamp(4px, (100vw - 340px) / 5, 28px); margin-top: 4px; padding: 8px; border: 1px solid #333; border-radius: 10px; background: var(--bg); }
+/* Deleting the previews of the folder is said in words and in the colour of a reject, centred
+   under the choices. Tapped once, it becomes the question and gets a frame; its box is the
+   same before and after, so nothing moves. */
+#cache-delete { min-height: 40px; padding: 6px 12px; border: 1px solid transparent; background: transparent; font-size: 14px; color: #ff6b6b; text-align: center; }
+#cache-delete.confirm { border-color: currentColor; font-weight: 600; }
+/* Lower rows than in the menu: the dialog has two choices above the panel and one below. */
+#cache-marks .mark-menu button { min-height: 36px; }
+#cache-marks .mark-menu .colours button { padding: 5px 0; }
 .dialog-head { display: flex; align-items: center; gap: 12px; }
 .dialog-head h2 { flex: 1; min-width: 0; outline: none; }
 /* Close is a round × in the corner: the icon is centred by the grid, and the fill makes the circle deliberate. */
@@ -124,6 +141,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 .setting select:focus { outline: none; border-color: var(--accent); }
 .setting input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
 .settings-group .note { margin: 8px 4px 0; }
+/* Several on/off choices of one kind share a row and wrap when a language needs more room. */
+.check-list { flex-wrap: wrap; justify-content: flex-start; gap: 0 22px; }
+.check-list label { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
 .pair { display: grid; justify-items: center; gap: 4px; margin: 12px 0 0; }
 .pair img { border-radius: 10px; }
 #conn-info { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--panel); font-size: 14px; }
@@ -135,8 +155,19 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 #title { flex: 1; min-width: 0; display: flex; justify-content: center; text-align: center; font-size: 14px; color: var(--muted); }
 #photo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #photo-pos { flex: none; margin-left: .6em; }
-#back { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-#stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
+/* Back, the grid switch and the mark filter: three plain icons side by side. A frame is kept
+   for the control that has a state to show, the filter. */
+#tools { display: flex; flex: none; }
+#tools > * { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--text); }
+#tools .icon { width: 20px; height: 20px; }
+/* The arrow is drawn in half the height of its box, the grid in three quarters. One and a half
+   times as large, with the stroke thinned by the same factor, it is as tall and as heavy. */
+#back .icon { width: 30px; height: 30px; stroke-width: 1.33; }
+/* Back is an arrow; the word stays for screen readers. */
+#back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The photo and the thumbnail grid take turns in this box. */
+#view { flex: 1; min-height: 0; display: flex; }
+#stage { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; overflow: hidden; }
 /* The photo follows the finger through transforms. Its own compositor layer moves as a
    texture; without it WebKit repaints the stage in place and can leave rows of the photo's
    edge behind at fractional offsets. */
@@ -153,8 +184,9 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 /* Flags: icon and text side by side in portrait, stacked in landscape. */
 .flag { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .flag .icon { width: 20px; height: 20px; }
-.row .flag { color: var(--text); }
-.row .flag[data-value="1"].on { color: var(--accent); background: var(--accent-tint); }
+/* Each flag always wears its own colour; the tint behind it says the photo has that flag. */
+.row .flag[data-value="1"] { color: var(--accent); }
+.row .flag[data-value="1"].on { background: var(--accent-tint); }
 .row .flag[data-value="-1"] { color: var(--reject); }
 .row .flag[data-value="-1"].on { background: var(--reject-tint); }
 
@@ -190,8 +222,8 @@ dialog progress { width: 100%; accent-color: var(--accent); }
 /* Live hint while pulling up or down: dim until the pull is far enough, then armed. */
 #pull { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 14px; background: rgba(0, 0, 0, .55); font-size: 18px; opacity: 0; transform: translate(-50%, -50%) scale(.9); pointer-events: none; transition: transform .12s ease, background-color .12s ease, opacity .18s ease; }
 #pull .icon { width: 24px; height: 24px; }
-#pull.pick { color: var(--accent); }
-#pull.reject { color: var(--reject); }
+#pull.pick, #flash[data-tone="pick"] { color: var(--accent); }
+#pull.reject, #flash[data-tone="reject"] { color: var(--reject); }
 #pull.armed { transform: translate(-50%, -50%) scale(1.1); background: rgba(0, 0, 0, .8); }
 
 /* Brief chevron where an edge tap landed, pinned inside the photo. */
@@ -240,8 +272,81 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 #badges .mark-rating .icon { fill: currentColor; }
 #badges .dot { width: 12px; height: 12px; border-radius: 50%; opacity: .85; }
 #caption { display: none; position: absolute; left: calc(var(--img-left, 0px) + 10px); bottom: calc(var(--img-bottom, 0px) + 10px); padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); color: rgba(255, 255, 255, .85); font-size: 13px; max-width: calc(var(--img-width, 100%) - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-#badges, #caption { transition: opacity .2s ease; }
-#stage.overlays-off #badges, #stage.overlays-off #caption { opacity: 0; }
+/* Histogram, exposure and lens. It sits in the corner of the stage, not of the photo, so
+   a photo that leaves a margin there is not covered at all. */
+#info { position: absolute; top: 10px; right: 10px; width: clamp(116px, 20vmin, 180px); min-height: 0; display: grid; gap: 2px; padding: 5px 7px; border: 0; border-radius: 10px; background: rgba(0, 0, 0, .55); color: rgba(255, 255, 255, .85); font-size: clamp(10px, 1.45vmin, 12px); line-height: 1.3; text-align: left; }
+#histogram { width: 100%; height: auto; }
+/* A tap folds the panel down to this icon; another tap opens it again. */
+#info .icon { display: none; width: 16px; height: 16px; }
+#info.collapsed { width: auto; padding: 6px; }
+#info.collapsed .icon { display: block; }
+#info.collapsed #histogram, #info.collapsed #exposure, #info.collapsed #lens { display: none; }
+/* Tall landscape screens: viewer.js moves the panel into the rail, under the filter. */
+#side #info { position: static; width: auto; margin: 10px calc(env(safe-area-inset-right) + 10px) 0 10px; padding: 0; background: none; }
+#side #info.collapsed { align-self: flex-start; padding: 6px; background: var(--panel); }
+.left-hand #side #info { margin: 10px 10px 0 calc(env(safe-area-inset-left) + 10px); }
+#lens { overflow-wrap: anywhere; color: rgba(255, 255, 255, .65); }
+#exposure:empty, #lens:empty { display: none; }
+#badges, #caption, #info { transition: opacity .2s ease; }
+#stage.overlays-off #badges, #stage.overlays-off #caption, #stage.overlays-off #info { opacity: 0; }
+/* Hidden with the other overlays, it must not swallow taps meant for the photo. */
+#stage.overlays-off #info { pointer-events: none; }
+
+/* The grid switch shows where a tap leads: the grid from the photo, a single photo from the grid. */
+/* The funnel opens the mark filters. While one is on, the icon is that mark: its flag, its
+   stars or its colour. */
+#mark-sign { display: inline-flex; }
+#mark-filter .dot { width: 14px; height: 14px; border-radius: 50%; }
+#mark-filter .cell-stars { font-size: 12px; }
+#mark-filter .cell-stars .icon { width: 14px; height: 14px; }
+/* The menu is as wide as its rows need and is placed beside the funnel by viewer.js. */
+#mark-menu { inset: auto; box-sizing: border-box; width: max-content; max-width: calc(100vw - 12px); margin: 0; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+/* Nothing dims: it is a menu, and the photo behind it stays as it was. */
+#mark-menu::backdrop { background: transparent; }
+#mark-menu .mark-menu { padding: 6px; outline: none; }
+/* At the top of the menu, unmarked, not rejected and all, one to a row and drawn like the marks
+   below them. They never decide the menu's width (no width of their own, at least the full
+   width). The line under them is spaced like the lines between the marks. */
+#mark-menu #mark-scope { box-sizing: border-box; grid-template-columns: 1fr; width: 0; min-width: 100%; padding-bottom: 0; }
+#mark-menu #mark-panel { padding-top: 2px; }
+#mark-filter.scoped { color: var(--accent); }
+/* The mark filters, two to a row; the colours share one row. Also used outside the menu.
+   A count sits right after its mark, and the rest of the button is room to tap. */
+.mark-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; }
+.mark-menu button { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px; padding: 0 12px 0 10px; border: 0; background: transparent; font-size: 15px; text-align: left; outline-offset: -2px; }
+.mark-menu button[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.mark-menu .colours, .mark-menu hr { grid-column: 1 / -1; }
+.mark-menu hr { width: 100%; margin: 3px 0; border: 0; border-top: 1px solid #333; }
+.mark-menu .icon { flex: none; width: 16px; height: 16px; }
+/* "3" takes the room of "3+", so the counts of a column line up. */
+.mark-menu .cell-stars { gap: 4px; min-width: 2.5em; font-size: 15px; }
+.mark-menu .dot { width: 18px; height: 18px; border-radius: 50%; }
+.mark-menu .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark-menu .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mark-menu .colours { display: grid; grid-template-columns: repeat(5, 44px); justify-content: start; }
+.mark-menu .colours button { flex-direction: column; justify-content: center; gap: 5px; padding: 8px 0; }
+#grid-toggle[aria-pressed="true"] .to-grid, #grid-toggle[aria-pressed="false"] .to-photo { display: none; }
+
+/* Thumbnail grid: whole photos in square cells, as many columns as fit. */
+#grid { flex: 1; min-width: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 3px; padding: 3px 3px calc(env(safe-area-inset-bottom) + 3px); }
+.cell { position: relative; aspect-ratio: 1; min-height: 0; padding: 0; border: 0; border-radius: 4px; overflow: hidden; background: var(--panel); color: var(--muted); font-size: 11px; }
+.cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .2s ease; }
+.cell.loaded img { opacity: 1; }
+.cell.loaded.reject img { opacity: .35; }
+.cell-name { display: block; padding: 0 6px; overflow-wrap: anywhere; }
+.cell.loaded .cell-name { display: none; }
+/* A frame laid over the cell, so the thumbnail cannot cover it. */
+.cell.current::after { content: ''; position: absolute; inset: 0; border: 2px solid var(--accent); border-radius: inherit; pointer-events: none; }
+.cell-marks { position: absolute; top: 3px; left: 3px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; line-height: 1; }
+.cell-marks:empty { display: none; }
+.cell-marks .icon { width: 10px; height: 10px; stroke-width: 2.5; }
+.cell-marks .pick, #mark-filter .pick, .mark-menu .pick { color: var(--accent); }
+.cell-marks .reject, #mark-filter .reject, .mark-menu .reject { color: rgba(255, 107, 107, .9); }
+.cell-stars { display: inline-flex; align-items: center; gap: 2px; color: rgba(245, 197, 24, .9); }
+.cell-stars .icon { fill: currentColor; }
+.cell-label { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+/* The grid only shows; the marking controls and the photo's own panel belong to the single photo. */
+#viewer.grid-open #actions, #viewer.grid-open #side #info { display: none; }
 
 @media (orientation: landscape) {
   #viewer { --rail: clamp(110px, 12vw, 150px); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--rail) + env(safe-area-inset-right)); grid-template-rows: auto auto minmax(0, 1fr); }
@@ -249,17 +354,22 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 
   /* No top bar in landscape: its items join the rail. */
   #viewer header { display: contents; }
-  #back { grid-area: 1 / 2; justify-self: stretch; align-self: center; min-height: 34px; padding: 0 10px; font-size: 13px; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 8px; }
+  #tools { grid-area: 1 / 2; margin: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) 0 8px; }
+  #tools > * { flex: 1; width: auto; min-height: 30px; }
   #title { display: none; }
-  #status:not([hidden]) ~ #viewer #back { margin-top: 8px; }
+  #status:not([hidden]) ~ #viewer #tools { margin-top: 8px; }
+  /* The three icons share the first row of the rail, a third each. */
   #filter { grid-area: 2 / 2; margin: 6px calc(env(safe-area-inset-right) + 8px) 0 8px; }
   #filter button { flex: 1; min-height: 0; padding: 4px 0; font-size: 12px; line-height: 1.25; white-space: normal; }
   #filter .count { display: block; margin: 0; }
 
-  #stage { grid-area: 1 / 1 / 4 / 2; padding-left: env(safe-area-inset-left); }
+  #view { grid-area: 1 / 1 / 4 / 2; }
+  #stage { padding-left: env(safe-area-inset-left); }
+  #grid { padding: calc(env(safe-area-inset-top) + 3px) 3px calc(env(safe-area-inset-bottom) + 3px) calc(env(safe-area-inset-left) + 3px); }
   #caption { display: block; bottom: calc(max(var(--img-bottom, 0px), env(safe-area-inset-bottom)) + 10px); }
   /* The photo can touch the top of a landscape screen; keep the pill below the safe area. */
   #badges { top: calc(max(var(--img-top, 0px), env(safe-area-inset-top)) + 10px); }
+  #info { top: calc(env(safe-area-inset-top) + 10px); }
   #flash, #pull { left: calc(50% + env(safe-area-inset-left) / 2); }
 
   #side { grid-area: 3 / 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
@@ -290,10 +400,13 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   /* Left-hand mode: the rail moves to the left edge. */
   .left-hand #viewer { grid-template-columns: calc(var(--rail) + env(safe-area-inset-left)) minmax(0, 1fr); }
   .left-hand #viewer::before { grid-area: 1 / 1 / 4 / 2; border-left: 0; border-right: 1px solid var(--line); }
-  .left-hand #back { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
+  .left-hand #tools { grid-area: 1 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #filter { grid-area: 2 / 1; margin-left: calc(env(safe-area-inset-left) + 8px); margin-right: 8px; }
   .left-hand #side { grid-area: 3 / 1; }
-  .left-hand #stage { grid-area: 1 / 2 / 4 / 3; padding-left: 0; padding-right: env(safe-area-inset-right); }
+  .left-hand #view { grid-area: 1 / 2 / 4 / 3; }
+  .left-hand #stage { padding-left: 0; padding-right: env(safe-area-inset-right); }
+  .left-hand #grid { padding-left: 3px; padding-right: calc(env(safe-area-inset-right) + 3px); }
+  .left-hand #stage #info { right: calc(env(safe-area-inset-right) + 10px); }
   .left-hand #error { padding: 6px 8px 6px calc(env(safe-area-inset-left) + 8px); }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: 8px; }
   .left-hand #flash, .left-hand #pull { left: calc(50% - env(safe-area-inset-right) / 2); }
@@ -303,12 +416,16 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 @media (orientation: landscape) and (max-height: 599px) {
   :lang(de) #actions .flag, :lang(es) #actions .flag { font-size: 11px; letter-spacing: -.02em; }
   :lang(de) #actions .flag { letter-spacing: -.04em; }
+  /* A phone on its side is too short for full rows: lower ones let the whole menu show. */
+  .mark-menu button { min-height: 36px; }
+  .mark-menu .colours button { padding: 5px 0; }
 }
 
 /* iPad landscape: square buttons centred in a wider rail, larger top controls. */
 @media (orientation: landscape) and (min-height: 600px) {
   #viewer { --rail: clamp(150px, 15vw, 200px); }
-  #back { min-height: 44px; padding: 0 14px; font-size: 16px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
+  #tools { margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
+  #tools > * { min-height: 36px; }
   #filter { margin-top: 8px; margin-left: 10px; margin-right: calc(env(safe-area-inset-right) + 10px); }
   #filter button { padding: 8px 0; font-size: 15px; }
   #actions { grid-template-rows: auto auto; align-content: center; gap: 8px; padding-left: 10px; padding-right: calc(env(safe-area-inset-right) + 10px); }
@@ -318,7 +435,7 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #actions .flag .icon { width: 26px; height: 26px; }
   #actions .stars svg { width: 28px; height: 28px; }
   .swatches .check { width: 26px; height: 26px; }
-  .left-hand #back, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
+  .left-hand #tools, .left-hand #filter { margin-left: calc(env(safe-area-inset-left) + 10px); margin-right: 10px; }
   .left-hand #actions { padding-left: calc(env(safe-area-inset-left) + 10px); padding-right: 10px; }
 }
 
@@ -330,6 +447,15 @@ button.pending { animation: pending 1s ease-in-out infinite; }
   #photo.bump-prev, #photo.bump-next { animation: none; }
   #pull { transition: opacity .18s ease; }
   #pull.armed { transform: translate(-50%, -50%); }
+}
+
+/* Phone portrait: a lower top bar leaves more of the screen to the photo. */
+@media (orientation: portrait) and (max-width: 599px) {
+  #filter button { min-height: 34px; }
+  #tools > * { width: 30px; min-height: 34px; }
+  /* The filter stacks each label over its count, as in the landscape rail, and leaves the width to the file name. */
+  #filter button { padding: 2px 8px; font-size: 11px; line-height: 1.2; }
+  #filter .count { display: block; margin: 0; }
 }
 
 /* iPad portrait keeps the larger check; phones use the smaller base size. */

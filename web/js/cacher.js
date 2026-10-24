@@ -1,5 +1,5 @@
 import { previewUrl } from './api.js';
-import { runPool, COVERED_BY } from './cacheplan.js';
+import { runPool, COVERED_BY, sizeOf } from './cacheplan.js';
 import { readObject, writePref } from './prefs.js';
 
 export const PREVIEW_CACHE = 'lrc-previews';
@@ -30,13 +30,16 @@ async function cacheOne(cache, photoId, size, signal) {
     signal.throwIfAborted();
     try {
       const res = await fetch(url, { signal });
-      if (res.ok) {
+      // With the computer out of reach the service worker may answer with another size it
+      // has; stored under this size it would never be replaced, so it counts as a failure.
+      const standIn = res.url !== '' && sizeOf(res.url) !== size;
+      if (res.ok && !standIn) {
         await cache.put(url, res);
         // The larger preview replaces a smaller one cached before the quality was raised.
         if (size === 'hd') await cache.delete(previewUrl(photoId, 'std'));
         return true;
       }
-      if (res.status < 500) return false; // This photo has no preview; retrying will not help.
+      if (!standIn && res.status < 500) return false; // This photo has no preview; retrying will not help.
     } catch (e) {
       if (signal.aborted || e.name === 'QuotaExceededError') throw e;
     }
@@ -90,6 +93,15 @@ export async function cachedUrls() {
 export async function clearPreviews() {
   const cache = await caches.open(PREVIEW_CACHE);
   await Promise.all((await cache.keys()).map((request) => cache.delete(request)));
+}
+
+// Remove the given previews of one folder, and forget that it had any.
+export async function deletePreviews(sourceId, urls) {
+  const cache = await caches.open(PREVIEW_CACHE);
+  await Promise.all(urls.map((url) => cache.delete(url)));
+  const cached = readObject('cached');
+  delete cached[sourceId];
+  writePref('cached', cached);
 }
 
 // Remember how many previews of a folder are on this device, for the home page.

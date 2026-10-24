@@ -10,6 +10,7 @@ npm install
 | Script | What it does | Reusable elsewhere |
 |---|---|---|
 | `brand-assets.mjs` | Writes every logo file: the SVG sources in `docs/brand/` and the icons in `web/icons/` | No. The logo's shapes, colours and file list are written into it |
+| `icons.mjs` | Copies the Lucide icons the app uses into `web/index.html` as one sprite. Run it from the repository root (`node tools/icons.mjs`); it needs none of the dependencies below | No. It looks for the way this app names its icons |
 | `outline-text.mjs` | Turns a line of text into SVG path data, so the text keeps its shape without the font installed | Yes. Works with any `.ttf`, `.otf` or `.woff` file |
 | `lightroom-terms.mjs` | Reads what Lightroom Classic calls flags, ratings, labels, folders and so on in each of its languages, and writes `lightroom-terms.json` | Yes, for any tool that talks about Lightroom. Edit the list of terms at the top |
 

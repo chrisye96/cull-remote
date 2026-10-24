@@ -1,12 +1,13 @@
-import { isUnmarked } from './state.js';
+import { matchesFilter } from './state.js';
 import { t } from './i18n.js';
 
 // Measured averages per preview, see docs/spike-results.md.
 export const AVG_BYTES = { std: 210 * 1024, hd: 574 * 1024 };
 
-// Which photos a caching run covers, in viewing order. A limit of 0 means no limit.
-export function pickForCache(photos, mode, limit = 0) {
-  const wanted = mode === 'all' ? photos : photos.filter(isUnmarked);
+// Which photos a caching run covers, in viewing order: those a filter of the viewer would
+// list ("all", "unmarked" or one mark filter). A limit of 0 means no limit.
+export function pickForCache(photos, filter, limit = 0) {
+  const wanted = photos.filter((photo) => matchesFilter(photo, filter));
   return limit > 0 ? wanted.slice(0, limit) : wanted;
 }
 
@@ -34,6 +35,22 @@ export const COVERED_BY = { std: ['std', 'hd'], hd: ['hd'] };
 // The photos that still need a download at `size`. `have` holds the cached preview URLs.
 export function uncached(photos, size, have, urlFor) {
   return photos.filter((photo) => !COVERED_BY[size].some((cachedSize) => have.has(urlFor(photo.id, cachedSize))));
+}
+
+// The quality a preview URL asks for, or null. Offline the service worker answers a request
+// with another cached size of the photo, and the response keeps that size's URL.
+export const sizeOf = (url) => (url ? new URL(url, 'http://local').searchParams.get('size') : null);
+
+// The cached previews of `photos`, of every size, and how many of the photos have one.
+export function cachedOf(photos, have, urlFor) {
+  const urls = [];
+  let count = 0;
+  for (const photo of photos) {
+    const mine = Object.keys(AVG_BYTES).map((size) => urlFor(photo.id, size)).filter((url) => have.has(url));
+    if (mine.length) count += 1;
+    urls.push(...mine);
+  }
+  return { urls, count };
 }
 
 // Second line and state of one choice in the caching dialog. `count` photos are covered

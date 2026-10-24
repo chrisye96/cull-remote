@@ -91,6 +91,9 @@ export function initSettings(onBack, onLanguage) {
   bindSelect('set-filter', 'defaultFilter', FILTERS, 'unmarked');
   bindCheckbox('set-left-hand', 'leftHand', false, applyLeftHand);
   applyLeftHand();
+  bindCheckbox('set-info-histogram', 'showHistogram', true);
+  bindCheckbox('set-info-exposure', 'showExposure', true);
+  bindCheckbox('set-info-lens', 'showLens', true);
   bindCheckbox('set-auto-cache', 'autoCache', true);
   bindSelect('set-auto-limit', 'autoCacheLimit', AUTO_CACHE_LIMITS, '500');
   $('clear-cache').addEventListener('click', async () => {
