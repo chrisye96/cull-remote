@@ -37,6 +37,10 @@ export function uncached(photos, size, have, urlFor) {
   return photos.filter((photo) => !COVERED_BY[size].some((cachedSize) => have.has(urlFor(photo.id, cachedSize))));
 }
 
+// The quality a preview URL asks for, or null. Offline the service worker answers a request
+// with another cached size of the photo, and the response keeps that size's URL.
+export const sizeOf = (url) => (url ? new URL(url, 'http://local').searchParams.get('size') : null);
+
 // The cached previews of `photos`, of every size, and how many of the photos have one.
 export function cachedOf(photos, have, urlFor) {
   const urls = [];

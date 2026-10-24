@@ -56,7 +56,7 @@ function cacheSign(source) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = cached ? 'source-cache done' : 'source-cache';
-  button.setAttribute('aria-label', t(cached ? 'source.cached' : 'source.cache'));
+  button.setAttribute('aria-label', t(cached ? 'source.cached' : 'source.cache', { name: source.name }));
   button.append(icon(cached ? 'circle-check' : 'circle-arrow-down'));
   button.addEventListener('click', () => openCacheDialog(source));
   return button;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, cachedOf, estimateCached, runPool } from '../web/js/cacheplan.js';
+import { pickForCache, estimateBytes, formatBytes, cacheChoice, uncached, cachedOf, estimateCached, sizeOf, runPool } from '../web/js/cacheplan.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -55,6 +55,12 @@ test('cachedOf lists the cached previews of a folder, every size, and counts its
   const have = new Set(['/a?std', '/a?hd', '/b?hd', '/z?std']);
   assert.deepEqual(cachedOf(photos, have, urlFor), { urls: ['/a?std', '/a?hd', '/b?hd'], count: 2 });
   assert.deepEqual(cachedOf(photos, new Set(), urlFor), { urls: [], count: 0 });
+});
+
+test('sizeOf reads the quality a preview response is for, so a stand-in of another size is caught', () => {
+  assert.equal(sizeOf('http://host:47800/api/preview/abc?size=hd'), 'hd');
+  assert.equal(sizeOf('/api/preview/abc?size=std&retry=2'), 'std');
+  assert.equal(sizeOf(''), null);
 });
 
 test('estimateCached adds up the average size of each cached preview by its quality', () => {

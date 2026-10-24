@@ -47,6 +47,13 @@ export function filterLabel(filter) {
   return t(`label.${filter}`);
 }
 
+// What a filter is called out loud, for screen readers: a rating in words, not a star sign.
+export function filterName(filter) {
+  if (!filter.startsWith('star')) return filterLabel(filter);
+  const n = Number.parseInt(filter.slice(4), 10);
+  return t(filter.endsWith('+') ? 'filter.starsOrMore' : 'mark.stars', { n });
+}
+
 // Tapping the value that is already active clears it, as Lightroom does.
 export function toggledValue(photo, field, value) {
   return photo[KEY[field]] === value ? CLEARED[field] : value;
