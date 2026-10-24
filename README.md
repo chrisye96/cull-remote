@@ -68,7 +68,7 @@ The same address works at home and away. At home Tailscale connects directly ove
 
 The grid gives an overview of a folder and a way to jump to a photo. It only shows: marking is done on the single photo.
 
-- It lists the same photos as the viewer and follows the "Unmarked" or "All" filter
+- It lists the same photos as the viewer and follows its filter
 - Each thumbnail carries the photo's marks: a flag or a reject sign, a star with its count, and the colour label as a strip along the bottom edge. Rejected photos are dimmed
 - Tap a thumbnail to open that photo. Back in the grid, the photo you came from is outlined and scrolled into view
 - The grid button takes you back to the single photo
@@ -88,7 +88,7 @@ The viewer takes the keys Lightroom uses.
 | `0` | Clear the rating |
 | `6` to `9` | Red, yellow, green and blue label |
 | `G` | Open or close the thumbnail grid |
-| `Esc` | Leave the grid |
+| `Esc` | Leave the grid, or close the filter menu |
 
 While the grid is open the marking keys do nothing.
 

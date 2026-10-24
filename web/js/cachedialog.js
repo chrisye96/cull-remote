@@ -7,7 +7,9 @@ import { cachePhotos, cachedUrls, recordCached, deletePreviews } from './cacher.
 import { stopAutoCache } from './autocache.js';
 import { pickForCache, cacheChoice, uncached, cachedOf, estimateCached, formatBytes } from './cacheplan.js';
 import { previewSize } from './quality.js';
-import { sortPhotos, tallyMarks, filterLabel } from './state.js';
+import { sortPhotos, tallyMarks, filterLabel, filterName } from './state.js';
+import { applyQueued } from './queue.js';
+import { pendingOps } from './sync.js';
 import { readChoice, PHOTO_SORTS } from './prefs.js';
 import { buildMarkMenu } from './markmenu.js';
 
@@ -18,33 +20,14 @@ let mark = null; // The mark filter picked in the panel, if any.
 let drawMarks = () => {}; // Set by initCacheDialog.
 let busy = false; // A run is in progress: the choices give way to its progress.
 let confirming = false; // Delete was tapped once and now asks to be tapped again.
+let askedAt = 0; // When the question appeared.
+// A second tap sooner than this is a double tap or a bouncing finger, not an answer.
+const CONFIRM_AFTER_MS = 500;
 
 let current = null; // { source, photos, size, have } once the folder's list has loaded
 let run = null; // AbortController of the run in progress
 let openSeq = 0; // Bumped on every open; a slow list for an earlier folder is dropped.
 let onChange = () => {};
-
-// DIAG (temporary): shows where the time of opening the dialog goes. Kept until the
-// away-from-home reading has been taken, then remove.
-const diagLines = [];
-const ms = Math.round;
-function diagShow() {
-  let el = $('cache-diag');
-  if (!el) {
-    el = document.createElement('pre');
-    el.id = 'cache-diag';
-    el.style.cssText = 'margin:0;font-size:11px;white-space:pre-wrap;user-select:text';
-    $('cache-dialog').querySelector('.dialog-body').append(el);
-  }
-  el.textContent = diagLines.join('\n');
-}
-// The newest request to `path`: time to the first byte, download time and the server's own figures.
-function diagFetch(path) {
-  const e = performance.getEntriesByType('resource').filter((x) => new URL(x.name).pathname === path).at(-1);
-  if (!e) return 'no request seen';
-  const server = (e.serverTiming ?? []).map((t) => `${t.name} ${ms(t.duration)}`).join(', ');
-  return `first byte ${ms(e.responseStart - e.startTime)} + download ${ms(e.responseEnd - e.responseStart)} (${ms(e.encodedBodySize / 1024)} KB) | server: ${server || 'n/a'}`;
-}
 
 function setBusy(now) {
   busy = now;
@@ -80,6 +63,7 @@ function describe() {
   if (mark) {
     marked.querySelector('.choice-title').textContent = t('cache.marked', { mark: filterLabel(mark) });
     describeChoice(marked, mark);
+    marked.setAttribute('aria-label', `${t('cache.marked', { mark: filterName(mark) })}, ${marked.querySelector('.choice-detail').textContent}`);
   }
   // Deleting is offered once the folder has previews on this device. The first tap only
   // turns the button into the question, with what would go.
@@ -94,13 +78,19 @@ function describe() {
 async function removeCached() {
   if (!confirming) {
     confirming = true;
+    askedAt = Date.now();
     describe();
     $('cache-delete').scrollIntoView({ block: 'nearest' }); // The question is longer than the offer.
     return;
   }
+  if (Date.now() - askedAt < CONFIRM_AFTER_MS) return;
   confirming = false;
-  const { source, photos, have } = current;
+  // A run started by opening the folder at home would bring the previews straight back.
+  stopAutoCache();
+  const { source, photos } = current;
   try {
+    // Counted again: the run just stopped may have added previews since the dialog opened.
+    const have = await cachedUrls();
     await deletePreviews(source.id, cachedOf(photos, have, previewUrl).urls);
   } catch {
     refreshHave(openSeq); // Show what is really left instead of claiming it is gone.
@@ -114,11 +104,8 @@ async function removeCached() {
 // Which previews are already on the device; counting a large cache takes a moment,
 // so the choices are shown first and corrected when this arrives.
 async function refreshHave(token) {
-  const startedAt = performance.now();
   const have = await cachedUrls().catch(() => new Set());
   if (token !== openSeq || !current) return;
-  diagLines.push(`count ${ms(performance.now() - startedAt)} ms (${have.size} cached previews)`);
-  diagShow();
   current.have = have;
   describe();
 }
@@ -209,35 +196,19 @@ export async function openCacheDialog(source) {
   const size = previewSize();
   let photos;
   let info;
-  // The browser keeps only 250 request timings, and a caching run fills that.
-  performance.clearResourceTimings();
-  diagLines.length = 0;
-  diagLines.push('timing: waiting for the list');
-  diagShow();
-  const t0 = performance.now();
-  let t1 = t0;
   try {
     const loaded = await loadPhotos(source.id);
-    t1 = performance.now();
     if (loaded.stale) throw new Error('network'); // Caching needs the computer.
+    // Marks still waiting to sync count, as they do in the viewer, so a filter here picks
+    // the photos the viewer would list.
+    applyQueued(loaded.data, pendingOps());
     photos = sortPhotos(loaded.data, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     info = await getInfo().catch(() => ({ atHome: null }));
   } catch (e) {
-    if (token === openSeq) {
-      $('cache-note').textContent = t('cache.loadFailed', { reason: messageFor(e.message) });
-      diagLines.splice(0, 1, `list failed (${e.message}) after ${ms(performance.now() - t0)} ms: ${diagFetch('/api/photos')}`);
-      diagShow();
-    }
+    if (token === openSeq) $('cache-note').textContent = t('cache.loadFailed', { reason: messageFor(e.message) });
     return;
   }
-  const t2 = performance.now();
   if (token !== openSeq || !$('cache-dialog').open) return;
-  diagLines.splice(0, 1,
-    `list ${ms(t1 - t0)} ms: ${diagFetch('/api/photos')}`,
-    `info ${ms(t2 - t1)} ms (atHome ${info.atHome}): ${diagFetch('/api/info')}`,
-    `until choices ${ms(t2 - t0)} ms`,
-  );
-  diagShow();
   current = { source, photos, size, have: new Set() };
   const summary = t('cache.summary', { photos: t('count.photos', { n: photos.length }), quality: t(`quality.${size}`) });
   $('cache-note').textContent = info.atHome === true ? summary : t('common.twoSentences', { first: summary, second: t('cache.away') });

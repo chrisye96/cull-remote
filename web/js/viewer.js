@@ -4,8 +4,8 @@ import { loadPhotos, savePhotos } from './data.js';
 import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js';
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
-import { t } from './i18n.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterLabel, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { t, getLang } from './i18n.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterName, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
@@ -105,10 +105,12 @@ function renderFilter() {
   const button = $('mark-filter');
   button.hidden = all.length === 0;
   button.classList.toggle('scoped', filter === 'unrejected');
-  if (button.dataset.shows !== filter) {
-    button.dataset.shows = filter;
+  // Redrawn when the filter or the language changed since the last time.
+  const shows = `${filter}|${getLang()}`;
+  if (button.dataset.shows !== shows) {
+    button.dataset.shows = shows;
     $('mark-sign').replaceChildren(marked ? filterSign(filter) : icon('funnel'));
-    $('mark-name').textContent = marked || filter === 'unrejected' ? `${t('filter.label')} ${filterLabel(filter)}` : t('filter.label');
+    $('mark-name').textContent = marked || filter === 'unrejected' ? `${t('filter.label')} ${filterName(filter)}` : t('filter.label');
   }
 }
 

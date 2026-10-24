@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, tallyMarks } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, filterName, tallyMarks } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -369,6 +369,15 @@ test('tallyMarks counts what every mark filter would show, in one pass', () => {
   assert.equal(counts.star3, 1);
   assert.equal(counts['star3+'], 2);
   assert.equal(counts.star5, 1);
+});
+
+test('filterName says every filter in words, ratings included, for screen readers', () => {
+  assert.equal(filterName('star3'), '3 星');
+  assert.equal(filterName('star3+'), '3 星及以上');
+  assert.equal(filterName('star5'), '5 星');
+  assert.equal(filterName('pick'), '留用');
+  assert.equal(filterName('unrejected'), '未排除');
+  assert.equal(filterName('purple'), '紫色');
 });
 
 test('filterLabel names flags and colours in words and ratings as a star and a number', () => {

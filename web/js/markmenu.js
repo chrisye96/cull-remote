@@ -1,6 +1,6 @@
 import { t } from './i18n.js';
 import { markSign } from './grid.js';
-import { MARK_FILTERS, filterLabel } from './state.js';
+import { MARK_FILTERS, filterName } from './state.js';
 
 // The mark filters as a panel of buttons, two to a row: the two flags, each rating beside its
 // "or more" (five stars has none: five or more is five), and the five colours in one line. Every button carries the number of photos it
@@ -52,7 +52,7 @@ export function buildMarkMenu(box, onPick) {
   return (counts, selected) => {
     for (const [name, button] of buttons) {
       const count = String(counts[name]);
-      const label = `${filterLabel(name)}, ${count}`;
+      const label = `${filterName(name)}, ${count}`;
       if (button.getAttribute('aria-label') === label && button.getAttribute('aria-pressed') === String(name === selected)) continue;
       button.setAttribute('aria-label', label);
       button.setAttribute('aria-pressed', String(name === selected));
