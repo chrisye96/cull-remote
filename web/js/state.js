@@ -14,6 +14,8 @@ export const MARK_FILTERS = ['pick', 'reject', 'star1', 'star1+', 'star2', 'star
 export function matchesFilter(photo, filter) {
   if (filter === 'all') return true;
   if (filter === 'unmarked') return isUnmarked(photo);
+  // Everything still in play: a later pass sees what an earlier one rated beside the rest.
+  if (filter === 'unrejected') return photo.pick !== -1;
   if (filter === 'pick') return photo.pick === 1;
   if (filter === 'reject') return photo.pick === -1;
   if (filter.startsWith('star')) {
@@ -39,7 +41,7 @@ export function tallyMarks(photos) {
 // What a filter is called in the menu. A rating needs no words: a star and the number, as on
 // a thumbnail, and a plus for "or more".
 export function filterLabel(filter) {
-  if (filter === 'unmarked' || filter === 'all') return t(`filter.${filter}`);
+  if (filter === 'unmarked' || filter === 'unrejected' || filter === 'all') return t(`filter.${filter}`);
   if (filter === 'pick' || filter === 'reject') return t(`mark.${filter}`);
   if (filter.startsWith('star')) return `\u2605${filter.slice(4)}`;
   return t(`label.${filter}`);

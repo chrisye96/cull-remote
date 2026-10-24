@@ -334,6 +334,14 @@ test('matchesFilter keeps one flag, one rating, a minimum rating or one colour l
   assert.equal(matchesFilter(blank(), 'star1+'), false);
 });
 
+test('matchesFilter "unrejected" keeps every photo that is not rejected, marked or not', () => {
+  assert.equal(matchesFilter(blank(), 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), rating: 3 }, 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), pick: 1, label: 'red' }, 'unrejected'), true);
+  assert.equal(matchesFilter({ ...blank(), pick: -1 }, 'unrejected'), false);
+  assert.equal(matchesFilter({ ...blank(), pick: -1, rating: 5 }, 'unrejected'), false);
+});
+
 test('matchesFilter tells exactly N stars from N stars or more', () => {
   const three = { ...blank(), rating: 3 };
   assert.equal(matchesFilter(three, 'star3'), true);
@@ -366,6 +374,7 @@ test('tallyMarks counts what every mark filter would show, in one pass', () => {
 test('filterLabel names flags and colours in words and ratings as a star and a number', () => {
   assert.equal(filterLabel('unmarked'), '未标记');
   assert.equal(filterLabel('all'), '全部');
+  assert.equal(filterLabel('unrejected'), '未排除');
   assert.equal(filterLabel('pick'), '留用');
   assert.equal(filterLabel('reject'), '排除');
   assert.equal(filterLabel('star3'), '\u26053');
