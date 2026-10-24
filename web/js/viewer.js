@@ -23,7 +23,7 @@ const LAST_PHOTO_CAP = 100; // Folders whose last viewed photo is remembered on 
 let all = [];
 let list = [];
 let index = 0;
-let filter = 'unmarked'; // 'unmarked', 'all' or one of MARK_FILTERS.
+let filter = 'unmarked'; // 'unmarked', 'unrejected', 'all' or one of MARK_FILTERS.
 let sourceName = '';
 let notice = ''; // Shown in #empty when there is no photo (loading, open failure).
 let openSeq = 0; // Bumped on every open and on Back; stale getPhotos results are dropped.
@@ -86,26 +86,29 @@ function applyFilter(keepPhotoId = null) {
   index = indexAfterFilter(list, keepPhotoId);
 }
 
-// Both options stay visible with live counts; the active one is highlighted.
-// The buttons are static markup: only the count text and aria-pressed change.
+// The scope buttons, beside the photo and at the top of the menu, stay visible with live
+// counts; the active one is highlighted. They are static markup: only the count text and
+// aria-pressed change.
 function renderFilter() {
-  const unmarked = all.filter(isUnmarked).length;
-  for (const button of $('filter').querySelectorAll('button')) {
-    const isAll = button.dataset.filter === 'all';
+  const tally = tallyMarks(all);
+  const counts = { unmarked: all.filter(isUnmarked).length, unrejected: all.length - tally.reject, all: all.length };
+  for (const button of document.querySelectorAll('#filter button, #mark-scope button')) {
     const countEl = button.querySelector('.count');
-    const count = String(isAll ? all.length : unmarked);
+    const count = String(counts[button.dataset.filter]);
     if (countEl.textContent !== count) countEl.textContent = count;
     button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
   }
-  drawMarkMenu(tallyMarks(all), filter);
+  drawMarkMenu(tally, filter);
   // The icon in the tool row says which mark filter is on: its flag, its stars or its colour.
+  // "Not rejected" has no mark of its own, so the funnel takes the accent colour instead.
   const marked = MARK_FILTERS.includes(filter);
   const button = $('mark-filter');
   button.hidden = all.length === 0;
+  button.classList.toggle('scoped', filter === 'unrejected');
   if (button.dataset.shows !== filter) {
     button.dataset.shows = filter;
     $('mark-sign').replaceChildren(marked ? filterSign(filter) : icon('funnel'));
-    $('mark-name').textContent = marked ? `${t('filter.label')} ${filterLabel(filter)}` : t('filter.label');
+    $('mark-name').textContent = marked || filter === 'unrejected' ? `${t('filter.label')} ${filterLabel(filter)}` : t('filter.label');
   }
 }
 
@@ -117,6 +120,7 @@ const MENU_GAP_PX = 6; // Between the funnel and its menu, and between the menu 
 // closes it, and cannot also land on a mark button or step to another photo.
 function initMarkMenu() {
   const menu = $('mark-menu');
+  const panel = menu.querySelector('.mark-menu');
   const button = $('mark-filter');
   button.addEventListener('click', () => {
     // Beside its button: below it, or above when the button sits in the lower half of the
@@ -130,13 +134,22 @@ function initMarkMenu() {
     // Its width is known only now, and nothing has been drawn yet: start at the funnel's
     // left edge, pulled back as far as it takes to stay on screen.
     menu.style.left = `${Math.max(MENU_GAP_PX, Math.min(at.left, window.innerWidth - menu.offsetWidth - MENU_GAP_PX))}px`;
-    menu.firstElementChild.focus(); // Not the first button: it would open with a focus ring.
+    // Not the first button: it would open with a focus ring. Without moving: on a short screen
+    // the menu scrolls, and it must open at its top.
+    panel.focus({ preventScroll: true });
   });
   // The panel fills the menu, so a tap whose target is the menu itself fell outside it.
   menu.addEventListener('click', (event) => {
     if (event.target === menu) menu.close();
   });
-  drawMarkMenu = buildMarkMenu(menu.firstElementChild, (name) => {
+  // The scope row picks unmarked, not rejected or all, like the buttons beside the photo.
+  $('mark-scope').addEventListener('click', (event) => {
+    const choice = event.target.closest('button');
+    if (!choice) return;
+    menu.close();
+    setFilter(choice.dataset.filter);
+  });
+  drawMarkMenu = buildMarkMenu(panel, (name) => {
     menu.close();
     setFilter(name === filter ? 'all' : name);
   });

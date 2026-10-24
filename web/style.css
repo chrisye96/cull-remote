@@ -304,6 +304,16 @@ button.pending { animation: pending 1s ease-in-out infinite; }
 /* Nothing dims: it is a menu, and the photo behind it stays as it was. */
 #mark-menu::backdrop { background: transparent; }
 #mark-menu .mark-menu { padding: 6px; outline: none; }
+/* The scope row at the top of the menu: unmarked, not rejected or all. It never decides the
+   menu's width (no width of its own, at least the full width), so it is as wide as the marks
+   below, and its words wrap when a language runs long. Its padding is part of the menu, so a
+   near miss does not close it. */
+#mark-menu .menu-scope { box-sizing: border-box; width: 0; min-width: 100%; padding: 6px 6px 0; }
+/* A word that wraps makes its button taller than the others: the words start at the top and
+   the counts sit at the bottom, so the three counts stay on one line. */
+#mark-scope button { display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; min-height: 44px; padding: 5px 2px; font-size: 13px; line-height: 1.25; white-space: normal; }
+#mark-scope .count { margin: 0; }
+#mark-filter.scoped { color: var(--accent); }
 /* The mark filters, two to a row; the colours share one row. Also used outside the menu.
    A count sits right after its mark, and the rest of the button is room to tap. */
 .mark-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; }
