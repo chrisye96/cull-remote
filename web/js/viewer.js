@@ -120,7 +120,7 @@ const MENU_GAP_PX = 6; // Between the funnel and its menu, and between the menu 
 // closes it, and cannot also land on a mark button or step to another photo.
 function initMarkMenu() {
   const menu = $('mark-menu');
-  const panel = menu.querySelector('.mark-menu');
+  const panel = $('mark-panel');
   const button = $('mark-filter');
   button.addEventListener('click', () => {
     // Beside its button: below it, or above when the button sits in the lower half of the
@@ -142,7 +142,7 @@ function initMarkMenu() {
   menu.addEventListener('click', (event) => {
     if (event.target === menu) menu.close();
   });
-  // The scope row picks unmarked, not rejected or all, like the buttons beside the photo.
+  // The rows at the top pick unmarked, not rejected or all, like the buttons beside the photo.
   $('mark-scope').addEventListener('click', (event) => {
     const choice = event.target.closest('button');
     if (!choice) return;
