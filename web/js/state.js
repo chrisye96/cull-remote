@@ -106,6 +106,12 @@ export function indexAfterFilter(list, photoId) {
   return at === -1 ? 0 : at;
 }
 
+// The filter a folder opens on. With nothing left unmarked, "unmarked" would open on an empty
+// screen: a smart collection of rated photos always does, a finished folder does on its return.
+export function openingFilter(photos, preferred) {
+  return preferred === 'unmarked' && photos.length > 0 && !photos.some(isUnmarked) ? 'all' : preferred;
+}
+
 // What the confirmation flash shows right after a mark is applied. `tone` gives pick and
 // reject the colour they have everywhere else.
 export function markSummary(field, value) {
