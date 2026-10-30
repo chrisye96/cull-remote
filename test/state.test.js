@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, filterName, tallyMarks } from '../web/js/state.js';
+import { sizeFor, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, openingFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, formatShutter, exposureText, lensText, histogram, smoothBins, createLoadQueue, MARK_FILTERS, matchesFilter, filterLabel, filterName, tallyMarks } from '../web/js/state.js';
 import { setLang } from '../web/js/i18n.js';
 
 // These tests pin the original Simplified Chinese wording.
@@ -103,6 +103,25 @@ test('indexAfterFilter stays on the same photo when it is still listed', () => {
   assert.equal(indexAfterFilter(list, 'zz'), 0);
   assert.equal(indexAfterFilter(list, null), 0);
   assert.equal(indexAfterFilter([], 'a'), 0);
+});
+
+test('openingFilter shows everything when a folder has photos but none unmarked', () => {
+  const marked = [{ ...blank(), rating: 3 }, { ...blank(), label: 'green' }, { ...blank(), pick: -1 }];
+  assert.equal(openingFilter(marked, 'unmarked'), 'all');
+});
+
+test('openingFilter stays on unmarked while one photo is still unmarked', () => {
+  assert.equal(openingFilter([{ ...blank(), rating: 3 }, blank()], 'unmarked'), 'unmarked');
+});
+
+test('openingFilter stays on unmarked for a folder with no photos, so its own message shows', () => {
+  assert.equal(openingFilter([], 'unmarked'), 'unmarked');
+});
+
+test('openingFilter leaves any other filter alone', () => {
+  const marked = [{ ...blank(), pick: 1 }];
+  assert.equal(openingFilter(marked, 'all'), 'all');
+  assert.equal(openingFilter(marked, 'pick'), 'pick');
 });
 
 test('markSummary describes every kind of mark for the confirmation flash', () => {

@@ -5,7 +5,7 @@ import { pushOp, hasPending, photoPending, pendingOps, getLink } from './sync.js
 import { applyQueued } from './queue.js';
 import { messageFor } from './messages.js';
 import { t, getLang } from './i18n.js';
-import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterName, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
+import { KEY, isUnmarked, toggledValue, setField, shouldAdvance, parseValue, mergeFresh, indexAfterFilter, openingFilter, markSummary, badgeParts, nextRefreshDelay, sortPhotos, swipeFlag, gestureMark, pullProgress, pullOpacity, tapZone, resumeIndex, rememberCapped, exposureText, lensText, histogram, smoothBins, MARK_FILTERS, matchesFilter, filterName, tallyMarks, FLAG_SWIPE_EDGE_PX } from './state.js';
 import { readChoice, readObject, readPref, writePref, PHOTO_SORTS, ADVANCE_RULES, FILTERS } from './prefs.js';
 import { HD_QUERY, previewSize } from './quality.js';
 import { maybeAutoCache } from './autocache.js';
@@ -765,6 +765,7 @@ export async function openViewer(nextSource) {
     fromLightroom = !stale;
     all = sortPhotos(photos, readChoice('photoSort', PHOTO_SORTS, 'time-asc'));
     applyQueued(all, pendingOps()); // Marks still waiting to sync win over the list.
+    filter = openingFilter(all, filter);
     notice = '';
   } catch (e) {
     if (token !== openSeq) return;

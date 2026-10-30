@@ -58,6 +58,7 @@ The same address works at home and away. At home Tailscale connects directly ove
 - A gesture never clears a flag: repeating it on a photo that already has that flag just moves on
 - Pick and reject jump to the next photo; stars and labels stay on the current one. Settings can make every mark advance, or none
 - Switching the filter keeps you on the current photo when it is in the new list
+- A folder or collection with no unmarked photos left opens on "All", whatever the setting says. This is what you want from a smart collection of rated photos, for instance one you build in Lightroom to pick a portfolio from the whole catalog
 - A mark filter shows one kind of photo at a time, for a second or third pass. "Not rejected" shows every photo but the rejects, so a later pass still sees what an earlier one rated. The menu starts with "Unmarked", "Not rejected" and "All", then shows each mark with the number of photos it would show: the two flags, the ratings two to a row ("★3" is exactly three stars, "★3+" is three or more) and the five colours. While one is on, the funnel turns into that mark; tap it again in the menu, or tap "Unmarked" or "All", to leave it
 - Marks refresh from Lightroom automatically, so changes made on another device or undone in Lightroom show up within a few seconds
 - In landscape the controls move to a slim rail on the right: pick over the stars, reject over the colour labels. Left-hand mode in settings puts the rail on the left
