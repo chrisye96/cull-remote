@@ -7,9 +7,9 @@
 
 # Cull Remote for Adobe Lightroom Classic
 
-[English](README.md) | 简体中文
+[English](README.md) | **简体中文** | [繁體中文](README.zh-TW.md)
 
-在 iPhone 或 iPad 上给电脑里 Lightroom Classic 的照片打旗标、星级和色标。
+在 iPhone 或 iPad 上筛选 Lightroom Classic 的照片：给电脑上目录里的照片打留用和排除旗标、星级和色标。
 
 所有写入都由 Lightroom 通过官方 SDK 完成，本工具从不直接打开目录文件；手机上的每次标记在 Lightroom 里都是一条可以 `编辑 > 还原` 的记录。
 
@@ -143,7 +143,7 @@
 
 - **网页顶部提示"Lightroom 未运行"。** 确认 Lightroom 已打开且增效工具状态为"已安装并正在运行"。仍不行时，点 `图库 > 增效工具额外信息 > Cull Remote: start bridge` 手动重启增效工具的连接
 - **增效工具日志。** `%TEMP%\cull-remote-plugin.log` 记录启动、退出和出错的命令
-- **在电脑本机打开地址超时。** 访问 `https://<机器名>.ts.net` 可能超时，这是 Windows 没有使用 MagicDNS 解析，不影响手机和平板
+- **在电脑本机打开地址超时。** Windows 不解析 MagicDNS 名称时，在电脑上访问 `https://<机器名>.ts.net` 可能会超时。手机和平板不受影响
 - **在 Safari 里滑动时离开了页面。** 从屏幕左边缘右滑是浏览器的"后退"手势。从主屏幕图标打开可以避免
 
 ## 组成
