@@ -32,7 +32,7 @@
 1. 開啟 Lightroom Classic。
    - 在 Windows 上，增效模組會自行在背景啟動伴隨伺服器，不會出現視窗。Lightroom 結束約一分鐘後，伺服器也會結束。前提是 `node` 在 PATH 中，且增效模組留在這個資料夾內，因為它是在自己旁邊找到伺服器的。伺服器的輸出寫在 `.cache/server.log`
    - 在 macOS 上，或你偏好使用終端機時，開啟 Lightroom 後執行 `npm start`。增效模組會使用已在執行的伺服器，不會再啟動一個
-2. 要配對裝置，請在 Lightroom 中選擇「圖庫 > 增效模組額外功能 > Cull Remote: show address and QR code」（`Library > Plug-in Extras > Cull Remote: show address and QR code`）。瀏覽器會開啟設定頁面，顯示 tailnet 位址和 QR Code。`npm start` 也會在終端機裡印出同樣的位址和 QR Code
+2. 要配對裝置，請在 Lightroom 中選擇「圖庫 > 增效模組額外資訊 > Cull Remote: show address and QR code」（`Library > Plug-in Extras > Cull Remote: show address and QR code`）。瀏覽器會開啟設定頁面，顯示 tailnet 位址和 QR Code。`npm start` 也會在終端機裡印出同樣的位址和 QR Code
 3. 開啟 Tailscale，用 iPhone 或 iPad 掃描 QR Code。在 Safari 中使用「加入主畫面」，就能以全螢幕應用程式的方式使用
 
 在家和外出都用同一個位址。在家時，Tailscale 會透過區域網路直接連線。
@@ -141,7 +141,7 @@
 
 ## 疑難排解
 
-- **網頁顯示 Lightroom 沒有在執行。** 請確認 Lightroom 已開啟，且增效模組的狀態為「已安裝並在執行中」（Installed and running）。如果仍然失敗，請用「圖庫 > 增效模組額外功能 > Cull Remote: start bridge」（`Library > Plug-in Extras > Cull Remote: start bridge`）重新啟動增效模組的連線
+- **網頁顯示 Lightroom 沒有在執行。** 請確認 Lightroom 已開啟，且增效模組的狀態為「已安裝且正在執行」（Installed and running）。如果仍然失敗，請用「圖庫 > 增效模組額外資訊 > Cull Remote: start bridge」（`Library > Plug-in Extras > Cull Remote: start bridge`）重新啟動增效模組的連線
 - **增效模組記錄檔。** `%TEMP%\cull-remote-plugin.log` 會記錄啟動、結束和執行失敗的指令
 - **在電腦本機上開啟位址會逾時。** 在電腦上開啟 `https://<machine>.ts.net` 時，如果 Windows 不解析 MagicDNS 名稱，就可能逾時。手機和平板不受影響
 - **在 Safari 中滑動時離開了頁面。** 從螢幕左邊緣滑動是瀏覽器的返回手勢。從主畫面圖示開啟應用程式即可避免
