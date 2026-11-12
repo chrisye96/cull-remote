@@ -7,7 +7,7 @@
 
 # Cull Remote for Adobe Lightroom Classic
 
-English | [简体中文](README.zh-CN.md)
+**English** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
 Cull Lightroom Classic photos from an iPhone or iPad: set pick and reject flags, star ratings and colour labels on the catalog that lives on your computer.
 
