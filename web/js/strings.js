@@ -265,7 +265,7 @@ export const STRINGS = {
     'cache.keepOpen': '预览图只保存在这台设备上。缓存期间请保持这个页面在前台，不要锁屏；中断后再点一次会从断点继续。',
     'cache.loading': '正在读取照片列表',
     'cache.loadFailed': '读取失败：{reason}',
-    'cache.summary': '共 {photos}，{quality}清晰度。',
+    'cache.summary': '共 {photos}，清晰度：{quality}。',
     'cache.away': '当前不在家里的网络，或无法判断，下载可能会用到蜂窝流量。',
     'cache.progress': '已缓存 {done} / {total}',
     'cache.endFailed': '已缓存 {cached} 张，{failed} 张失败，再点一次可以重试',
