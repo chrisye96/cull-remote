@@ -87,7 +87,9 @@ li.group-end .source-row { border-bottom-left-radius: 12px; border-bottom-right-
 /* The dialog element keeps its own display and sizing; the layout lives in .dialog-body, so no
    engine can stretch the rows when it sizes the dialog box differently. */
 dialog { width: min(92vw, 440px); padding: 0; border: 1px solid #333; border-radius: 14px; background: var(--panel); color: var(--text); }
-.dialog-body { display: grid; gap: 12px; align-content: start; padding: 18px; }
+/* The one column is capped at the box: an auto column grows to the widest unbreakable line,
+   and a long folder name in the title then pushed every row past the right edge. */
+.dialog-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; padding: 18px; }
 dialog::backdrop { background: rgba(0, 0, 0, .6); }
 dialog h2 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 dialog p { margin: 0; font-size: 14px; }
